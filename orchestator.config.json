@@ -1,0 +1,50 @@
+{
+  "projectName": "PROJECT_NAME_HERE",
+  "maxConcurrent": 5,
+  "pollIntervalSeconds": 30,
+  "taskTimeoutMinutes": 30,
+
+  "repos": {
+    "backend": "ABSOLUTE_PATH_TO_BACKEND",
+    "frontend": "ABSOLUTE_PATH_TO_FRONTEND"
+  },
+  "agents": {
+    "Backend": {
+      "cli": "claude",
+      "defaultRepo": "backend",
+      "model": "sonnet",
+      "instructionsFile": "agents/BACKEND.md"
+    },
+    "Frontend": {
+      "cli": "claude",
+      "defaultRepo": "frontend",
+      "model": "sonnet",
+      "instructionsFile": "agents/FRONTEND.md"
+    },
+    "Codex": {
+      "cli": "codex",
+      "defaultRepo": "backend",
+      "instructionsFile": "agents/CODEX.md"
+    },
+    "Gemini": {
+      "cli": "gemini",
+      "defaultRepo": "backend",
+      "instructionsFile": "agents/GEMINI.md"
+    },
+    "OpenCode": {
+      "cli": "opencode",
+      "defaultRepo": "backend",
+      "instructionsFile": "agents/OPENCODE.md"
+    },
+    "Cursor": {
+      "cli": "cursor",
+      "defaultRepo": "backend",
+      "instructionsFile": "agents/CURSOR.md"
+    },
+    "Abacus": {
+      "cli": "abacusai",
+      "defaultRepo": "backend",
+      "instructionsFile": "agents/ABACUS.md"
+    }
+  }
+}
