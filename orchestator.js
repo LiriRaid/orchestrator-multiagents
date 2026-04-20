@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ============================================================================
-// Multi-Agent Orchestator TUI
+// Orchestator MultiAgents TUI
 // Dispatch tasks to multiple AI coding agents from a single dashboard.
 // Supports: Claude Code, Codex, Gemini CLI, OpenCode, Cursor, Abacus AI
 // Usage: node orchestator.js [options]
@@ -101,7 +101,7 @@ const LOG_DIR = path.join(WORKSPACE, "logs");
 
 const REPOS = config.repos || {};
 const AGENTS = config.agents || {};
-const PROJECT_NAME = config.projectName || "Multi-Agent Orchestator";
+const PROJECT_NAME = config.projectName || "Orchestator Multi-Agents";
 
 // CLI args
 const argv = process.argv.slice(2);

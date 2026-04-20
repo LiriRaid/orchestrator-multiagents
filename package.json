@@ -1,5 +1,5 @@
 {
-  "name": "multi-agent-orchestator",
+  "name": "orchestator-multi-agents",
   "version": "1.0.0",
   "description": "TUI dashboard para orquestar múltiples agentes de IA de código trabajando en paralelo sobre tu codebase",
   "main": "orchestator.js",

@@ -97,8 +97,8 @@ pending ──► running ──► completed ✓
 ## Instalación
 
 ```bash
-git clone https://github.com/your-user/multi-agent-orchestator.git
-cd multi-agent-orchestator
+git clone https://github.com/your-user/orchestator-multiagents.git
+cd orchestator-multiagents
 npm install
 ```
 
@@ -293,8 +293,8 @@ SKIP_PERMISSIONS=true node orchestator.js
 
 ```bash
 # 1. Clonar e instalar
-git clone https://github.com/your-user/multi-agent-orchestator.git
-cd multi-agent-orchestator
+git clone https://github.com/your-user/orchestator-multiagents.git
+cd orchestator-multiagents
 npm install
 
 # 2. Crear config

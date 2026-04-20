@@ -20,8 +20,8 @@ Un dashboard TUI en terminal que despacha tareas a múltiples agentes de IA trab
 
 ```bash
 # 1. Clonar e instalar
-git clone https://github.com/your-username/multi-agent-orchestator.git
-cd multi-agent-orchestator
+git clone https://github.com/your-username/orchestator-multiagents.git
+cd orchestator-multiagents
 npm install
 
 # 2. Configurar tu proyecto
