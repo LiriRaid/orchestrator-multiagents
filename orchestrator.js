@@ -197,18 +197,6 @@ const state = {
   totalCost: 0,
 };
 
-const THEME = {
-  bg: "black",
-  panel: "white",
-  border: "gray",
-  accent: "cyan",
-  accentSoft: "blue",
-  success: "green",
-  warning: "yellow",
-  danger: "red",
-  muted: "gray",
-};
-
 for (const name of Object.keys(AGENTS)) {
   state.agents[name] = {
     status: "idle",
@@ -228,212 +216,46 @@ for (const name of Object.keys(AGENTS)) {
 // BLESSED SCREEN
 // ============================================================================
 const screen = blessed.screen({
-  smartCSR: false,
+  smartCSR: true,
   title: PROJECT_NAME,
   fullUnicode: true,
-  dockBorders: true,
-  autoPadding: false,
-  useBCE: true,
-  warnings: false,
 });
 
-const heroBox = blessed.box({
+const dashboard = blessed.box({
   parent: screen,
   top: 0,
   left: 0,
   width: "100%",
-  height: "10%",
+  height: "40%",
   border: { type: "line" },
-  style: {
-    fg: THEME.panel,
-    bg: THEME.bg,
-    border: { fg: THEME.accent },
-  },
-  label: ` {bold}{${THEME.accent}-fg}${PROJECT_NAME.toUpperCase()}{/${THEME.accent}-fg}{/bold} `,
+  style: { border: { fg: "cyan" } },
+  label: ` {bold}{cyan-fg}${PROJECT_NAME.toUpperCase()}{/cyan-fg}{/bold} `,
   tags: true,
-  mouse: true,
-});
-
-const overviewBox = blessed.box({
-  parent: screen,
-  top: "10%",
-  left: 0,
-  width: "24%",
-  height: "30%",
-  border: { type: "line" },
-  style: {
-    fg: THEME.panel,
-    bg: THEME.bg,
-    border: { fg: THEME.border },
-  },
-  label: ` {bold}Agentes{/bold} `,
-  tags: true,
-  mouse: true,
   scrollable: true,
   alwaysScroll: true,
-  scrollbar: { style: { bg: THEME.accentSoft } },
-});
-
-const queueBox = blessed.box({
-  parent: screen,
-  top: "10%",
-  left: "24%",
-  width: "46%",
-  height: "16%",
-  border: { type: "line" },
-  style: {
-    fg: THEME.panel,
-    bg: THEME.bg,
-    border: { fg: THEME.border },
-  },
-  label: ` {bold}Cola activa{/bold} `,
-  tags: true,
-  mouse: true,
-  scrollable: true,
-  alwaysScroll: true,
-  scrollbar: { style: { bg: THEME.accentSoft } },
-});
-
-const activityBox = blessed.box({
-  parent: screen,
-  top: "10%",
-  left: "70%",
-  width: "30%",
-  height: "16%",
-  border: { type: "line" },
-  style: {
-    fg: THEME.panel,
-    bg: THEME.bg,
-    border: { fg: THEME.border },
-  },
-  label: ` {bold}Ahora mismo{/bold} `,
-  tags: true,
-  mouse: true,
-  scrollable: true,
-  alwaysScroll: true,
-  scrollbar: { style: { bg: THEME.accentSoft } },
-});
-
-const summaryBox = blessed.box({
-  parent: screen,
-  top: "26%",
-  left: "24%",
-  width: "46%",
-  height: "14%",
-  border: { type: "line" },
-  style: {
-    fg: THEME.panel,
-    bg: THEME.bg,
-    border: { fg: THEME.border },
-  },
-  label: ` {bold}Resultados{/bold} `,
-  tags: true,
-  mouse: true,
-  scrollable: true,
-  alwaysScroll: true,
-  scrollbar: { style: { bg: THEME.accentSoft } },
-});
-
-const logBox = blessed.box({
-  parent: screen,
-  top: "26%",
-  left: "70%",
-  width: "30%",
-  height: "14%",
-  border: { type: "line" },
-  style: {
-    fg: THEME.panel,
-    bg: THEME.bg,
-    border: { fg: THEME.border },
-  },
-  label: ` {bold}Registro en vivo{/bold} `,
-  tags: true,
-  mouse: true,
-  scrollable: true,
-  alwaysScroll: true,
-  scrollbar: { style: { bg: THEME.accentSoft } },
-});
-
-const helpBox = blessed.box({
-  parent: screen,
-  top: "40%",
-  left: 0,
-  width: "100%",
-  height: "6%",
-  border: { type: "line" },
-  style: {
-    fg: THEME.panel,
-    bg: THEME.bg,
-    border: { fg: THEME.border },
-  },
-  tags: true,
-  mouse: true,
+  keys: true,
+  scrollbar: { style: { bg: "cyan" } },
 });
 
 const agentNames = Object.keys(AGENTS);
 const agentBoxes = {};
-const topRowCount = Math.min(4, agentNames.length);
-const bottomRowCount = Math.max(agentNames.length - topRowCount, 0);
+const panelWidth = Math.floor(100 / agentNames.length);
 
 agentNames.forEach((name, i) => {
-  const isBottomRow = i >= topRowCount;
-  const rowIndex = isBottomRow ? 1 : 0;
-  const indexInRow = isBottomRow ? i - topRowCount : i;
-  const rowCount = isBottomRow ? bottomRowCount : topRowCount;
-  const width = rowCount > 0 ? 100 / rowCount : 100;
-  const left = `${Math.floor(indexInRow * width)}%`;
-  const normalizedWidth =
-    indexInRow === rowCount - 1
-      ? `${100 - Math.floor(indexInRow * width)}%`
-      : `${Math.floor(width)}%`;
-
+  const isLast = i === agentNames.length - 1;
   agentBoxes[name] = blessed.box({
     parent: screen,
-    top: rowIndex === 0 ? "46%" : "73%",
-    left,
-    width: normalizedWidth,
-    height: "27%",
+    top: "40%",
+    left: `${i * panelWidth}%`,
+    width: isLast ? `${100 - i * panelWidth}%` : `${panelWidth}%`,
+    height: "60%",
     border: { type: "line" },
-    style: {
-      fg: THEME.panel,
-      bg: THEME.bg,
-      border: { fg: THEME.border },
-    },
+    style: { border: { fg: "gray" } },
     label: ` {bold}${name}{/bold} {gray-fg}EN ESPERA{/gray-fg} `,
     tags: true,
     scrollable: true,
     alwaysScroll: true,
-    keys: true,
-    mouse: true,
-    vi: true,
-    padding: { left: 1, right: 1, top: 0, bottom: 0 },
-    scrollbar: { style: { bg: THEME.accentSoft } },
-  });
-});
-
-const focusablePanels = [
-  overviewBox,
-  queueBox,
-  activityBox,
-  summaryBox,
-  logBox,
-  helpBox,
-];
-
-function restorePanelBorder(box) {
-  box.style.border.fg = THEME.border;
-}
-
-focusablePanels.forEach((box) => {
-  box.focusable = true;
-  box.keys = true;
-  box.on("focus", () => {
-    box.style.border.fg = THEME.accent;
-    screen.render();
-  });
-  box.on("blur", () => {
-    restorePanelBorder(box);
-    screen.render();
+    scrollbar: { style: { bg: "gray" } },
   });
 });
 
@@ -492,114 +314,62 @@ function appendToAgent(name, text, raw = false) {
   box.setScrollPerc(100);
 }
 
-let resizeTimer = null;
-function redrawScreen(fullClear = false) {
-  if (fullClear && screen.program?.clear) {
-    screen.program.clear();
-  }
-  screen.render();
-}
-
 // ============================================================================
 // DASHBOARD RENDER
 // ============================================================================
 function renderDashboard() {
+  const lines = [];
   const up = elapsedSince(state.startTime);
   const cost = state.totalCost > 0 ? `$${state.totalCost.toFixed(2)}` : "";
   const mode = state.paused
-    ? `{${THEME.warning}-fg}PAUSADO{/${THEME.warning}-fg}`
-    : `{${THEME.success}-fg}EJECUTANDO{/${THEME.success}-fg}`;
-  const busyCount = Object.values(state.agents).filter(
-    (ag) => ag.status === "busy",
-  ).length;
-  const idleCount = agentNames.length - busyCount;
-  const budgetLine =
-    CLI.maxBudget > 0
-      ? `${cost || "$0.00"} / $${CLI.maxBudget.toFixed(2)}`
-      : cost || "$0.00";
+    ? "{yellow-fg}PAUSADO{/yellow-fg}"
+    : "{green-fg}EJECUTANDO{/green-fg}";
 
-  heroBox.setContent(
-    [
-      "",
-      `  {bold}${escBl(PROJECT_NAME)}{/bold}  ${mode}`,
-      `  {${THEME.muted}-fg}${datestamp()} ${timestamp()}  |  activo ${up}  |  ${busyCount}/${agentNames.length} agentes trabajando  |  costo ${escBl(budgetLine)}{/${THEME.muted}-fg}`,
-    ].join("\n"),
-  );
+  lines.push(`  ${datestamp()} ${timestamp()}  activo ${up}  ${cost}  ${mode}`);
+  lines.push("");
 
-  const overviewLines = [""];
   for (const [name, ag] of Object.entries(state.agents)) {
+    const cfg = AGENTS[name];
+    let status, detail;
+    if (ag.status === "busy") {
+      status = "{yellow-fg}OCUPADO{/yellow-fg}";
+      detail = `${ag.task?.id || "?"} ${(ag.task?.title || "").slice(0, 35)} (${elapsedSince(ag.startTime)})`;
+    } else {
+      status = "{gray-fg}EN ESPERA{/gray-fg}";
+      detail = ag.lastLine || "";
+    }
     const dot =
-      ag.status === "busy"
-        ? `{${THEME.success}-fg}●{/${THEME.success}-fg}`
-        : `{${THEME.muted}-fg}○{/${THEME.muted}-fg}`;
-    const status =
-      ag.status === "busy"
-        ? `{${THEME.success}-fg}ocupado{/${THEME.success}-fg}`
-        : `{${THEME.muted}-fg}en espera{/${THEME.muted}-fg}`;
-    overviewLines.push(`  ${dot} {bold}${escBl(name)}{/bold}  ${status}`);
-    if (ag.status === "busy" && ag.task) {
-      overviewLines.push(
-        `    {${THEME.muted}-fg}${escBl(ag.task.id)} · ${elapsedSince(ag.startTime)}{/${THEME.muted}-fg}`,
-      );
-    } else if (ag.lastLine) {
-      overviewLines.push(
-        `    {${THEME.muted}-fg}${escBl(ag.lastLine.slice(0, 26))}{/${THEME.muted}-fg}`,
-      );
-    }
+      ag.status === "busy" ? "{green-fg}●{/green-fg}" : "{gray-fg}○{/gray-fg}";
+    lines.push(`  ${dot} {bold}${name}{/bold}  ${status}  ${detail}`);
   }
-  overviewBox.setContent(overviewLines.join("\n"));
+  lines.push("");
 
-  const queueLines = [""];
-  if (state.queue.length === 0) {
-    queueLines.push(`  {${THEME.muted}-fg}No hay tareas pendientes.{/${THEME.muted}-fg}`);
-  } else {
-    for (let i = 0; i < Math.min(state.queue.length, 6); i++) {
-      const t = state.queue[i];
-      const pri =
-        t.priority === "P1"
-          ? `{${THEME.danger}-fg}P1{/${THEME.danger}-fg}`
-          : t.priority === "P2"
-            ? `{${THEME.warning}-fg}P2{/${THEME.warning}-fg}`
-            : `{${THEME.muted}-fg}P3{/${THEME.muted}-fg}`;
-      const dep = t.dependsOn
-        ? ` {${THEME.muted}-fg}[dep: ${escBl(t.dependsOn)}]{/${THEME.muted}-fg}`
-        : "";
-      queueLines.push(
-        `  ${i + 1}. {bold}${escBl(t.id)}{/bold} ${escBl(String(t.title || "").slice(0, 28))}`,
-      );
-      queueLines.push(
-        `     ${escBl(t.agent)}  |  ${pri}  |  ${escBl(t.repo)}${dep}`,
-      );
-    }
-  }
-  queueBox.setContent(queueLines.join("\n"));
-
-  const activityLines = [""];
-  activityLines.push(`  {bold}Pendientes{/bold}   ${state.queue.length}`);
-  activityLines.push(`  {bold}En progreso{/bold}  ${state.inProgress.length}`);
-  activityLines.push(`  {bold}Completadas{/bold}  ${state.completed.length}`);
-  activityLines.push(
-    `  {bold}Capacidad{/bold}    ${busyCount}/${Math.min(MAX_CONCURRENT, agentNames.length)}`,
+  lines.push(
+    `  {bold}COLA{/bold} {gray-fg}(${state.queue.length} pendientes){/gray-fg}`,
   );
-  for (const [name, ag] of Object.entries(state.agents)) {
-    if (ag.status === "busy" && ag.task) {
-      if (activityLines.length === 5) activityLines.push("");
-      activityLines.push(
-        `  {${THEME.success}-fg}●{/${THEME.success}-fg} {bold}${escBl(name)}{/bold}  ${escBl(ag.task.id)}  {${THEME.muted}-fg}${elapsedSince(ag.startTime)}{/${THEME.muted}-fg}`,
-      );
-    }
+  for (let i = 0; i < Math.min(state.queue.length, 5); i++) {
+    const t = state.queue[i];
+    const pri =
+      t.priority === "P1"
+        ? "{red-fg}P1{/red-fg}"
+        : t.priority === "P2"
+          ? "{yellow-fg}P2{/yellow-fg}"
+          : "{gray-fg}P3{/gray-fg}";
+    const dep = t.dependsOn
+      ? ` {gray-fg}[después de ${t.dependsOn}]{/gray-fg}`
+      : "";
+    lines.push(
+      `    ${i + 1}. {bold}${escBl(t.id)}{/bold} ${escBl(String(t.title || "").slice(0, 35))} | ${escBl(t.agent)} | ${pri}${dep}`,
+    );
   }
-  if (activityLines.length === 5) {
-    activityLines.push("");
-    activityLines.push(`  {${THEME.muted}-fg}Sin agentes activos en este momento.{/${THEME.muted}-fg}`);
-  }
+  if (state.queue.length === 0) lines.push("    {gray-fg}(vacía){/gray-fg}");
 
   const rlEntries = [...rateLimitedAgents.entries()].filter(
     ([, t]) => Date.now() < t,
   );
   if (rlEntries.length > 0) {
-    activityLines.push("");
-    activityLines.push(`  {bold}Límite de cuota{/bold}`);
+    lines.push("");
+    lines.push(`  {bold}LÍMITE DE CUOTA{/bold}`);
     for (const [name, cooldown] of rlEntries) {
       const remaining = Math.ceil((cooldown - Date.now()) / 60000);
       const retryAt = new Date(cooldown).toLocaleTimeString("es-HN", {
@@ -607,76 +377,53 @@ function renderDashboard() {
         minute: "2-digit",
         hour12: false,
       });
-      activityLines.push(
-        `  {${THEME.warning}-fg}⏳{/${THEME.warning}-fg} ${name} a las ${retryAt} (${remaining} min)`,
+      lines.push(
+        `    {yellow-fg}⏳{/yellow-fg} ${name} — reintenta a las ${retryAt} (${remaining} min)`,
       );
     }
   }
   for (const [name, t] of rateLimitedAgents) {
     if (Date.now() >= t) rateLimitedAgents.delete(name);
   }
+  lines.push("");
 
-  activityBox.setContent(activityLines.join("\n"));
-
-  const summaryLines = [""];
-  if (state.completed.length === 0) {
-    summaryLines.push(`  {${THEME.muted}-fg}Todavía no hay tareas completadas.{/${THEME.muted}-fg}`);
-  } else {
-    for (const t of state.completed.slice(-4).reverse()) {
-      const costText = t.cost ? ` · ${t.cost.toFixed(2)} USD` : "";
-      summaryLines.push(
-        `  {${THEME.success}-fg}✓{/${THEME.success}-fg} {bold}${escBl(t.id)}{/bold} ${escBl(String(t.title || "").slice(0, 24))}`,
-      );
-      summaryLines.push(
-        `    {${THEME.muted}-fg}${escBl(t.agent)} · ${escBl(t.completedAt || "--")} · ${formatDuration(t.elapsed || 0)}${escBl(costText)}{/${THEME.muted}-fg}`,
-      );
-    }
-  }
-  summaryBox.setContent(summaryLines.join("\n"));
-
-  const logLines = [""];
-  if (state.logs.length === 0) {
-    logLines.push(`  {${THEME.muted}-fg}Sin eventos todavía.{/${THEME.muted}-fg}`);
-  } else {
-    for (const entry of state.logs.slice(-6)) {
-      logLines.push(`  {${THEME.muted}-fg}${escBl(entry)}{/${THEME.muted}-fg}`);
-    }
-  }
-  logBox.setContent(logLines.join("\n"));
-
-  helpBox.setContent(
-    [
-      "",
-      `  {${THEME.accent}-fg}Tab{/${THEME.accent}-fg} paneles   {${THEME.accent}-fg}S{/${THEME.accent}-fg} seguir   {${THEME.accent}-fg}P{/${THEME.accent}-fg} pausa   {${THEME.accent}-fg}R{/${THEME.accent}-fg} recargar   {${THEME.accent}-fg}Q{/${THEME.accent}-fg} salir`,
-      `  {${THEME.muted}-fg}Usa scroll o mouse sobre cada panel. El panel enfocado resalta en cian para una navegación más clara.{/${THEME.muted}-fg}`,
-    ].join("\n"),
+  lines.push(
+    `  {bold}COMPLETADAS{/bold} {gray-fg}(${state.completed.length}){/gray-fg}`,
   );
+  for (const t of state.completed.slice(-4)) {
+    const c = t.cost ? ` $${t.cost.toFixed(2)}` : "";
+    lines.push(
+      `    {green-fg}✓{/green-fg} {bold}${escBl(t.id)}{/bold} ${escBl(String(t.title || "").slice(0, 30))} | ${escBl(t.agent)} | ${escBl(t.completedAt)} (${formatDuration(t.elapsed)})${escBl(c)}`,
+    );
+  }
+  lines.push("");
+
+  lines.push(`  {bold}REGISTRO{/bold}`);
+  for (const entry of state.logs.slice(-4)) {
+    lines.push(`    {gray-fg}${escBl(entry)}{/gray-fg}`);
+  }
+  lines.push("");
+  lines.push(
+    "  {cyan-fg}S{/cyan-fg}eguir  {cyan-fg}P{/cyan-fg}ausa  {cyan-fg}R{/cyan-fg}ecargar  {cyan-fg}Q{/cyan-fg}uitar",
+  );
+
+  dashboard.setContent(lines.join("\n"));
 
   for (const [name, ag] of Object.entries(state.agents)) {
     const box = agentBoxes[name];
     if (ag.status === "busy") {
-      box.style.border.fg = THEME.warning;
+      box.style.border.fg = "yellow";
       box.setLabel(
-        ` {bold}${escBl(name)}{/bold} {${THEME.warning}-fg}OCUPADO{/${THEME.warning}-fg} ${escBl(ag.task?.id || "")} `,
+        ` {bold}${escBl(name)}{/bold} {yellow-fg}OCUPADO{/yellow-fg} ${escBl(ag.task?.id || "")} `,
       );
     } else {
-      box.style.border.fg = THEME.border;
+      box.style.border.fg = "gray";
       box.setLabel(
-        ` {bold}${escBl(name)}{/bold} {${THEME.muted}-fg}EN ESPERA{/${THEME.muted}-fg} `,
+        ` {bold}${escBl(name)}{/bold} {gray-fg}EN ESPERA{/gray-fg} `,
       );
-      if (box.getLines().length === 0) {
-        box.setContent(
-          [
-            "",
-            ` {${THEME.muted}-fg}Esperando una tarea nueva.{/${THEME.muted}-fg}`,
-            ` {${THEME.muted}-fg}Aquí verás salida, herramientas y progreso{/${THEME.muted}-fg}`,
-            ` {${THEME.muted}-fg}cuando este agente comience a trabajar.{/${THEME.muted}-fg}`,
-          ].join("\n"),
-        );
-      }
     }
   }
-  redrawScreen();
+  screen.render();
 }
 
 // ============================================================================
@@ -1012,8 +759,6 @@ function launchAgent(task) {
   const { cmd: cliCmd, args } = buildCliCommand(agentCfg, task, prompt);
 
   log("START", `${agentName} (${cliCmd}) → ${task.id}: ${task.title}`);
-  agentBoxes[agentName]?.setContent("");
-  agentBoxes[agentName]?.setScrollPerc(0);
   appendToAgent(
     agentName,
     `{cyan-fg}=== ${escBl(task.id)}: ${escBl(task.title)} ==={/cyan-fg}`,
@@ -1532,32 +1277,6 @@ screen.key("r", () => {
   renderDashboard();
 });
 
-screen.key(["tab"], () => {
-  const current = screen.focused;
-  const idx = focusablePanels.indexOf(current);
-  const next = focusablePanels[(idx + 1 + focusablePanels.length) % focusablePanels.length];
-  next.focus();
-  renderDashboard();
-});
-
-screen.key(["S-tab"], () => {
-  const current = screen.focused;
-  const idx = focusablePanels.indexOf(current);
-  const prev = focusablePanels[
-    (idx - 1 + focusablePanels.length) % focusablePanels.length
-  ];
-  prev.focus();
-  renderDashboard();
-});
-
-screen.on("resize", () => {
-  if (resizeTimer) clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    renderDashboard();
-    redrawScreen(true);
-  }, 40);
-});
-
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -1570,7 +1289,6 @@ log(
 reloadQueue();
 log("INFO", `Cola: ${state.queue.length} tareas`);
 renderDashboard();
-overviewBox.focus();
 if (!state.paused) {
   scheduleNext();
   renderDashboard();
@@ -1595,4 +1313,4 @@ setInterval(() => {
   }
 }, 15_000);
 
-redrawScreen(true);
+screen.render();
