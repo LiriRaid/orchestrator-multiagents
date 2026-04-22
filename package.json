@@ -10,7 +10,8 @@
     "start": "node orchestrator.js",
     "start:paused": "node orchestrator.js --paused",
     "start:ink": "node src/ink/index.mjs",
-    "start:ink:paused": "node src/ink/index.mjs --paused"
+    "start:ink:paused": "node src/ink/index.mjs --paused",
+    "skills:registry": "node scripts/update-skill-registry.mjs"
   },
   "keywords": [
     "ai",

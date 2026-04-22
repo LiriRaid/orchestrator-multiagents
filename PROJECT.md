@@ -7,6 +7,13 @@ Actualmente hay dos capas de UI:
 - `orchestrator.js` — TUI estable actual basada en `blessed`
 - `src/ink/*` — migración experimental a `Ink` para una UI terminal más moderna y mantenible
 
+También ya existe una base local para skills del proyecto:
+
+- `./.claude/skills/*` — skills propias del orquestador
+- `./.atl/skill-registry.md` — registry generado localmente
+
+La regla de diseño es: **priorizar skills del repo y no depender de las globales** instaladas por terceros.
+
 ---
 
 ## Qué es

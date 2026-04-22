@@ -49,6 +49,36 @@ npm run start:ink:paused
 
 Por ahora esa vista es un dashboard nuevo para validar layout y experiencia visual; el motor principal actual sigue viviendo en `orchestrator.js`.
 
+## Skills locales del proyecto
+
+Este repo ya puede alojar skills propias del orquestador dentro de:
+
+```bash
+.claude/skills/
+```
+
+La intención es **no depender de las skills globales** instaladas en `~/.claude/skills/` por herramientas como `gentle-ai`.
+
+Actualmente se incluyen skills locales base para:
+
+- `orchestrator-init`
+- `orchestrator-explore`
+- `orchestrator-queue-planning`
+
+Puedes regenerar el registry local con:
+
+```bash
+npm run skills:registry
+```
+
+Eso escribe:
+
+```bash
+.atl/skill-registry.md
+```
+
+El registry local prioriza siempre las skills del repo sobre cualquier skill global instalada en tu máquina.
+
 ## Atajos de teclado
 
 | Tecla | Acción                         |
