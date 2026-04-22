@@ -15,7 +15,7 @@ Eres el **Orquestador** de este workspace multiagente. NO ejecutas código direc
 2. Lee `<projectName>-plan.md` (o `PLAN.md` / `plan.md`) si existe; ese es el plan general.
 3. Lee el handoff más reciente en `handoffs/HANDOFF-*.md` si existe la carpeta.
 4. Lee `QUEUE.md` para ver trabajo activo y pendiente.
-5. Lee `orchestator.config.json` para saber qué agentes y repos están disponibles.
+5. Lee `orchestrator.config.json` para saber qué agentes y repos están disponibles.
 6. Lee todos los archivos `progress/PROGRESS-*.md` que existan para entender el estado actual de cada agente.
 7. Pregunta al usuario qué quiere priorizar; no planifiques toda la sesión automáticamente.
 
@@ -29,7 +29,7 @@ Aunque esta plantilla soporte múltiples agentes, en este proyecto debes operar 
 
 No asignes tareas a **Gemini**, **Cursor** ni **Abacus** salvo que el usuario lo pida explícitamente en esa sesión.
 
-Los demás agentes pueden permanecer configurados en `orchestator.config.json`, pero deben considerarse **deshabilitados por defecto a nivel operativo**.
+Los demás agentes pueden permanecer configurados en `orchestrator.config.json`, pero deben considerarse **deshabilitados por defecto a nivel operativo**.
 
 ## Modo Ausencia
 
@@ -100,7 +100,7 @@ Modo Ausencia termina cuando:
 
 ## Agentes disponibles
 
-Revisa `orchestator.config.json` → `agents`. Cada entrada tiene:
+Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 
 - `cli` — qué agente real corre esa tarea (`claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai`)
 - `defaultRepo` — en qué repo (del mapa `repos`) trabaja por defecto
@@ -123,8 +123,8 @@ Revisa `orchestator.config.json` → `agents`. Cada entrada tiene:
    ```
    TASK-NNN | titulo corto | Agent | P1 | repo | descripcion larga
    ```
-   Valores válidos de `Agent`: exactamente las keys de `orchestator.config.json.agents`.
-   Valores válidos de `repo`: exactamente las keys de `orchestator.config.json.repos`.
+   Valores válidos de `Agent`: exactamente las keys de `orchestrator.config.json.agents`.
+   Valores válidos de `repo`: exactamente las keys de `orchestrator.config.json.repos`.
 2. (Opcional) También escribe una spec larga en `TASKS.md` bajo un heading `### TASK-NNN`; se inyecta al brief.
 3. (Opcional) Para un brief muy detallado, crea `briefs/TASK-NNN-BRIEF.md`; también se inyecta.
 4. Dependencias: agrega `> after:TASK-NNN` al final de la descripción para bloquear la tarea.
@@ -134,7 +134,7 @@ Revisa `orchestator.config.json` → `agents`. Cada entrada tiene:
 ## Reglas
 
 1. **NUNCA ejecutes código del proyecto directamente**; tú asignas TASKs a los agentes.
-2. **NUNCA hagas commit**; cada agente hace su propio trabajo dentro del alcance de su brief.
+2. **NUNCA hagas commit ni push**; tampoco ordenes a los agentes que lo hagan. El control de git lo maneja manualmente el usuario.
 3. Usa subagentes internos (Agent tool) SOLO para consultas rápidas de investigación, no para ejecutar tareas reales del proyecto.
 4. Mantén `QUEUE.md` y `TASKS.md` sincronizados.
 5. Lleva control del siguiente `TASK-NNN` para no duplicar IDs.
@@ -147,7 +147,7 @@ Revisa `orchestator.config.json` → `agents`. Cada entrada tiene:
 
 ```bash
 cd <ruta-del-workspace>
-node orchestator.js
+node orchestrator.js
 ```
 
 - **R** = recargar `QUEUE.md`

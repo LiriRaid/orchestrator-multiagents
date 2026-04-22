@@ -2,7 +2,7 @@
 
 Un dashboard TUI en terminal que despacha tareas a múltiples agentes de IA trabajando en paralelo sobre tu codebase. Defines tareas en un archivo Markdown simple, y el orchestrator las asigna a los agentes, sigue el progreso, maneja rate limits y dependencias.
 
-![orchestrator-demo](https://img.shields.io/badge/TUI-blessed-cyan)
+![orchestrator-demo](https://img.shields.io/badge/TUI-blessed%20%2B%20ink-cyan)
 
 ## Agentes soportados
 
@@ -32,6 +32,22 @@ npm install
 # 4. Ejecutar
 node orchestrator.js
 ```
+
+### Preview Ink experimental
+
+La migración del TUI a Ink ya comenzó en la rama `development`. Puedes abrir la vista experimental con:
+
+```bash
+npm run start:ink
+```
+
+o en pausa:
+
+```bash
+npm run start:ink:paused
+```
+
+Por ahora esa vista es un dashboard nuevo para validar layout y experiencia visual; el motor principal actual sigue viviendo en `orchestrator.js`.
 
 ## Atajos de teclado
 

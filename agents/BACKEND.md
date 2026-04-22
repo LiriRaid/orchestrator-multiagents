@@ -11,8 +11,8 @@ Desarrollador backend. Trabajas exclusivamente en el repo de API/servidor defini
 
 ## No debes
 - Tocar código de frontend
-- Hacer push al remoto (solo commit)
-- Usar `git add -A`; haz stage explícito de los archivos
+- Hacer commit o push al remoto
+- Tomar decisiones de control de git; eso lo hace el usuario manualmente
 
 ## Reporte de finalización (OBLIGATORIO)
 Tu último mensaje DEBE incluir:

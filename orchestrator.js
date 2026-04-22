@@ -15,7 +15,6 @@ const path = require("path");
 // CONFIGURATION — loaded from orchestrator.config.json
 // ============================================================================
 const CONFIG_FILE = path.join(__dirname, "orchestrator.config.json");
-const LEGACY_CONFIG_FILE = path.join(__dirname, "orchestator.config.json");
 
 const CONFIG_TEMPLATE = {
   projectName: "My Project",
@@ -70,7 +69,7 @@ const CONFIG_TEMPLATE = {
 // Handle --init flag BEFORE the existence check, otherwise `--init` on a fresh
 // checkout hits the "config not found" exit and can never create the file.
 if (process.argv.includes("--init")) {
-  if (fs.existsSync(CONFIG_FILE) || fs.existsSync(LEGACY_CONFIG_FILE)) {
+  if (fs.existsSync(CONFIG_FILE)) {
     console.log(
       "La configuración ya existe. Elimina orchestrator.config.json para reinicializar.",
     );
@@ -87,20 +86,14 @@ if (process.argv.includes("--init")) {
   process.exit(0);
 }
 
-const ACTIVE_CONFIG_FILE = fs.existsSync(CONFIG_FILE)
-  ? CONFIG_FILE
-  : fs.existsSync(LEGACY_CONFIG_FILE)
-    ? LEGACY_CONFIG_FILE
-    : null;
-
-if (!ACTIVE_CONFIG_FILE) {
+if (!fs.existsSync(CONFIG_FILE)) {
   console.error(
     `No se encontró la configuración: ${CONFIG_FILE}\nEjecuta: node orchestrator.js --init`,
   );
   process.exit(1);
 }
 
-const config = JSON.parse(fs.readFileSync(ACTIVE_CONFIG_FILE, "utf-8"));
+const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
 
 const WORKSPACE = path.resolve(__dirname);
 const QUEUE_FILE = path.join(WORKSPACE, "QUEUE.md");
@@ -114,6 +107,7 @@ const PROJECT_NAME = config.projectName || "Orchestrator Multi-Agents";
 const argv = process.argv.slice(2);
 const CLI = {
   paused: argv.includes("--paused"),
+  headless: argv.includes("--headless"),
   help: argv.includes("--help") || argv.includes("-h"),
   maxBudget:
     parseFloat(
@@ -129,6 +123,7 @@ Uso: node orchestrator.js [opciones]
 
 Opciones:
   --init         Genera orchestrator.config.json por defecto
+  --headless     Ejecuta solo el motor, sin la UI blessed
   --paused       Inicia en pausa (presiona S para comenzar)
   --max-budget=N Se detiene al gastar $N
   --help         Muestra esta ayuda
@@ -153,6 +148,8 @@ const PERMISSION_FLAGS = SKIP_PERMISSIONS
 // ============================================================================
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 const LOCK_FILE = path.join(LOG_DIR, "orchestrator.lock");
+const STATE_FILE = path.join(LOG_DIR, "orchestrator-state.json");
+const CONTROL_FILE = path.join(LOG_DIR, "orchestrator-control.json");
 if (fs.existsSync(LOCK_FILE)) {
   const lockPid = parseInt(fs.readFileSync(LOCK_FILE, "utf-8").trim(), 10);
   let running = false;
@@ -162,7 +159,7 @@ if (fs.existsSync(LOCK_FILE)) {
   } catch {}
   if (running) {
     console.error(
-      `Orchestator ya está ejecutándose (PID ${lockPid}). Ciérralo o elimina ${LOCK_FILE}`,
+      `Orchestrator ya está ejecutándose (PID ${lockPid}). Ciérralo o elimina ${LOCK_FILE}`,
     );
     process.exit(1);
   }
@@ -174,11 +171,25 @@ const cleanupLock = () => {
     fs.unlinkSync(LOCK_FILE);
   } catch {}
 };
+const cleanupState = () => {
+  try {
+    fs.unlinkSync(STATE_FILE);
+  } catch {}
+};
+const cleanupControl = () => {
+  try {
+    fs.unlinkSync(CONTROL_FILE);
+  } catch {}
+};
 process.on("exit", cleanupLock);
+process.on("exit", cleanupState);
+process.on("exit", cleanupControl);
 // 'exit' doesn't fire on Windows Ctrl+C or SIGTERM — hook signals explicitly.
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) {
   process.on(sig, () => {
     cleanupLock();
+    cleanupState();
+    cleanupControl();
     process.exit(0);
   });
 }
@@ -215,49 +226,56 @@ for (const name of Object.keys(AGENTS)) {
 // ============================================================================
 // BLESSED SCREEN
 // ============================================================================
-const screen = blessed.screen({
-  smartCSR: true,
-  title: PROJECT_NAME,
-  fullUnicode: true,
-});
+const screen = CLI.headless
+  ? null
+  : blessed.screen({
+      smartCSR: true,
+      title: PROJECT_NAME,
+      fullUnicode: true,
+    });
 
-const dashboard = blessed.box({
-  parent: screen,
-  top: 0,
-  left: 0,
-  width: "100%",
-  height: "40%",
-  border: { type: "line" },
-  style: { border: { fg: "cyan" } },
-  label: ` {bold}{cyan-fg}${PROJECT_NAME.toUpperCase()}{/cyan-fg}{/bold} `,
-  tags: true,
-  scrollable: true,
-  alwaysScroll: true,
-  keys: true,
-  scrollbar: { style: { bg: "cyan" } },
-});
+const dashboard =
+  CLI.headless || !screen
+    ? null
+    : blessed.box({
+        parent: screen,
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "40%",
+        border: { type: "line" },
+        style: { border: { fg: "cyan" } },
+        label: ` {bold}{cyan-fg}${PROJECT_NAME.toUpperCase()}{/cyan-fg}{/bold} `,
+        tags: true,
+        scrollable: true,
+        alwaysScroll: true,
+        keys: true,
+        scrollbar: { style: { bg: "cyan" } },
+      });
 
 const agentNames = Object.keys(AGENTS);
 const agentBoxes = {};
-const panelWidth = Math.floor(100 / agentNames.length);
+const panelWidth = Math.max(1, Math.floor(100 / Math.max(1, agentNames.length)));
 
-agentNames.forEach((name, i) => {
-  const isLast = i === agentNames.length - 1;
-  agentBoxes[name] = blessed.box({
-    parent: screen,
-    top: "40%",
-    left: `${i * panelWidth}%`,
-    width: isLast ? `${100 - i * panelWidth}%` : `${panelWidth}%`,
-    height: "60%",
-    border: { type: "line" },
-    style: { border: { fg: "gray" } },
-    label: ` {bold}${name}{/bold} {gray-fg}EN ESPERA{/gray-fg} `,
-    tags: true,
-    scrollable: true,
-    alwaysScroll: true,
-    scrollbar: { style: { bg: "gray" } },
+if (!CLI.headless && screen) {
+  agentNames.forEach((name, i) => {
+    const isLast = i === agentNames.length - 1;
+    agentBoxes[name] = blessed.box({
+      parent: screen,
+      top: "40%",
+      left: `${i * panelWidth}%`,
+      width: isLast ? `${100 - i * panelWidth}%` : `${panelWidth}%`,
+      height: "60%",
+      border: { type: "line" },
+      style: { border: { fg: "gray" } },
+      label: ` {bold}${name}{/bold} {gray-fg}EN ESPERA{/gray-fg} `,
+      tags: true,
+      scrollable: true,
+      alwaysScroll: true,
+      scrollbar: { style: { bg: "gray" } },
+    });
   });
-});
+}
 
 // ============================================================================
 // HELPERS
@@ -288,6 +306,103 @@ function log(tag, msg) {
   );
 }
 
+function persistState() {
+  const snapshot = {
+    projectName: PROJECT_NAME,
+    paused: state.paused,
+    startTime: state.startTime,
+    totalCost: state.totalCost,
+    queue: state.queue,
+    completed: state.completed,
+    inProgress: state.inProgress,
+    logs: state.logs.slice(-20),
+    updatedAt: Date.now(),
+    pid: process.pid,
+    agents: Object.fromEntries(
+      Object.entries(state.agents).map(([name, ag]) => [
+        name,
+        {
+          status: ag.status,
+          task: ag.task,
+          startTime: ag.startTime,
+          lastLine: ag.lastLine,
+          exitCode: ag.exitCode,
+          cost: ag.cost,
+          turns: ag.turns,
+        },
+      ]),
+    ),
+  };
+  fs.writeFileSync(STATE_FILE, JSON.stringify(snapshot, null, 2) + "\n", "utf-8");
+}
+
+function consumeControlCommand() {
+  if (!fs.existsSync(CONTROL_FILE)) return null;
+  try {
+    const payload = JSON.parse(fs.readFileSync(CONTROL_FILE, "utf-8"));
+    fs.unlinkSync(CONTROL_FILE);
+    return payload;
+  } catch {
+    try {
+      fs.unlinkSync(CONTROL_FILE);
+    } catch {}
+    return null;
+  }
+}
+
+function stopAllAgents() {
+  for (const ag of Object.values(state.agents)) {
+    if (ag.process)
+      try {
+        ag.process.kill("SIGTERM");
+      } catch {}
+  }
+}
+
+function exitWithSummary() {
+  stopAllAgents();
+  if (!CLI.headless && screen) screen.destroy();
+  console.log(`\n${PROJECT_NAME} — Resumen de sesión`);
+  console.log(`  Duración: ${elapsedSince(state.startTime)}`);
+  console.log(`  Completadas: ${state.completed.length} tareas`);
+  console.log(`  Costo: $${state.totalCost.toFixed(2)}`);
+  for (const t of state.completed)
+    console.log(
+      `    ✓ ${t.id} ${t.title} (${t.agent}, ${formatDuration(t.elapsed)})`,
+    );
+  process.exit(0);
+}
+
+function applyControlCommand(command) {
+  if (!command?.type) return;
+  switch (command.type) {
+    case "start":
+      if (state.paused) {
+        state.paused = false;
+        log("INFO", "Reanudado");
+      }
+      scheduleNext();
+      renderDashboard();
+      break;
+    case "pause":
+      if (!state.paused) {
+        state.paused = true;
+        log("INFO", "PAUSADO");
+      }
+      renderDashboard();
+      break;
+    case "reload":
+      reloadQueue();
+      log("INFO", `Cola recargada: ${state.queue.length} tareas`);
+      renderDashboard();
+      break;
+    case "quit":
+      log("INFO", "Cierre solicitado desde Ink");
+      exitWithSummary();
+      break;
+  }
+}
+
 function escBl(s) {
   return String(s == null ? "" : s)
     .replace(/\{/g, "\\{")
@@ -295,6 +410,7 @@ function escBl(s) {
 }
 
 function appendToAgent(name, text, raw = false) {
+  if (CLI.headless) return;
   const box = agentBoxes[name];
   if (!box) return;
   const content = raw ? text : escBl(text);
@@ -318,6 +434,8 @@ function appendToAgent(name, text, raw = false) {
 // DASHBOARD RENDER
 // ============================================================================
 function renderDashboard() {
+  persistState();
+  if (CLI.headless || !dashboard || !screen) return;
   const lines = [];
   const up = elapsedSince(state.startTime);
   const cost = state.totalCost > 0 ? `$${state.totalCost.toFixed(2)}` : "";
@@ -616,12 +734,7 @@ ${taskEntry ? `## Full Task Spec\n${taskEntry}` : ""}
 ${existingBrief ? `## Detailed Brief\n${existingBrief}` : ""}
 
 ## Rules
-1. MANDATORY: at the end of your task, commit your changes:
-   cd ${repoDir}
-   git add <files you modified or created>
-   git commit -m "${task.id}: <short title>"
-   Do NOT use git add -A. Do NOT push.
-   If your task is read-only (audit/report), skip the commit.
+1. NEVER run git commit or git push. Source control is handled manually by the user outside this task.
 2. Focus ONLY on this task
 3. Update your progress file at ${progressFile} when done
 
@@ -1239,43 +1352,30 @@ function tryFallbackToClaude(task, failedAgentName, reason) {
 // ============================================================================
 // KEYBOARD
 // ============================================================================
-screen.key(["q", "C-c"], () => {
-  for (const ag of Object.values(state.agents)) {
-    if (ag.process)
-      try {
-        ag.process.kill("SIGTERM");
-      } catch {}
-  }
-  screen.destroy();
-  console.log(`\n${PROJECT_NAME} — Resumen de sesión`);
-  console.log(`  Duración: ${elapsedSince(state.startTime)}`);
-  console.log(`  Completadas: ${state.completed.length} tareas`);
-  console.log(`  Costo: $${state.totalCost.toFixed(2)}`);
-  for (const t of state.completed)
-    console.log(
-      `    ✓ ${t.id} ${t.title} (${t.agent}, ${formatDuration(t.elapsed)})`,
-    );
-  process.exit(0);
-});
+if (!CLI.headless && screen) {
+  screen.key(["q", "C-c"], () => {
+    exitWithSummary();
+  });
 
-screen.key("s", () => {
-  if (state.paused) {
-    state.paused = false;
-    log("INFO", "Reanudado");
-  }
-  scheduleNext();
-  renderDashboard();
-});
-screen.key("p", () => {
-  state.paused = !state.paused;
-  log("INFO", state.paused ? "PAUSADO" : "REANUDADO");
-  renderDashboard();
-});
-screen.key("r", () => {
-  reloadQueue();
-  log("INFO", `Cola recargada: ${state.queue.length} tareas`);
-  renderDashboard();
-});
+  screen.key("s", () => {
+    if (state.paused) {
+      state.paused = false;
+      log("INFO", "Reanudado");
+    }
+    scheduleNext();
+    renderDashboard();
+  });
+  screen.key("p", () => {
+    state.paused = !state.paused;
+    log("INFO", state.paused ? "PAUSADO" : "REANUDADO");
+    renderDashboard();
+  });
+  screen.key("r", () => {
+    reloadQueue();
+    log("INFO", `Cola recargada: ${state.queue.length} tareas`);
+    renderDashboard();
+  });
+}
 
 // ============================================================================
 // MAIN
@@ -1293,6 +1393,11 @@ if (!state.paused) {
   scheduleNext();
   renderDashboard();
 }
+
+setInterval(() => {
+  const command = consumeControlCommand();
+  if (command) applyControlCommand(command);
+}, 1000);
 
 setInterval(() => {
   reloadQueue();
@@ -1313,4 +1418,6 @@ setInterval(() => {
   }
 }, 15_000);
 
-screen.render();
+if (!CLI.headless && screen) {
+  screen.render();
+}

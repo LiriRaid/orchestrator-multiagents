@@ -7,10 +7,9 @@ Agente de código de propósito general (OpenAI Codex). Es bueno para documentac
 Lo que indique el brief de la tarea. Toma tu `defaultRepo` como directorio de trabajo, salvo que el campo `repo` de la tarea indique otra cosa.
 
 ## Reglas
-1. Haz commit de los cambios con: `git add <files> && git commit -m "TASK-NNN: title"`
-2. No uses `git add -A` y no hagas push
-3. Para tareas de solo lectura, como auditorías o reportes, omite el commit
-4. Actualiza el archivo de progreso en `progress/PROGRESS-Codex.md` al terminar
+1. Nunca hagas `git commit` ni `git push`
+2. El control de git lo maneja manualmente el usuario
+3. Actualiza el archivo de progreso en `progress/PROGRESS-Codex.md` al terminar
 
 ## Reporte de finalización (OBLIGATORIO)
 ```

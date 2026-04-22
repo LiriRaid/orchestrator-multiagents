@@ -8,7 +8,9 @@
   },
   "scripts": {
     "start": "node orchestrator.js",
-    "start:paused": "node orchestrator.js --paused"
+    "start:paused": "node orchestrator.js --paused",
+    "start:ink": "node src/ink/index.mjs",
+    "start:ink:paused": "node src/ink/index.mjs --paused"
   },
   "keywords": [
     "ai",
@@ -26,6 +28,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "blessed": "^0.1.81"
+    "blessed": "^0.1.81",
+    "ink": "^5.2.1",
+    "react": "^18.3.1"
   }
 }

@@ -2,6 +2,11 @@
 
 Dashboard TUI que despacha tareas en paralelo a múltiples agentes de IA (Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Abacus AI) sobre tu propio código. Definís tareas en un `QUEUE.md` con formato pipe-separated y el orquestador las asigna al agente correspondiente, monitorea su output, maneja rate limits y dependencias, y deja logs detallados.
 
+Actualmente hay dos capas de UI:
+
+- `orchestrator.js` — TUI estable actual basada en `blessed`
+- `src/ink/*` — migración experimental a `Ink` para una UI terminal más moderna y mantenible
+
 ---
 
 ## Qué es
@@ -210,7 +215,7 @@ Sos el agente Backend. Trabajás exclusivamente en el repo API.
 
 - Lenguaje: Laravel + PHP 8.3
 - Nunca toques el frontend
-- Siempre corré tests antes de commitear
+- Siempre corré tests antes de dar una tarea por terminada
 ```
 
 ### 4. (Opcional) Creá `AGENT-PROTOCOL.md`
@@ -400,7 +405,7 @@ Solo se captura desde eventos `result` con `total_cost_usd`. Si usás modo `--ou
 ## Limitaciones conocidas
 
 - **Windows only shell quoting** — Abacus usa `cmd /c type ... | abacusai ...`. Si tu `WORKSPACE` tiene caracteres raros puede fallar.
-- **No autoriza PRs ni pushes** — solo ejecuta agentes. Los agentes hacen sus propios commits (o no) según sus instrucciones.
+- **No autoriza commits, PRs ni pushes** — solo ejecuta agentes. Todo control de git queda manualmente en manos del usuario.
 - **Single machine** — no hay distribución de tareas entre hosts.
 - **Stdin-only prompting** — si el CLI de un agente no acepta prompt via stdin, hay que configurar `command`/`args` custom.
 
