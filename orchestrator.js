@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // ============================================================================
-// Orchestator MultiAgents TUI
+// Orchestrator MultiAgents TUI
 // Dispatch tasks to multiple AI coding agents from a single dashboard.
 // Supports: Claude Code, Codex, Gemini CLI, OpenCode, Cursor, Abacus AI
-// Usage: node orchestator.js [options]
+// Usage: node orchestrator.js [options]
 // ============================================================================
 
 const blessed = require("blessed");
@@ -12,9 +12,10 @@ const fs = require("fs");
 const path = require("path");
 
 // ============================================================================
-// CONFIGURATION — loaded from orchestator.config.json
+// CONFIGURATION — loaded from orchestrator.config.json
 // ============================================================================
-const CONFIG_FILE = path.join(__dirname, "orchestator.config.json");
+const CONFIG_FILE = path.join(__dirname, "orchestrator.config.json");
+const LEGACY_CONFIG_FILE = path.join(__dirname, "orchestator.config.json");
 
 const CONFIG_TEMPLATE = {
   projectName: "My Project",
@@ -69,9 +70,9 @@ const CONFIG_TEMPLATE = {
 // Handle --init flag BEFORE the existence check, otherwise `--init` on a fresh
 // checkout hits the "config not found" exit and can never create the file.
 if (process.argv.includes("--init")) {
-  if (fs.existsSync(CONFIG_FILE)) {
+  if (fs.existsSync(CONFIG_FILE) || fs.existsSync(LEGACY_CONFIG_FILE)) {
     console.log(
-      "La configuración ya existe. Elimina orchestator.config.json para reinicializar.",
+      "La configuración ya existe. Elimina orchestrator.config.json para reinicializar.",
     );
     process.exit(0);
   }
@@ -81,19 +82,25 @@ if (process.argv.includes("--init")) {
     "utf-8",
   );
   console.log(
-    `Se creó ${CONFIG_FILE}\nEdítalo para que coincida con tus repos y agentes, luego ejecuta: node orchestator.js`,
+    `Se creó ${CONFIG_FILE}\nEdítalo para que coincida con tus repos y agentes, luego ejecuta: node orchestrator.js`,
   );
   process.exit(0);
 }
 
-if (!fs.existsSync(CONFIG_FILE)) {
+const ACTIVE_CONFIG_FILE = fs.existsSync(CONFIG_FILE)
+  ? CONFIG_FILE
+  : fs.existsSync(LEGACY_CONFIG_FILE)
+    ? LEGACY_CONFIG_FILE
+    : null;
+
+if (!ACTIVE_CONFIG_FILE) {
   console.error(
-    `No se encontró la configuración: ${CONFIG_FILE}\nEjecuta: node orchestator.js --init`,
+    `No se encontró la configuración: ${CONFIG_FILE}\nEjecuta: node orchestrator.js --init`,
   );
   process.exit(1);
 }
 
-const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+const config = JSON.parse(fs.readFileSync(ACTIVE_CONFIG_FILE, "utf-8"));
 
 const WORKSPACE = path.resolve(__dirname);
 const QUEUE_FILE = path.join(WORKSPACE, "QUEUE.md");
@@ -101,7 +108,7 @@ const LOG_DIR = path.join(WORKSPACE, "logs");
 
 const REPOS = config.repos || {};
 const AGENTS = config.agents || {};
-const PROJECT_NAME = config.projectName || "Orchestator Multi-Agents";
+const PROJECT_NAME = config.projectName || "Orchestrator Multi-Agents";
 
 // CLI args
 const argv = process.argv.slice(2);
@@ -118,10 +125,10 @@ if (CLI.help) {
   console.log(`
 ${PROJECT_NAME} TUI
 
-Uso: node orchestator.js [opciones]
+Uso: node orchestrator.js [opciones]
 
 Opciones:
-  --init         Genera orchestator.config.json por defecto
+  --init         Genera orchestrator.config.json por defecto
   --paused       Inicia en pausa (presiona S para comenzar)
   --max-budget=N Se detiene al gastar $N
   --help         Muestra esta ayuda
@@ -145,7 +152,7 @@ const PERMISSION_FLAGS = SKIP_PERMISSIONS
 // LOCK FILE
 // ============================================================================
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
-const LOCK_FILE = path.join(LOG_DIR, "orchestator.lock");
+const LOCK_FILE = path.join(LOG_DIR, "orchestrator.lock");
 if (fs.existsSync(LOCK_FILE)) {
   const lockPid = parseInt(fs.readFileSync(LOCK_FILE, "utf-8").trim(), 10);
   let running = false;
@@ -276,7 +283,7 @@ function log(tag, msg) {
   state.logs.push(entry);
   if (state.logs.length > 100) state.logs.shift();
   fs.appendFileSync(
-    path.join(LOG_DIR, `orchestator-${datestamp()}.log`),
+    path.join(LOG_DIR, `orchestrator-${datestamp()}.log`),
     entry + "\n",
   );
 }
@@ -348,7 +355,9 @@ function renderDashboard() {
         : t.priority === "P2"
           ? "{yellow-fg}P2{/yellow-fg}"
           : "{gray-fg}P3{/gray-fg}";
-    const dep = t.dependsOn ? ` {gray-fg}[después de ${t.dependsOn}]{/gray-fg}` : "";
+    const dep = t.dependsOn
+      ? ` {gray-fg}[después de ${t.dependsOn}]{/gray-fg}`
+      : "";
     lines.push(
       `    ${i + 1}. {bold}${escBl(t.id)}{/bold} ${escBl(String(t.title || "").slice(0, 35))} | ${escBl(t.agent)} | ${pri}${dep}`,
     );
@@ -409,7 +418,9 @@ function renderDashboard() {
       );
     } else {
       box.style.border.fg = "gray";
-      box.setLabel(` {bold}${escBl(name)}{/bold} {gray-fg}EN ESPERA{/gray-fg} `);
+      box.setLabel(
+        ` {bold}${escBl(name)}{/bold} {gray-fg}EN ESPERA{/gray-fg} `,
+      );
     }
   }
   screen.render();
@@ -507,7 +518,7 @@ function reloadQueue() {
       if (!loggedUnknownAgents.has(key)) {
         log(
           "SKIP",
-          `${t.id} skipped — agent "${t.agent}" not in orchestator.config.json`,
+          `${t.id} skipped — agent "${t.agent}" not in orchestrator.config.json`,
         );
         loggedUnknownAgents.add(key);
       }
@@ -727,7 +738,7 @@ function launchAgent(task) {
   if (!ag || !agentCfg) {
     log(
       "ERROR",
-      `Agente desconocido en QUEUE: "${agentName}" — no está definido en orchestator.config.json`,
+      `Agente desconocido en QUEUE: "${agentName}" — no está definido en orchestrator.config.json`,
     );
     failedTasks.set(task.id, MAX_RETRIES); // don't retry — config bug, not transient
     return false;
@@ -1190,7 +1201,9 @@ function detectSupportAgentFailure(agentName) {
 function getClaudeFallbackAgent(task) {
   const preferred = task.repo === "frontend" ? "Frontend" : "Backend";
   if (AGENTS[preferred]?.cli === "claude") return preferred;
-  return Object.keys(AGENTS).find((name) => AGENTS[name]?.cli === "claude") || null;
+  return (
+    Object.keys(AGENTS).find((name) => AGENTS[name]?.cli === "claude") || null
+  );
 }
 
 function tryFallbackToClaude(task, failedAgentName, reason) {
@@ -1269,7 +1282,10 @@ screen.key("r", () => {
 // ============================================================================
 log("INFO", `${PROJECT_NAME} iniciando`);
 state.completed = parseCompletedFromFile();
-log("INFO", `Se cargaron ${state.completed.length} tareas completadas desde QUEUE.md`);
+log(
+  "INFO",
+  `Se cargaron ${state.completed.length} tareas completadas desde QUEUE.md`,
+);
 reloadQueue();
 log("INFO", `Cola: ${state.queue.length} tareas`);
 renderDashboard();

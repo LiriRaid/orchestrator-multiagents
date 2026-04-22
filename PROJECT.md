@@ -59,26 +59,26 @@ Sí es:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    orchestator.js                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   parser     │  │  scheduler   │  │  TUI render  │      │
-│  │  QUEUE.md →  │  │ idle agents  │  │   blessed    │      │
-│  │    tasks[]   │  │ × tasks[] →  │  │  dashboard   │      │
-│  │              │  │  launch      │  │  + panels    │      │
-│  └──────┬───────┘  └──────┬───────┘  └──────▲───────┘      │
-│         │                 │                 │              │
-│         │                 ▼                 │              │
-│         │          ┌─────────────┐          │              │
-│         │          │ spawn(cli)  │──stdout──┘              │
-│         │          │   per task  │                         │
-│         │          └──────┬──────┘                         │
-│         │                 │                                │
-│         │                 ▼                                │
-│         │          ┌─────────────┐                         │
-│         │          │ logs/*.log  │                         │
-│         │          └─────────────┘                         │
-│         │                                                  │
-│         └──── on complete: update QUEUE.md ◄──────────────│
+│                    orchestrator.js                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │   parser     │  │  scheduler   │  │  TUI render  │       │
+│  │  QUEUE.md →  │  │ idle agents  │  │   blessed    │       │
+│  │    tasks[]   │  │ × tasks[] →  │  │  dashboard   │       │
+│  │              │  │  launch      │  │  + panels    │       │
+│  └──────┬───────┘  └──────┬───────┘  └──────▲───────┘       │
+│         │                 │                 │               │
+│         │                 ▼                 │               │
+│         │          ┌─────────────┐          │               │
+│         │          │ spawn(cli)  │──stdout──┘               │
+│         │          │   per task  │                          │
+│         │          └──────┬──────┘                          │
+│         │                 │                                 │
+│         │                 ▼                                 │
+│         │          ┌─────────────┐                          │
+│         │          │ logs/*.log  │                          │
+│         │          └─────────────┘                          │
+│         │                                                   │
+│         └──── on complete: update QUEUE.md ◄────────────────│
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -97,21 +97,21 @@ pending ──► running ──► completed ✓
 ## Instalación
 
 ```bash
-git clone https://github.com/your-user/orchestator-multiagents.git
-cd orchestator-multiagents
+git clone https://github.com/your-user/orchestrator-multiagents.git
+cd orchestrator-multiagents
 npm install
 ```
 
 Requiere Node.js ≥ 18 y los CLIs de los agentes que vas a usar, ya instalados y en el `PATH`:
 
-| Agente | Instalación |
-|--------|-------------|
-| Claude Code | `npm install -g @anthropic-ai/claude-code` |
-| Codex | `npm install -g @openai/codex` |
-| Gemini CLI | `npm install -g @google/gemini-cli` |
-| Cursor | Viene con Cursor IDE (`agent` binary) |
-| OpenCode | `curl -fsSL https://opencode.ai/install \| bash` |
-| Abacus AI | Ver docs de Abacus |
+| Agente      | Instalación                                      |
+| ----------- | ------------------------------------------------ |
+| Claude Code | `npm install -g @anthropic-ai/claude-code`       |
+| Codex       | `npm install -g @openai/codex`                   |
+| Gemini CLI  | `npm install -g @google/gemini-cli`              |
+| Cursor      | Viene con Cursor IDE (`agent` binary)            |
+| OpenCode    | `curl -fsSL https://opencode.ai/install \| bash` |
+| Abacus AI   | Ver docs de Abacus                               |
 
 ---
 
@@ -120,12 +120,12 @@ Requiere Node.js ≥ 18 y los CLIs de los agentes que vas a usar, ya instalados 
 ### 1. Generá el config template
 
 ```bash
-node orchestator.js --init
+node orchestrator.js --init
 ```
 
-Esto crea `orchestator.config.json` con un ejemplo mínimo.
+Esto crea `orchestrator.config.json` con un ejemplo mínimo.
 
-### 2. Editá `orchestator.config.json`
+### 2. Editá `orchestrator.config.json`
 
 ```json
 {
@@ -181,25 +181,25 @@ Esto crea `orchestator.config.json` con un ejemplo mínimo.
 }
 ```
 
-| Campo | Requerido | Descripción |
-|-------|-----------|-------------|
-| `projectName` | No | Nombre en el header de la TUI |
-| `maxConcurrent` | No | Máximo de agentes corriendo en paralelo. Default = número de agentes |
-| `pollIntervalSeconds` | No | Cada cuánto relee QUEUE.md. Default 30s |
-| `taskTimeoutMinutes` | No | Máximo por tarea antes de `SIGTERM`. Default 30min |
-| `repos` | Sí | Map de `alias → path absoluto` a repos reales |
-| `agents` | Sí | Map de `nombre → config del agente` |
+| Campo                 | Requerido | Descripción                                                          |
+| --------------------- | --------- | -------------------------------------------------------------------- |
+| `projectName`         | No        | Nombre en el header de la TUI                                        |
+| `maxConcurrent`       | No        | Máximo de agentes corriendo en paralelo. Default = número de agentes |
+| `pollIntervalSeconds` | No        | Cada cuánto relee QUEUE.md. Default 30s                              |
+| `taskTimeoutMinutes`  | No        | Máximo por tarea antes de `SIGTERM`. Default 30min                   |
+| `repos`               | Sí        | Map de `alias → path absoluto` a repos reales                        |
+| `agents`              | Sí        | Map de `nombre → config del agente`                                  |
 
 **Config por agente:**
 
-| Campo | Requerido | Descripción |
-|-------|-----------|-------------|
-| `cli` | Sí | `claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai` o custom |
-| `defaultRepo` | Sí | Key del map `repos` donde trabaja por defecto |
-| `model` | No | Override de modelo (solo Claude) — `sonnet`, `opus`, etc. |
-| `instructionsFile` | No | Markdown inyectado al prompt del agente |
-| `command` | No | Override total del comando (para CLIs custom) |
-| `args` | No | Array de args para CLIs genéricas |
+| Campo              | Requerido | Descripción                                                            |
+| ------------------ | --------- | ---------------------------------------------------------------------- |
+| `cli`              | Sí        | `claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai` o custom |
+| `defaultRepo`      | Sí        | Key del map `repos` donde trabaja por defecto                          |
+| `model`            | No        | Override de modelo (solo Claude) — `sonnet`, `opus`, etc.              |
+| `instructionsFile` | No        | Markdown inyectado al prompt del agente                                |
+| `command`          | No        | Override total del comando (para CLIs custom)                          |
+| `args`             | No        | Array de args para CLIs genéricas                                      |
 
 ### 3. (Opcional) Creá instrucciones por agente
 
@@ -249,42 +249,42 @@ TASK-004 | Auditar flujo actual | OpenCode | P2 | backend | Revisar el flujo act
 **Arranque normal:**
 
 ```bash
-node orchestator.js
+node orchestrator.js
 ```
 
 **Arrancar en pausa (no lanza nada hasta apretar `S`):**
 
 ```bash
-node orchestator.js --paused
+node orchestrator.js --paused
 ```
 
 **Con presupuesto máximo en USD:**
 
 ```bash
-node orchestator.js --max-budget=5
+node orchestrator.js --max-budget=5
 ```
 
 **Help:**
 
 ```bash
-node orchestator.js --help
+node orchestrator.js --help
 ```
 
 ### Atajos de teclado
 
-| Tecla | Acción |
-|-------|--------|
-| `S` | Start / Resume |
-| `P` | Pause / Resume |
-| `R` | Recargar QUEUE.md sin reiniciar |
-| `Q` | Salir (mata todos los agentes corriendo) |
+| Tecla | Acción                                   |
+| ----- | ---------------------------------------- |
+| `S`   | Start / Resume                           |
+| `P`   | Pause / Resume                           |
+| `R`   | Recargar QUEUE.md sin reiniciar          |
+| `Q`   | Salir (mata todos los agentes corriendo) |
 
 ### Permisos de Claude
 
 Por defecto usa `--permission-mode acceptEdits`. Para saltarlos completamente:
 
 ```bash
-SKIP_PERMISSIONS=true node orchestator.js
+SKIP_PERMISSIONS=true node orchestrator.js
 ```
 
 ---
@@ -293,14 +293,14 @@ SKIP_PERMISSIONS=true node orchestator.js
 
 ```bash
 # 1. Clonar e instalar
-git clone https://github.com/your-user/orchestator-multiagents.git
-cd orchestator-multiagents
+git clone https://github.com/your-user/orchestrator-multiagents.git
+cd orchestrator-multiagents
 npm install
 
 # 2. Crear config
-node orchestator.js --init
+node orchestrator.js --init
 
-# 3. Editar orchestator.config.json (apuntar a tus repos reales)
+# 3. Editar orchestrator.config.json (apuntar a tus repos reales)
 #    - Agregar entradas en "repos"
 #    - Agregar agentes en "agents"
 
@@ -317,7 +317,7 @@ TASK-002 | Tests del endpoint health | Codex | P2 | backend | Tests para GET /he
 EOF
 
 # 5. Arrancar
-node orchestator.js
+node orchestrator.js
 ```
 
 Al lanzar:
@@ -330,20 +330,20 @@ Al lanzar:
 
 ## Archivos del proyecto
 
-| Archivo | Gestión | Propósito |
-|---------|---------|-----------|
-| `orchestator.js` | tú no lo editás | El ejecutable principal |
-| `orchestator.config.json` | vos | Repos + agentes |
-| `QUEUE.md` | vos (+ orquestador mueve a `Completed`) | Cola de tareas |
-| `TASKS.md` | opcional | Specs detalladas por TASK-ID (`### TASK-001`) |
-| `AGENT-PROTOCOL.md` | opcional | Reglas compartidas por todos los agentes |
-| `<projectName>-plan.md` (o `PLAN.md`) | opcional | Plan de alto nivel del proyecto — el orquestador lo inyecta como contexto en el brief de CADA tarea, así todos los agentes ven la visión completa |
-| `agents/*.md` | opcional | Instrucciones específicas por agente |
-| `briefs/TASK-NNN-BRIEF.md` | opcional | Brief largo para una tarea puntual |
-| `progress/PROGRESS-*.md` | agentes | Estado por agente (se les pide que lo actualicen) |
-| `logs/orchestator-YYYY-MM-DD.log` | orquestador | Eventos del orquestador |
-| `logs/TASK-NNN-Agent-*.log` | orquestador | Full stdout/stderr de cada tarea |
-| `logs/orchestator.lock` | orquestador | PID lock (auto-limpia al salir) |
+| Archivo                               | Gestión                                 | Propósito                                                                                                                                         |
+| ------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orchestrator.js`                      | tú no lo editás                         | El ejecutable principal                                                                                                                           |
+| `orchestrator.config.json`             | vos                                     | Repos + agentes                                                                                                                                   |
+| `QUEUE.md`                            | vos (+ orquestador mueve a `Completed`) | Cola de tareas                                                                                                                                    |
+| `TASKS.md`                            | opcional                                | Specs detalladas por TASK-ID (`### TASK-001`)                                                                                                     |
+| `AGENT-PROTOCOL.md`                   | opcional                                | Reglas compartidas por todos los agentes                                                                                                          |
+| `<projectName>-plan.md` (o `PLAN.md`) | opcional                                | Plan de alto nivel del proyecto — el orquestador lo inyecta como contexto en el brief de CADA tarea, así todos los agentes ven la visión completa |
+| `agents/*.md`                         | opcional                                | Instrucciones específicas por agente                                                                                                              |
+| `briefs/TASK-NNN-BRIEF.md`            | opcional                                | Brief largo para una tarea puntual                                                                                                                |
+| `progress/PROGRESS-*.md`              | agentes                                 | Estado por agente (se les pide que lo actualicen)                                                                                                 |
+| `logs/orchestrator-YYYY-MM-DD.log`     | orquestador                             | Eventos del orquestador                                                                                                                           |
+| `logs/TASK-NNN-Agent-*.log`           | orquestador                             | Full stdout/stderr de cada tarea                                                                                                                  |
+| `logs/orchestrator.lock`               | orquestador                             | PID lock (auto-limpia al salir)                                                                                                                   |
 
 ---
 
@@ -360,14 +360,14 @@ Al lanzar:
 - **Dead-process detection** — cada 15s revisa heartbeat de cada agente
 - **Lock file** — evita doble instancia del orquestador
 - **Tolerancia a TUI crashes** — errores del parser de blessed no matan el proceso
-- **Template init** — `--init` genera `orchestator.config.json` de arranque
+- **Template init** — `--init` genera `orchestrator.config.json` de arranque
 
 ---
 
 ## Variables de entorno
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
+| Variable           | Default | Descripción                                               |
+| ------------------ | ------- | --------------------------------------------------------- |
 | `SKIP_PERMISSIONS` | `false` | Si `true`, usa `--dangerously-skip-permissions` en Claude |
 
 ---
@@ -377,14 +377,14 @@ Al lanzar:
 **La TUI se cierra con `TypeError: Cannot read properties of null (reading 'slice')`**
 Output de un agente contenía tags blessed malformados. Ya hay `try/catch`; si aún ves esto, revisá versión de `blessed` (`npm install blessed@latest`).
 
-**`Orchestator already running (PID X)`**
-Instancia previa no se cerró limpio. Borrá `logs/orchestator.lock` o `kill PID`.
+**`Orchestrator already running (PID X)`**
+Instancia previa no se cerró limpio. Borrá `logs/orchestrator.lock` o `kill PID`.
 
 **Un agente quedó `BUSY` para siempre**
 Probablemente el proceso murió silencioso. El watchdog (`setInterval` cada 15s) lo detecta y marca como fallido. Si no, apretá `Q` y rearrancá.
 
 **`Repo not found: X`**
-La key `X` no está en `repos` de tu config, o el path no existe. Verificá `orchestator.config.json`.
+La key `X` no está en `repos` de tu config, o el path no existe. Verificá `orchestrator.config.json`.
 
 **`Unknown agent in QUEUE: "Y"`**
 La tarea en QUEUE referencia un agente que no está en `agents` del config. Arreglá el nombre o agregá el agente.

@@ -1,50 +1,50 @@
 # Orquestador Multiagente
 
-Un dashboard TUI en terminal que despacha tareas a múltiples agentes de IA trabajando en paralelo sobre tu codebase. Defines tareas en un archivo Markdown simple, y el orchestator las asigna a los agentes, sigue el progreso, maneja rate limits y dependencias.
+Un dashboard TUI en terminal que despacha tareas a múltiples agentes de IA trabajando en paralelo sobre tu codebase. Defines tareas en un archivo Markdown simple, y el orchestrator las asigna a los agentes, sigue el progreso, maneja rate limits y dependencias.
 
-![orchestator-demo](https://img.shields.io/badge/TUI-blessed-cyan)
+![orchestrator-demo](https://img.shields.io/badge/TUI-blessed-cyan)
 
 ## Agentes soportados
 
-| Agente | CLI | Cómo se conecta |
-|--------|-----|-----------------|
-| **Claude Code** | `claude` | Modo pipe (`-p`), salida `stream-json` |
-| **Codex** (OpenAI) | `codex` | Modo exec (`--yolo`), prompt por stdin |
-| **Gemini CLI** | `gemini` | Approval mode yolo, `stream-json` |
-| **Cursor** | `agent` | Modo yolo, prompt por stdin |
-| **OpenCode** | `opencode` | Modo run, salida JSON |
-| **Abacus AI** | `abacusai` | Modo print (`-p`), prompt por archivo pipeado |
-| **Custom** | cualquiera | Configurando `command` o `args` en el config |
+| Agente             | CLI        | Cómo se conecta                               |
+| ------------------ | ---------- | --------------------------------------------- |
+| **Claude Code**    | `claude`   | Modo pipe (`-p`), salida `stream-json`        |
+| **Codex** (OpenAI) | `codex`    | Modo exec (`--yolo`), prompt por stdin        |
+| **Gemini CLI**     | `gemini`   | Approval mode yolo, `stream-json`             |
+| **Cursor**         | `agent`    | Modo yolo, prompt por stdin                   |
+| **OpenCode**       | `opencode` | Modo run, salida JSON                         |
+| **Abacus AI**      | `abacusai` | Modo print (`-p`), prompt por archivo pipeado |
+| **Custom**         | cualquiera | Configurando `command` o `args` en el config  |
 
 ## Inicio rápido
 
 ```bash
 # 1. Clonar e instalar
-git clone https://github.com/your-username/orchestator-multiagents.git
-cd orchestator-multiagents
+git clone https://github.com/your-username/orchestrator-multiagents.git
+cd orchestrator-multiagents
 npm install
 
 # 2. Configurar tu proyecto
-#    Edita orchestator.config.json con tus repos y agentes
+#    Edita orchestrator.config.json con tus repos y agentes
 
 # 3. Agregar tareas a QUEUE.md
 
 # 4. Ejecutar
-node orchestator.js
+node orchestrator.js
 ```
 
 ## Atajos de teclado
 
-| Tecla | Acción |
-|-------|--------|
-| **S** | Iniciar / Reanudar |
-| **P** | Pausar / Reanudar |
-| **R** | Recargar cola desde QUEUE.md |
+| Tecla | Acción                         |
+| ----- | ------------------------------ |
+| **S** | Iniciar / Reanudar             |
+| **P** | Pausar / Reanudar              |
+| **R** | Recargar cola desde QUEUE.md   |
 | **Q** | Salir (mata todos los agentes) |
 
 ## Configuración
 
-Edita `orchestator.config.json`:
+Edita `orchestrator.config.json`:
 
 ```json
 {
@@ -102,14 +102,14 @@ Edita `orchestator.config.json`:
 
 ### Opciones de configuración por agente
 
-| Campo | Requerido | Descripción |
-|-------|-----------|-------------|
-| `cli` | Sí | Tipo de CLI: `claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai` o cualquier CLI personalizado |
-| `defaultRepo` | Sí | Clave del mapa `repos` donde ese agente trabaja por defecto |
-| `model` | No | Override de modelo, por ejemplo `sonnet` u `opus` (solo para Claude) |
-| `instructionsFile` | No | Ruta a un archivo Markdown con instrucciones específicas del agente |
-| `command` | No | Override completo del comando, por ejemplo `my-cli --flag1 --flag2` |
-| `args` | No | Array de argumentos para agentes genéricos |
+| Campo              | Requerido | Descripción                                                                                              |
+| ------------------ | --------- | -------------------------------------------------------------------------------------------------------- |
+| `cli`              | Sí        | Tipo de CLI: `claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai` o cualquier CLI personalizado |
+| `defaultRepo`      | Sí        | Clave del mapa `repos` donde ese agente trabaja por defecto                                              |
+| `model`            | No        | Override de modelo, por ejemplo `sonnet` u `opus` (solo para Claude)                                     |
+| `instructionsFile` | No        | Ruta a un archivo Markdown con instrucciones específicas del agente                                      |
+| `command`          | No        | Override completo del comando, por ejemplo `my-cli --flag1 --flag2`                                      |
+| `args`             | No        | Array de argumentos para agentes genéricos                                                               |
 
 ### Agregar un agente personalizado
 
@@ -145,14 +145,14 @@ TASK-003 | Write tests | Codex | P2 | backend | Add unit tests for auth module >
 
 ### Campos
 
-| Campo | Descripción |
-|-------|-------------|
-| `id` | ID único de la tarea, por ejemplo `TASK-001` |
-| `title` | Descripción corta |
-| `agent` | Nombre del agente, debe coincidir con una key de `agents` en el config |
-| `priority` | `P1` (alta), `P2` (media), `P3` (baja) |
-| `repo` | Clave del repositorio, debe coincidir con una key de `repos` |
-| `description` | Descripción detallada de la tarea |
+| Campo         | Descripción                                                            |
+| ------------- | ---------------------------------------------------------------------- |
+| `id`          | ID único de la tarea, por ejemplo `TASK-001`                           |
+| `title`       | Descripción corta                                                      |
+| `agent`       | Nombre del agente, debe coincidir con una key de `agents` en el config |
+| `priority`    | `P1` (alta), `P2` (media), `P3` (baja)                                 |
+| `repo`        | Clave del repositorio, debe coincidir con una key de `repos`           |
+| `description` | Descripción detallada de la tarea                                      |
 
 ### Dependencias
 
@@ -165,19 +165,19 @@ TASK-003 | Write tests | Backend | P2 | backend | Test the auth module > after:T
 ### Secciones
 
 - **`## Pending`** — Tareas esperando ser tomadas
-- **`## In Progress`** — Gestionada por el orchestator
-- **`## Completed`** — Tareas finalizadas, movidas automáticamente por el orchestator
+- **`## In Progress`** — Gestionada por el orchestrator
+- **`## Completed`** — Tareas finalizadas, movidas automáticamente por el orchestrator
 
 ## Archivos opcionales
 
-| Archivo | Propósito |
-|---------|-----------|
-| `agents/BACKEND.md` | Instrucciones que se inyectan al prompt del agente Backend |
-| `agents/FRONTEND.md` | Instrucciones que se inyectan al prompt del agente Frontend |
-| `AGENT-PROTOCOL.md` | Reglas compartidas inyectadas a todos los agentes |
-| `TASKS.md` | Especificaciones detalladas de tareas, usando encabezados `### TASK-NNN` |
-| `briefs/TASK-001-BRIEF.md` | Brief detallado para una tarea específica |
-| `progress/PROGRESS-Backend.md` | Archivo de progreso del agente, actualizado por los agentes |
+| Archivo                        | Propósito                                                                |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| `agents/BACKEND.md`            | Instrucciones que se inyectan al prompt del agente Backend               |
+| `agents/FRONTEND.md`           | Instrucciones que se inyectan al prompt del agente Frontend              |
+| `AGENT-PROTOCOL.md`            | Reglas compartidas inyectadas a todos los agentes                        |
+| `TASKS.md`                     | Especificaciones detalladas de tareas, usando encabezados `### TASK-NNN` |
+| `briefs/TASK-001-BRIEF.md`     | Brief detallado para una tarea específica                                |
+| `progress/PROGRESS-Backend.md` | Archivo de progreso del agente, actualizado por los agentes              |
 
 ## Características
 
@@ -195,7 +195,7 @@ TASK-003 | Write tests | Backend | P2 | backend | Test the auth module > after:T
 ## Opciones CLI
 
 ```
-node orchestator.js [options]
+node orchestrator.js [options]
 
 Options:
   --paused         Inicia en pausa (presiona S para arrancar)
@@ -205,8 +205,8 @@ Options:
 
 ## Variables de entorno
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
+| Variable           | Default | Descripción                                                         |
+| ------------------ | ------- | ------------------------------------------------------------------- |
 | `SKIP_PERMISSIONS` | `false` | Si está en `true`, usa `--dangerously-skip-permissions` para Claude |
 
 ## Cómo funciona
@@ -227,9 +227,9 @@ Options:
 
 Toda la salida se guarda en `logs/`:
 
-- `orchestator-YYYY-MM-DD.log` — Eventos del orchestator
+- `orchestrator-YYYY-MM-DD.log` — Eventos del orchestrator
 - `TASK-NNN-AgentName-timestamp.log` — Salida completa del agente por tarea
 
 ## Licencia
 
-MIT
+CC BY-NC-SA 4.0 - Atribución, No Comercial, Compartir Igual

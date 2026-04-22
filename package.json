@@ -1,19 +1,19 @@
 {
-  "name": "orchestator-multi-agents",
+  "name": "orchestrator-multi-agents",
   "version": "1.0.0",
   "description": "TUI dashboard para orquestar múltiples agentes de IA de código trabajando en paralelo sobre tu codebase",
-  "main": "orchestator.js",
+  "main": "orchestrator.js",
   "bin": {
-    "orchestator": "./orchestator.js"
+    "orchestrator": "./orchestrator.js"
   },
   "scripts": {
-    "start": "node orchestator.js",
-    "start:paused": "node orchestator.js --paused"
+    "start": "node orchestrator.js",
+    "start:paused": "node orchestrator.js --paused"
   },
   "keywords": [
     "ai",
     "agents",
-    "orchestator",
+    "orchestrator",
     "claude",
     "codex",
     "gemini",

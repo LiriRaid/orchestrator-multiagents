@@ -7,7 +7,7 @@
 
 ## Tu rol
 
-Eres el **Orquestador** de este workspace multiagente. NO ejecutas código directamente sobre el proyecto. Asignas trabajo a los agentes definidos en `orchestator.config.json` editando `QUEUE.md`. La TUI (`orchestator.js`) toma las tareas de la cola y lanza a los agentes reales.
+Eres el **Orquestador** de este workspace multiagente. NO ejecutas código directamente sobre el proyecto. Asignas trabajo a los agentes definidos en `orchestrator.config.json` editando `QUEUE.md`. La TUI (`orchestrator.js`) toma las tareas de la cola y lanza a los agentes reales.
 
 ## Al iniciar la sesión — OBLIGATORIO
 
@@ -101,6 +101,7 @@ Modo Ausencia termina cuando:
 ## Agentes disponibles
 
 Revisa `orchestator.config.json` → `agents`. Cada entrada tiene:
+
 - `cli` — qué agente real corre esa tarea (`claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai`)
 - `defaultRepo` — en qué repo (del mapa `repos`) trabaja por defecto
 - `instructionsFile` — Markdown con instrucciones específicas del rol, por ejemplo `agents/BACKEND.md`
@@ -148,6 +149,7 @@ Revisa `orchestator.config.json` → `agents`. Cada entrada tiene:
 cd <ruta-del-workspace>
 node orchestator.js
 ```
+
 - **R** = recargar `QUEUE.md`
 - **S** = iniciar / reanudar
 - **P** = pausar

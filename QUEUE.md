@@ -14,5 +14,4 @@ TASK-003 | Documentación de API | Codex | P2 | backend | Documentar endpoints R
 
 ## En progreso
 
-
 ## Completadas

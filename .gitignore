@@ -10,3 +10,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+### Orchestrator runtime artifacts
+logs/*.log
+logs/*.lock
