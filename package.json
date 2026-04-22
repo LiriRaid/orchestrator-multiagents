@@ -11,7 +11,8 @@
     "start:paused": "node orchestrator.js --paused",
     "start:ink": "node src/ink/index.mjs",
     "start:ink:paused": "node src/ink/index.mjs --paused",
-    "skills:registry": "node scripts/update-skill-registry.mjs"
+    "skills:registry": "node scripts/update-skill-registry.mjs",
+    "openspec:new": "node scripts/scaffold-openspec-change.mjs"
   },
   "keywords": [
     "ai",

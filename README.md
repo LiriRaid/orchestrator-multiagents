@@ -97,6 +97,39 @@ La idea es que Claude/orquestador use Engram para:
 
 Engram complementa la TUI, `QUEUE.md` y los handoffs; no los reemplaza.
 
+## OpenSpec local
+
+El proyecto ya incluye una estructura inicial de `openspec/` para cambios grandes:
+
+```bash
+openspec/
+├── changes/
+├── specs/
+└── templates/
+```
+
+Puedes crear un change nuevo con:
+
+```bash
+npm run openspec:new -- add-nombre-del-cambio
+```
+
+Eso genera en `openspec/changes/<change-name>/`:
+
+- `proposal.md`
+- `specs/spec.md`
+- `design.md`
+- `tasks.md`
+- `verify-report.md`
+- `archive-report.md`
+- `.openspec.yaml`
+- `specs/`
+
+La idea es que:
+- `openspec/` guarde el razonamiento y artefactos del cambio
+- `QUEUE.md` siga siendo la cola operativa del motor
+- Engram guarde memoria y continuidad entre sesiones
+
 ## Atajos de teclado
 
 | Tecla | Acción                         |

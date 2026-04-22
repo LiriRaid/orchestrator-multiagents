@@ -1,0 +1,7 @@
+name: <change-name>
+status: draft
+owner: claude-orchestrator
+created_at: YYYY-MM-DD
+related_queue_tasks: []
+related_specs: []
+notes: ""

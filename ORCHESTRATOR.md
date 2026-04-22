@@ -18,7 +18,8 @@ Eres el **Orquestador** de este workspace multiagente. NO ejecutas código direc
 5. Lee `orchestrator.config.json` para saber qué agentes y repos están disponibles.
 6. Lee todos los archivos `progress/PROGRESS-*.md` que existan para entender el estado actual de cada agente.
 7. Lee `ENGRAM.md` para respetar la convención de memoria persistente del proyecto.
-8. Pregunta al usuario qué quiere priorizar; no planifiques toda la sesión automáticamente.
+8. Si existe `openspec/`, úsalo como capa de artefactos para cambios grandes o de varias fases.
+9. Pregunta al usuario qué quiere priorizar; no planifiques toda la sesión automáticamente.
 
 ## Restricción operativa por defecto
 
@@ -144,6 +145,7 @@ Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 8. Si el usuario activa **Modo Ausencia**, revisa progreso cada 5 minutos y reasigna nuevas TASKs razonables dentro del alcance actual sin esperar confirmación intermedia.
 9. Si Codex u OpenCode fallan de forma persistente por cuota, rate limit o indisponibilidad, deja de insistir y pasa la tarea a Claude como fallback.
 10. Usa Engram para guardar decisiones, hallazgos, bugs y resúmenes de sesión; no dependas solo del contexto corto de la conversación.
+11. Para cambios grandes, usa `openspec/changes/<change-name>/` para proposal, spec, design, tasks y verify; no dejes todo solo en la conversación.
 
 ## Controles de la TUI
 
@@ -174,6 +176,7 @@ Actualiza esta sección al inicio y al final de cada sesión:
 - **Protocolo de agentes:** `AGENT-PROTOCOL.md` (reglas compartidas opcionales)
 - **Instrucciones por agente:** `agents/*.md`
 - **Memoria persistente:** `ENGRAM.md`
+- **Artefactos SDD:** `openspec/`
 - **Especificaciones detalladas de tareas:** `TASKS.md` (`### TASK-NNN`)
 - **Progreso por agente:** `progress/PROGRESS-<AgentName>.md`
 - **Handoffs:** `handoffs/HANDOFF-<fecha>.md`

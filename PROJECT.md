@@ -12,6 +12,7 @@ También ya existe una base local para skills del proyecto:
 - `./.claude/skills/*` — skills propias del orquestador
 - `./.atl/skill-registry.md` — registry generado localmente
 - `ENGRAM.md` — convención local para memoria persistente
+- `openspec/` — artefactos persistentes para cambios grandes (`proposal`, `spec`, `design`, `tasks`, `verify`)
 
 La regla de diseño es: **priorizar skills del repo y no depender de las globales** instaladas por terceros.
 
