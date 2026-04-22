@@ -12,5 +12,4 @@ $RECYCLE.BIN/
 *.lnk
 
 ### Orchestrator runtime artifacts
-logs/*.log
-logs/*.lock
+logs/
