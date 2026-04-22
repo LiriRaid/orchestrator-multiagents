@@ -97,7 +97,7 @@ pending ──► running ──► completed ✓
 ## Instalación
 
 ```bash
-git clone https://github.com/your-user/orchestrator-multiagents.git
+git clone https://github.com/LiriRaid/orchestrator-multiagents.git
 cd orchestrator-multiagents
 npm install
 ```
@@ -293,7 +293,7 @@ SKIP_PERMISSIONS=true node orchestrator.js
 
 ```bash
 # 1. Clonar e instalar
-git clone https://github.com/your-user/orchestrator-multiagents.git
+git clone https://github.com/LiriRaid/orchestrator-multiagents.git
 cd orchestrator-multiagents
 npm install
 
