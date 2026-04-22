@@ -64,6 +64,7 @@ Actualmente se incluyen skills locales base para:
 - `orchestrator-init`
 - `orchestrator-explore`
 - `orchestrator-queue-planning`
+- `orchestrator-memory`
 
 Puedes regenerar el registry local con:
 
@@ -78,6 +79,23 @@ Eso escribe:
 ```
 
 El registry local prioriza siempre las skills del repo sobre cualquier skill global instalada en tu máquina.
+
+## Memoria persistente con Engram
+
+El proyecto ya incluye una convención local de memoria en:
+
+```bash
+ENGRAM.md
+```
+
+La idea es que Claude/orquestador use Engram para:
+
+- recordar decisiones
+- recuperar contexto entre sesiones
+- guardar resúmenes de sesión
+- evitar repetir exploración innecesaria
+
+Engram complementa la TUI, `QUEUE.md` y los handoffs; no los reemplaza.
 
 ## Atajos de teclado
 

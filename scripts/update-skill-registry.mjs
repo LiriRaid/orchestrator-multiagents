@@ -35,23 +35,13 @@ function listSkillFiles(dir) {
 	return files.sort((a, b) => a.localeCompare(b));
 }
 
-function parseFrontmatter(content) {
-	const match = content.match(/^---\n([\s\S]*?)\n---/);
-	if (!match) return {};
-	const data = {};
-	for (const rawLine of match[1].split('\n')) {
-		const line = rawLine.trim();
-		if (!line || !line.includes(':')) continue;
-		const index = line.indexOf(':');
-		const key = line.slice(0, index).trim();
-		const value = line.slice(index + 1).trim().replace(/^['"]|['"]$/g, '');
-		data[key] = value;
-	}
-	return data;
+function extractName(content, fallback) {
+	const match = content.match(/^\s*name:\s*(.+)$/im);
+	return match ? match[1].trim().replace(/^['"]|['"]$/g, '') : fallback;
 }
 
-function extractTrigger(description = '') {
-	const match = description.match(/Trigger:\s*(.*)$/i);
+function extractTrigger(value = '') {
+	const match = value.match(/Trigger:\s*(.*)$/i);
 	return match ? match[1].trim() : 'manual';
 }
 
@@ -82,10 +72,9 @@ function buildRegistry() {
 	const skillFiles = listSkillFiles(SKILLS_DIR);
 	const skills = skillFiles.map(file => {
 		const content = fs.readFileSync(file, 'utf8');
-		const frontmatter = parseFrontmatter(content);
 		return {
-			name: frontmatter.name || path.basename(path.dirname(file)),
-			trigger: extractTrigger(frontmatter.description || ''),
+			name: extractName(content, path.basename(path.dirname(file))),
+			trigger: extractTrigger(content),
 			path: toPosix(path.relative(ROOT, file)),
 			rules: compactRules(content)
 		};
@@ -109,7 +98,7 @@ function buildRegistry() {
 		'| Trigger | Skill | Path |',
 		'|---------|-------|------|',
 		...(skills.length > 0
-			? skills.map(skill => `| ${skill.trigger} | ${skill.name} | \`${skill.path}\` |`)
+			? skills.map(skill => `| ${skill.trigger.replaceAll('|', '\\|')} | ${skill.name} | \`${skill.path}\` |`)
 			: ['| manual | none | _No hay skills locales todavía_ |']),
 		'',
 		'## Compact Rules',
