@@ -33,6 +33,74 @@ npm install
 node orchestrator.js
 ```
 
+## Installer / Ecosystem Configurator
+
+El paquete ya tiene una primera base de installer para que más adelante pueda publicarse en npm con tu identidad.
+
+Comando objetivo:
+
+```bash
+npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+o, si está instalado globalmente:
+
+```bash
+orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+Ese comando crea un **workspace sibling** al proyecto real.
+
+Ejemplo:
+
+- proyecto real:
+  - `C:/code/omniinbox`
+- workspace del orquestador:
+  - `C:/code/orchestrator-omniinbox`
+
+Eso evita ensuciar el repo del proyecto con archivos como:
+
+- `QUEUE.md`
+- `logs/`
+- `openspec/`
+- `handoffs/`
+- `progress/`
+
+El installer deja el orquestador afuera del proyecto, pero configurado para trabajar sobre él.
+
+Ese workspace instala:
+
+- `ORCHESTRATOR.md`
+- `CLAUDE.md`
+- `ENGRAM.md`
+- `AGENT-CONFIG.md`
+- `orchestrator.config.json`
+- `QUEUE.md`
+- `agents/`
+- `openspec/`
+- `.claude/`
+- `.codex/`
+- `.opencode/`
+
+También crea carpetas runtime base:
+
+- `logs/`
+- `handoffs/`
+- `progress/`
+- `briefs/`
+
+Ejemplo:
+
+```bash
+orchestrator-multiagents init-workspace C:/code/omniinbox --workspace-name orchestrator-omniinbox
+```
+
+Si alguna vez sí quieres instalar directo en una carpeta manual, sigue existiendo:
+
+```bash
+orchestrator-multiagents init .
+```
+
 ### Preview Ink experimental
 
 La migración del TUI a Ink ya comenzó en la rama `development`. Puedes abrir la vista experimental con:
@@ -48,6 +116,16 @@ npm run start:ink:paused
 ```
 
 Por ahora esa vista es un dashboard nuevo para validar layout y experiencia visual; el motor principal actual sigue viviendo en `orchestrator.js`.
+
+Si instalas el paquete globalmente, también puedes usar:
+
+```bash
+orchestrator-multiagents tui --paused
+orchestrator-multiagents ink
+orchestrator-multiagents skills:registry
+orchestrator-multiagents openspec:new -- add-mi-cambio
+orchestrator-multiagents agent-config:init
+```
 
 ## Skills locales del proyecto
 

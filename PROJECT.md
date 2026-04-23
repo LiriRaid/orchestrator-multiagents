@@ -19,6 +19,22 @@ También ya existe una base local para skills del proyecto:
 
 La regla de diseño es: **priorizar skills del repo y no depender de las globales** instaladas por terceros.
 
+También se empezó la capa de installer / ecosystem configurator:
+
+- el paquete ahora tiene un binario `orchestrator-multiagents`
+- ese binario puede inicializar la estructura reusable como workspace sibling del proyecto destino
+- la meta es evitar el copy/paste manual del repo en el futuro y no ensuciar el repo del proyecto real
+
+Comandos objetivo del paquete:
+
+- `orchestrator-multiagents init-workspace <project-path>`
+- `orchestrator-multiagents init .`
+- `orchestrator-multiagents tui`
+- `orchestrator-multiagents ink`
+- `orchestrator-multiagents skills:registry`
+- `orchestrator-multiagents openspec:new -- <change-name>`
+- `orchestrator-multiagents agent-config:init`
+
 ---
 
 ## Qué es
