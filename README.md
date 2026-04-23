@@ -56,9 +56,9 @@ Este orquestador **no debería ensuciar el repo real del producto**.
 La instalación recomendada es:
 
 - proyecto real:
-  - `C:/code/omniinbox`
+  - `C:/code/mi-proyecto`
 - workspace del orquestador:
-  - `C:/code/orchestrator-omniinbox`
+  - `C:/code/orchestrator-mi-proyecto`
 
 O sea:
 
@@ -76,17 +76,41 @@ Nombre del paquete:
 @liriraid/orchestrator-multiagents
 ```
 
-Uso esperado:
+La página de npm puede mostrar el snippet genérico:
 
 ```bash
-npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
+npm i @liriraid/orchestrator-multiagents
 ```
 
-o instalado globalmente:
+pero **ese no es el flujo recomendado** para este proyecto.
+
+### Instalación global recomendada
+
+Instala el CLI una sola vez:
 
 ```bash
 npm install -g @liriraid/orchestrator-multiagents
+```
+
+Luego, para cada proyecto real, crea un workspace sibling del orquestador:
+
+```bash
 orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+Eso debería dejar algo así:
+
+- proyecto real:
+  - `C:/code/mi-proyecto`
+- workspace del orquestador:
+  - `C:/code/orchestrator-mi-proyecto`
+
+### Alternativa sin instalación global
+
+Si no quieres instalarlo globalmente, puedes usar `npx`:
+
+```bash
+npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
 ```
 
 Ese comando crea un workspace reusable del orquestador junto al proyecto real.
@@ -128,13 +152,31 @@ También crea carpetas runtime:
 
 ## Flujo operativo esperado
 
-### 1. Crear el workspace del orquestador
+### 1. Instalar el CLI globalmente
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/omniinbox
+npm install -g @liriraid/orchestrator-multiagents
 ```
 
-### 2. Ajustar el config
+### 2. Crear el workspace del orquestador
+
+```bash
+orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+Si tu proyecto vive, por ejemplo, en:
+
+```bash
+C:/code/mi-proyecto
+```
+
+el installer debería crear:
+
+```bash
+C:/code/orchestrator-mi-proyecto
+```
+
+### 3. Ajustar el config
 
 Edita:
 
@@ -144,7 +186,7 @@ orchestrator.config.json
 
 para apuntar a los repos reales.
 
-### 3. Arrancar la TUI
+### 4. Arrancar la TUI
 
 Modo Ink:
 
@@ -158,7 +200,7 @@ o desde el repo fuente:
 npm run start:ink:paused
 ```
 
-### 4. Abrir Claude Code en el workspace del orquestador
+### 5. Abrir Claude Code en el workspace del orquestador
 
 Y darle el prompt de arranque:
 
@@ -172,7 +214,7 @@ o mejor:
 Lee ORCHESTRATOR.md, asume el rol de orquestador y arranca.
 ```
 
-### 5. Pedir una tarea
+### 6. Pedir una tarea
 
 Ejemplos:
 

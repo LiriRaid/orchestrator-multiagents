@@ -27,9 +27,9 @@ La dirección correcta es:
 Ejemplo:
 
 - proyecto:
-  - `C:/code/omniinbox`
+  - `C:/code/mi-proyecto`
 - workspace del orquestador:
-  - `C:/code/orchestrator-omniinbox`
+  - `C:/code/orchestrator-mi-proyecto`
 
 Esto evita ensuciar el repo del producto con:
 
@@ -38,6 +38,28 @@ Esto evita ensuciar el repo del producto con:
 - `openspec/`
 - `handoffs/`
 - `progress/`
+
+## Regla de instalación
+
+La instalación recomendada para usuarios finales es:
+
+```bash
+npm install -g @liriraid/orchestrator-multiagents
+```
+
+Después, por cada proyecto real:
+
+```bash
+orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+La variante con `npx` sigue siendo válida:
+
+```bash
+npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+No se recomienda `npm install @liriraid/orchestrator-multiagents` dentro del repo del producto, porque eso lo vuelve una dependencia local del proyecto en vez de una herramienta global del entorno.
 
 ## Capas del sistema
 
@@ -177,4 +199,4 @@ Antes de cerrar esta etapa:
 
 - revisar el checklist final de publicación npm
 - publicar el paquete
-- validar luego la experiencia completa sobre un proyecto real como `OmniInbox`
+- validar luego la experiencia completa sobre un proyecto real de ejemplo
