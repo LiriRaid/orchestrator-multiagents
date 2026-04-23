@@ -18,6 +18,19 @@ const CONTROL_FILE = path.join(ROOT, 'logs', 'orchestrator-control.json');
 const argv = process.argv.slice(2);
 const startPaused = argv.includes('--paused');
 
+// Limpiar control.json orphan al iniciar
+if (fs.existsSync(CONTROL_FILE)) {
+	try {
+		const content = JSON.parse(fs.readFileSync(CONTROL_FILE, 'utf8'));
+		const age = Date.now() - (content.requestedAt || 0);
+		if (age > 5000) {
+			fs.unlinkSync(CONTROL_FILE);
+		}
+	} catch {
+		try { fs.unlinkSync(CONTROL_FILE); } catch {}
+	}
+}
+
 let inkApp = null;
 let refreshTimer = null;
 let spawnedEngine = null;
@@ -250,6 +263,10 @@ function shutdown() {
 		} catch {}
 	}
 	if (inkApp) inkApp.unmount();
+	// Limpiar archivos de control al salir
+	try { fs.unlinkSync(CONTROL_FILE); } catch {}
+	try { fs.unlinkSync(LOCK_FILE); } catch {}
+	try { fs.unlinkSync(STATE_FILE); } catch {}
 }
 
 function mount() {
