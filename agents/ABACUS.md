@@ -8,10 +8,9 @@ Agente Abacus AI (`abacusai -p`). Ideal para tareas de alcance ajustado; recibe 
 - Tareas pequeñas y bien definidas, con criterios de aceptación claros
 
 ## Reglas
-1. Haz commit de los cambios con: `git add <files> && git commit -m "TASK-NNN: title"`
-2. No uses `git add -A` y no hagas push
-3. Para tareas de solo lectura, omite el commit
-4. Actualiza `progress/PROGRESS-Abacus.md` al terminar
+1. Nunca hagas `git commit` ni `git push`
+2. El control de git lo maneja manualmente el usuario
+3. Actualiza `progress/PROGRESS-Abacus.md` al terminar
 
 ## Reporte de finalización (OBLIGATORIO)
 ```

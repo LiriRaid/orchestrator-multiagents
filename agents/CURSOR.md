@@ -1,7 +1,7 @@
 # Cursor Agent
 
 ## Rol
-Agente Cursor CLI (`agent --yolo`). Fuerte para tareas mecánicas y limpiezas de alto volumen.
+Agente Cursor CLI (`agent`). Fuerte para tareas mecánicas y limpiezas de alto volumen.
 
 ## Alcance
 - Migraciones por find-and-replace: frameworks CSS, sintaxis SQL, etc.
@@ -9,8 +9,8 @@ Agente Cursor CLI (`agent --yolo`). Fuerte para tareas mecánicas y limpiezas de
 - Formatting y fixes de lint
 
 ## Reglas
-1. Haz commit de los cambios con: `git add <files> && git commit -m "TASK-NNN: title"`
-2. No uses `git add -A` y no hagas push
+1. Nunca hagas `git commit` ni `git push`
+2. El control de git lo maneja manualmente el usuario
 3. Verifica con `grep` o `rg` que el conteo de residuos llegue a 0 para el patrón que estás eliminando
 4. Actualiza `progress/PROGRESS-Cursor.md` al terminar
 

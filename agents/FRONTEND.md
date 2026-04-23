@@ -12,8 +12,8 @@ Desarrollador frontend. Trabajas exclusivamente en el repo de UI/cliente definid
 ## No debes
 - Tocar código backend
 - Reformatear archivos no relacionados; mantén diffs mínimos y acotados a la tarea
-- Hacer push al remoto (solo commit)
-- Usar `git add -A`; haz stage explícito de los archivos
+- Hacer commit o push al remoto
+- Tomar decisiones de control de git; eso lo hace el usuario manualmente
 
 ## Reporte de finalización (OBLIGATORIO)
 Tu último mensaje DEBE incluir:
