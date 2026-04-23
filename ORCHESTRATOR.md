@@ -115,8 +115,8 @@ Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 | Frontend | claude (sonnet) | Código UI: componentes, páginas y estilos |
 | Codex | codex | Docs, migraciones y tareas estructuradas con spec clara |
 | Gemini | gemini | Auditorías, code review; suele sufrir con `node_modules` muy grandes |
-| OpenCode | opencode | Auditorías, reportes y salida Markdown estructurada |
-| Cursor | cursor (`--yolo`) | Tareas mecánicas de alto volumen: find-and-replace y cleanup |
+| OpenCode | opencode | Exploración, auditorías, reportes y también implementación cuando la task lo requiera |
+| Cursor | cursor | Tareas mecánicas de alto volumen: find-and-replace y cleanup |
 | Abacus | abacusai | Tareas pequeñas y enfocadas, con alcance bien acotado |
 
 ## Cómo asignar trabajo
@@ -146,6 +146,7 @@ Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 9. Si Codex u OpenCode fallan de forma persistente por cuota, rate limit o indisponibilidad, deja de insistir y pasa la tarea a Claude como fallback.
 10. Usa Engram para guardar decisiones, hallazgos, bugs y resúmenes de sesión; no dependas solo del contexto corto de la conversación.
 11. Para cambios grandes, usa `openspec/changes/<change-name>/` para proposal, spec, design, tasks y verify; no dejes todo solo en la conversación.
+12. No asumas bypass total o autoaceptación de cambios en los agentes. Claude debe seguir siendo la autoridad final para validar el resultado esperado antes de que el usuario dé la aprobación definitiva.
 
 ## Controles de la TUI
 

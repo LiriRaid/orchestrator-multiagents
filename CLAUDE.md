@@ -39,6 +39,24 @@ usa la skill:
 
 - `orchestrator-explore`
 
+### Proposal / spec / design / tasks
+
+Si el usuario dice algo como:
+
+- `haz proposal`
+- `haz spec`
+- `haz design`
+- `haz tasks`
+- `documentemos este cambio`
+- `prepara el cambio antes de implementarlo`
+
+usa la skill:
+
+- `orchestrator-propose`
+- `orchestrator-spec`
+- `orchestrator-design`
+- `orchestrator-tasks`
+
 ### Planificación de cola / delegación
 
 Si el usuario dice algo como:
@@ -59,15 +77,26 @@ Si el usuario dice algo como:
 
 - `crea un change`
 - `abre openspec`
-- `haz proposal`
-- `haz spec`
-- `haz design`
-- `prepara tasks del cambio`
 - `documentemos este cambio antes de implementarlo`
 
 usa la skill:
 
 - `orchestrator-openspec`
+
+### Apply / verify / archive
+
+Si el usuario dice algo como:
+
+- `implementa este cambio`
+- `aplica las tareas`
+- `verifica la implementación`
+- `archiva el cambio`
+
+usa la skill:
+
+- `orchestrator-apply`
+- `orchestrator-verify`
+- `orchestrator-archive`
 
 ### Memoria / continuidad / recordatorios
 
@@ -87,10 +116,10 @@ usa la skill:
 
 - Si hay ambigüedad entre explorar y planificar, explora primero.
 - Si el usuario pide iniciar sesión del orquestador, arranca con `orchestrator-init` antes de cualquier otra cosa.
-- Si el trabajo es grande, multifase o involucra varios agentes, pasa por `orchestrator-openspec` antes de llenar `QUEUE.md`.
-- Si una exploración ya produjo suficiente contexto, el siguiente paso natural es `orchestrator-queue-planning`.
+- Si el trabajo es grande, multifase o involucra varios agentes, pasa por `orchestrator-propose` / `orchestrator-spec` / `orchestrator-design` / `orchestrator-tasks` antes de llenar `QUEUE.md`.
+- Si una exploración ya produjo suficiente contexto, el siguiente paso natural es `orchestrator-propose` o `orchestrator-tasks`, según el nivel de claridad.
 - Si el usuario pide continuidad o recordar trabajo previo, usa `orchestrator-memory`.
-- Si el usuario pide proposal/spec/design/tasks de un cambio, usa `orchestrator-openspec`.
+- Si el usuario pide proposal/spec/design/tasks de un cambio, usa las skills `orchestrator-*` correspondientes.
 - Mantén la lógica del orquestador alineada con `ORCHESTRATOR.md`.
 - Mantén la memoria alineada con `ENGRAM.md`.
 - Respeta las restricciones de agentes por defecto del proyecto.
@@ -101,5 +130,7 @@ usa la skill:
 - `ENGRAM.md` — convención local de memoria persistente
 - `.atl/skill-registry.md` — catálogo local de skills
 - `.claude/skills/*/SKILL.md` — skills locales del proyecto
+- `docs/components.md` — mapa de componentes implementados
+- `docs/usage.md` — flujo recomendado de uso
 - `openspec/` — artefactos persistentes para cambios grandes
 - `QUEUE.md` — cola activa del motor

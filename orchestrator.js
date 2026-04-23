@@ -108,6 +108,7 @@ const argv = process.argv.slice(2);
 const CLI = {
   paused: argv.includes("--paused"),
   headless: argv.includes("--headless"),
+  yolo: argv.includes("--yolo"),
   help: argv.includes("--help") || argv.includes("-h"),
   maxBudget:
     parseFloat(
@@ -125,6 +126,7 @@ Opciones:
   --init         Genera orchestrator.config.json por defecto
   --headless     Ejecuta solo el motor, sin la UI blessed
   --paused       Inicia en pausa (presiona S para comenzar)
+  --yolo         Activa bypass/agresivo para una sesión explícita
   --max-budget=N Se detiene al gastar $N
   --help         Muestra esta ayuda
 
@@ -138,10 +140,11 @@ Teclado:
 const MAX_CONCURRENT = config.maxConcurrent || Object.keys(AGENTS).length;
 const POLL_INTERVAL_MS = (config.pollIntervalSeconds || 30) * 1000;
 const TASK_TIMEOUT_MS = (config.taskTimeoutMinutes || 30) * 60 * 1000;
-const SKIP_PERMISSIONS = process.env.SKIP_PERMISSIONS === "true";
+const SKIP_PERMISSIONS =
+  process.env.SKIP_PERMISSIONS === "true" || CLI.yolo;
 const PERMISSION_FLAGS = SKIP_PERMISSIONS
   ? ["--dangerously-skip-permissions"]
-  : ["--permission-mode", "acceptEdits"];
+  : ["--permission-mode", "default"];
 
 // ============================================================================
 // LOCK FILE
@@ -785,7 +788,13 @@ function buildCliCommand(agentCfg, task, prompt) {
     case "codex":
       return {
         cmd: "codex",
-        args: ["exec", "--yolo", "--add-dir", WORKSPACE, "-"],
+        args: [
+          "exec",
+          ...(CLI.yolo ? ["--dangerously-bypass-approvals-and-sandbox"] : []),
+          "--add-dir",
+          WORKSPACE,
+          "-",
+        ],
       };
     case "opencode":
       return {
@@ -795,14 +804,14 @@ function buildCliCommand(agentCfg, task, prompt) {
           "--format",
           "json",
           "--pure",
-          "--dangerously-skip-permissions",
+          ...(CLI.yolo ? ["--dangerously-skip-permissions"] : []),
         ],
       };
     case "gemini":
       return {
         cmd: "gemini",
         args: [
-          "--approval-mode=yolo",
+          ...(CLI.yolo ? ["--approval-mode=yolo"] : []),
           "--include-directories",
           WORKSPACE,
           "--output-format",
@@ -812,7 +821,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         ],
       };
     case "cursor":
-      return { cmd: "agent", args: ["--yolo"] };
+      return { cmd: "agent", args: CLI.yolo ? ["--yolo"] : [] };
     case "abacusai": {
       const promptFile = path.join(LOG_DIR, `abacus-prompt-${task.id}.txt`);
       fs.writeFileSync(promptFile, prompt, "utf-8");
@@ -822,7 +831,7 @@ function buildCliCommand(agentCfg, task, prompt) {
           cmd: "cmd",
           args: [
             "/c",
-            `type "${promptFile}" | abacusai -p --output-format stream-json --permission-mode yolo --dangerously-skip-permissions --auto-accept-edits --add-dir "${WORKSPACE}"`,
+            `type "${promptFile}" | abacusai -p --output-format stream-json --permission-mode ${CLI.yolo ? "yolo" : "default"} ${CLI.yolo ? "--dangerously-skip-permissions --auto-accept-edits" : ""} --add-dir "${WORKSPACE}"`,
           ],
         };
       }
@@ -830,7 +839,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         cmd: "sh",
         args: [
           "-c",
-          `cat "${promptFile}" | abacusai -p --output-format stream-json --permission-mode yolo --dangerously-skip-permissions --auto-accept-edits --add-dir "${WORKSPACE}"`,
+          `cat "${promptFile}" | abacusai -p --output-format stream-json --permission-mode ${CLI.yolo ? "yolo" : "default"} ${CLI.yolo ? "--dangerously-skip-permissions --auto-accept-edits" : ""} --add-dir "${WORKSPACE}"`,
         ],
       };
     }

@@ -2,14 +2,15 @@
 name: orchestrator-init
 description: >
   Inicializa la sesión del orquestador para este proyecto: lee ORCHESTRATOR.md, la configuración, la cola y el estado visible antes de pedir la siguiente prioridad.
-  Trigger: "arranca", "inicia el orquestador", "lee ORCHESTRATOR.md y arranca", "start orchestrator"
 license: MIT
 metadata:
   owner: orchestrator-multiagents
   version: "0.1"
 ---
 
-# Orchestrator Init
+# Skill: orchestrator-init
+
+Trigger: "arranca", "inicia el orquestador", "lee ORCHESTRATOR.md y arranca", "start orchestrator"
 
 ## Propósito
 

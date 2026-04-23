@@ -9,7 +9,7 @@ metadata:
   version: "0.1"
 ---
 
-# Orchestrator Explore
+# Skill: orchestrator-explore
 
 ## Propósito
 

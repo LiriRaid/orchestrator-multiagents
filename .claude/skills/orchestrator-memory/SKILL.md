@@ -2,14 +2,15 @@
 name: orchestrator-memory
 description: >
   Recupera o guarda contexto persistente del proyecto usando Engram. Úsala cuando el usuario pide recordar trabajo previo, cuando aparece una decisión importante, o cuando se necesita cerrar sesión con continuidad.
-  Trigger: "recuerda", "qué hicimos", "cómo quedó", "guarda esto", "save memory", "session summary", "contexto anterior"
 license: MIT
 metadata:
   owner: orchestrator-multiagents
   version: "0.1"
 ---
 
-# Orchestrator Memory
+# Skill: orchestrator-memory
+
+Trigger: "recuerda", "qué hicimos", "cómo quedó", "guarda esto", "save memory", "session summary", "contexto anterior"
 
 ## Propósito
 

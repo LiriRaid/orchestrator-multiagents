@@ -41,8 +41,10 @@ function extractName(content, fallback) {
 }
 
 function extractTrigger(content = '') {
-	const match = content.match(/Trigger:\s*["']?(.+?)["']?$/im);
-	return match ? match[1].trim() : 'manual';
+	const triggerLine = content.match(/^Trigger:\s*(.+)$/im);
+	if (triggerLine) return triggerLine[1].trim();
+	const descriptionTrigger = content.match(/Trigger:\s*([^.\n]+)/im);
+	return descriptionTrigger ? descriptionTrigger[1].trim() : 'manual';
 }
 
 function compactRules(content) {

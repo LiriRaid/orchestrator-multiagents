@@ -1,14 +1,16 @@
 ---
 name: orchestrator-openspec
 description: >
-  Abre, crea o actualiza artefactos de OpenSpec para cambios grandes o de varias fases. Trigger: "crea un change", "abre openspec", "haz proposal", "haz spec", "haz design", "prepara tasks del cambio"
+  Abre, crea o actualiza artefactos de OpenSpec para cambios grandes o de varias fases.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
   version: "0.1"
 ---
 
-# Orchestrator OpenSpec
+# Skill: orchestrator-openspec
+
+Trigger: "crea un change", "abre openspec", "haz proposal", "haz spec", "haz design", "prepara tasks del cambio"
 
 ## Propósito
 

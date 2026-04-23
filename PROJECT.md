@@ -44,7 +44,7 @@ Esto evita ensuciar el repo del producto con:
 La instalación recomendada para usuarios finales es:
 
 ```bash
-npm install -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/orchestrator-multiagents
 ```
 
 Después, por cada proyecto real:
@@ -60,6 +60,22 @@ npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
 ```
 
 No se recomienda `npm install @liriraid/orchestrator-multiagents` dentro del repo del producto, porque eso lo vuelve una dependencia local del proyecto en vez de una herramienta global del entorno.
+
+## Regla de permisos
+
+El comportamiento deseado del sistema no es `YOLO` por defecto.
+
+Meta operativa:
+
+- permitir que los agentes trabajen y propongan cambios
+- evitar autoaceptación ciega en agentes de ejecución
+- mantener a Claude como árbitro principal de calidad y consistencia
+- permitir que OpenCode explore primero, pero también implemente cuando el reparto de tareas lo necesite
+- dejar la aceptación final en manos del usuario
+
+Esto es especialmente importante cuando el agente de apoyo también modifica código y no solo lee contexto.
+
+Si el usuario quiere un modo agresivo para una sesión concreta, debe activarlo explícitamente con `--yolo`. No debe ser el modo base del sistema.
 
 ## Capas del sistema
 
@@ -96,7 +112,14 @@ Hoy incluyen:
 
 - `orchestrator-init`
 - `orchestrator-explore`
+- `orchestrator-propose`
+- `orchestrator-spec`
+- `orchestrator-design`
+- `orchestrator-tasks`
 - `orchestrator-queue-planning`
+- `orchestrator-apply`
+- `orchestrator-verify`
+- `orchestrator-archive`
 - `orchestrator-memory`
 - `orchestrator-openspec`
 
@@ -125,6 +148,15 @@ Hoy incluyen:
 - `bin/orchestrator-multiagents.mjs`
 - instalación en workspace sibling
 - base preparada para npm
+
+### 9. Documentation layer
+
+- `docs/architecture.md`
+- `docs/components.md`
+- `docs/agents.md`
+- `docs/engram.md`
+- `docs/openspec.md`
+- `docs/usage.md`
 
 ## Estado real de la arquitectura
 
@@ -155,6 +187,7 @@ Este proyecto debe:
 - **no depender de skills globales del usuario**
 - **permitir trabajar con 3 agentes hoy y más mañana**
 - **mantener a Claude como orquestador principal**
+- **permitir que OpenCode y Codex implementen código, con Claude como revisor final y fallback**
 
 ## Flujo operativo esperado
 

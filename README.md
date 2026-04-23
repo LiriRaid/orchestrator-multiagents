@@ -7,8 +7,8 @@ Orquestador reusable para trabajar con múltiples agentes de código desde termi
 La idea central no es dejar que una sola IA haga todo, sino:
 
 - usar a **Claude** como orquestador principal
-- usar **OpenCode** para exploración, lectura y contexto
-- usar **Codex** para ejecución estructurada
+  - usar **OpenCode** principalmente para exploración, lectura y contexto, pero también para implementar cuando convenga
+  - usar **Codex** para ejecución estructurada e implementación de apoyo
 - reflejar todo en una **TUI** que muestra estado, cola, agentes, logs y actividad real
 
 ## Qué es hoy
@@ -25,6 +25,7 @@ Hoy incluye:
 - **OpenSpec** para cambios grandes
 - **configuración por agente** con `agentProfiles`
 - **base de installer / ecosystem configurator**
+- **documentación local de componentes y arquitectura**
 
 ## Diferencia frente a gentle-ai
 
@@ -48,6 +49,23 @@ Lo que agrega como valor propio:
   - planificación
   - ejecución
   - verificación
+
+## Documentación local
+
+La documentación reusable del sistema vive en:
+
+```bash
+docs/
+```
+
+Incluye:
+
+- `docs/architecture.md`
+- `docs/components.md`
+- `docs/agents.md`
+- `docs/engram.md`
+- `docs/openspec.md`
+- `docs/usage.md`
 
 ## Modelo de uso recomendado
 
@@ -89,7 +107,7 @@ pero **ese no es el flujo recomendado** para este proyecto.
 Instala el CLI una sola vez:
 
 ```bash
-npm install -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/orchestrator-multiagents
 ```
 
 Luego, para cada proyecto real, crea un workspace sibling del orquestador:
@@ -155,7 +173,7 @@ También crea carpetas runtime:
 ### 1. Instalar el CLI globalmente
 
 ```bash
-npm install -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/orchestrator-multiagents
 ```
 
 ### 2. Crear el workspace del orquestador
@@ -231,6 +249,19 @@ Claude usará:
 - `openspec/` para cambios grandes
 - `QUEUE.md` para ejecución viva en el motor
 
+## Modelo de seguridad recomendado
+
+Por defecto, el orquestador no debería correr en modo bypass total.
+
+Recomendación:
+
+- **Claude** como orquestador y autoridad final de revisión
+- **OpenCode** para lectura, exploración, contexto e implementación cuando se le asigne
+- **Codex** para implementación estructurada y apoyo técnico
+- cambios sensibles o resultados dudosos deben volver a **Claude** para validación
+
+La idea es que los agentes trabajen, pero no autoacepten todo ciegamente. El usuario conserva la aprobación final, con Claude como filtro principal de calidad.
+
 ## UIs disponibles
 
 ### Ink
@@ -240,6 +271,7 @@ Comandos:
 ```bash
 orchestrator-multiagents ink
 orchestrator-multiagents ink --paused
+orchestrator-multiagents ink --yolo
 ```
 
 o desde el repo fuente:
@@ -259,6 +291,22 @@ Estado actual:
   - `P`
   - `R`
   - `Q`
+
+### Modo con bypass explícito
+
+Si en una sesión concreta quieres permitir modo agresivo para entornos de confianza, puedes iniciar el motor con:
+
+```bash
+orchestrator-multiagents ink --yolo
+```
+
+o:
+
+```bash
+node orchestrator.js --yolo
+```
+
+Ese modo no es el default y debe usarse solo cuando realmente lo decidas.
 
 ### Blessed
 
@@ -281,7 +329,14 @@ Actualmente incluye:
 
 - `orchestrator-init`
 - `orchestrator-explore`
+- `orchestrator-propose`
+- `orchestrator-spec`
+- `orchestrator-design`
+- `orchestrator-tasks`
 - `orchestrator-queue-planning`
+- `orchestrator-apply`
+- `orchestrator-verify`
+- `orchestrator-archive`
 - `orchestrator-memory`
 - `orchestrator-openspec`
 

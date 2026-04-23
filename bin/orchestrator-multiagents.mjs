@@ -14,6 +14,7 @@ const TEMPLATE_PATHS = [
 	'CLAUDE.md',
 	'ENGRAM.md',
 	'AGENT-CONFIG.md',
+	'docs',
 	'orchestrator.config.json',
 	'QUEUE.md',
 	'agents',
@@ -32,15 +33,15 @@ orchestrator-multiagents
 Uso:
   orchestrator-multiagents init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--force]
   orchestrator-multiagents init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--force]
-  orchestrator-multiagents tui [--paused]
-  orchestrator-multiagents ink [--paused]
+  orchestrator-multiagents tui [--paused] [--yolo]
+  orchestrator-multiagents ink [--paused] [--yolo]
   orchestrator-multiagents skills:registry
   orchestrator-multiagents openspec:new <change-name>
   orchestrator-multiagents agent-config:init
 
 Ejemplos:
   orchestrator-multiagents init . --project-name "Mi Proyecto"
-  orchestrator-multiagents init-workspace C:/code/omniinbox
+  orchestrator-multiagents init-workspace C:/code/mi-proyecto
   orchestrator-multiagents tui --paused
   orchestrator-multiagents ink
 `);
@@ -137,7 +138,7 @@ function initProject(args) {
 	console.log(`Orquestador instalado en ${targetDir}`);
 	console.log('Siguiente paso recomendado:');
 	console.log('1. Edita orchestrator.config.json con rutas reales');
-	console.log('2. Revisa ORCHESTRATOR.md y CLAUDE.md');
+	console.log('2. Revisa ORCHESTRATOR.md, CLAUDE.md y docs/');
 	console.log('3. Ejecuta: orchestrator-multiagents ink --paused');
 }
 
