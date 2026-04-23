@@ -1,6 +1,6 @@
 # Componentes
 
-Este proyecto toma como referencia el modelo de componentes de gentle-ai, pero solo conserva y adapta lo que sí encaja con este orquestador.
+Este documento describe los componentes reales del orquestador y cómo se organizan dentro del sistema.
 
 | Componente | ID | Estado | Descripción |
 |---|---|---|---|
@@ -11,7 +11,7 @@ Este proyecto toma como referencia el modelo de componentes de gentle-ai, pero s
 | Persona | `persona` | Implementado | Claude como orquestador principal con reglas locales |
 | Permissions | `permissions` | Implementado | Seguro por defecto, bypass solo explícito |
 | GGA | `gga` | No incluido | Fuera de alcance para este orquestador |
-| Theme | `theme` | No incluido | El sistema visual de gentle-ai no se replica aquí |
+| Theme | `theme` | No incluido | No forma parte del alcance de este orquestador |
 
 ## Skills de flujo del orquestador
 
@@ -30,4 +30,4 @@ Este proyecto toma como referencia el modelo de componentes de gentle-ai, pero s
 
 ## Decisión de diseño
 
-Este repo toma lo útil de gentle-ai como referencia, pero adapta las skills al flujo real del orquestador con TUI, `QUEUE.md`, OpenSpec, Engram y Claude como coordinador.
+Este repo organiza sus skills alrededor del flujo real del orquestador con TUI, `QUEUE.md`, OpenSpec, Engram y Claude como coordinador.

@@ -1,12 +1,12 @@
-# Documentation
+# Documentación
 
-This directory contains the reusable documentation layer for the orchestrator workspace.
+Este directorio contiene la capa reusable de documentación del workspace del orquestador.
 
-Available docs:
+Documentos disponibles:
 
-- `architecture.md` — system layers and data flow
-- `components.md` — components inspired by gentle-ai and their status here
-- `agents.md` — how agent families are modeled
-- `engram.md` — memory role and usage
-- `openspec.md` — artifact model and change flow
-- `usage.md` — recommended end-to-end workflow
+- `architecture.md` — capas del sistema y flujo de datos
+- `components.md` — componentes implementados y su estado actual
+- `agents.md` — cómo se modelan las familias de agentes
+- `engram.md` — rol y uso de la memoria
+- `openspec.md` — modelo de artefactos y flujo de cambios
+- `usage.md` — flujo recomendado de uso end-to-end

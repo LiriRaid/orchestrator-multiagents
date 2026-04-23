@@ -183,7 +183,7 @@ Hoy incluyen:
 Este proyecto debe:
 
 - **priorizar configuración local del repo**
-- **no depender de gentle-ai**
+- **no depender de herramientas externas para el flujo base**
 - **no depender de skills globales del usuario**
 - **permitir trabajar con 3 agentes hoy y más mañana**
 - **mantener a Claude como orquestador principal**
@@ -216,15 +216,13 @@ Lee ORCHESTRATOR.md y arranca.
 - ningún agente hace push
 - git siempre queda manualmente en manos del usuario
 
-## Regla sobre dependencia de terceros
-
-`gentle-ai` fue referencia conceptual, no dependencia objetivo.
+## Regla sobre dependencias del flujo
 
 Meta:
 
-- poder desinstalar `gentle-ai`
-- dejar solo Engram y el orquestador propio
+- dejar solo Engram y el orquestador propio como base operativa
 - seguir funcionando con skills locales y config local
+- no depender del bootstrap ni de la estructura de otra herramienta
 
 ## Siguiente foco natural
 

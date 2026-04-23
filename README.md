@@ -27,19 +27,9 @@ Hoy incluye:
 - **base de installer / ecosystem configurator**
 - **documentación local de componentes y arquitectura**
 
-## Diferencia frente a gentle-ai
+## Valor del sistema
 
-Este proyecto toma ideas de `gentle-ai`, pero no intenta ser una copia.
-
-Lo que sí hereda como inspiración:
-
-- skills locales
-- registry local
-- memoria persistente
-- OpenSpec / SDD
-- installer / ecosystem configurator
-
-Lo que agrega como valor propio:
+Lo que agrega valor en este flujo:
 
 - TUI multiagente visible en tiempo real
 - cola operativa (`QUEUE.md`) integrada al runtime
@@ -84,7 +74,7 @@ O sea:
 - el proyecto real queda limpio
 - el orquestador apunta al proyecto por config
 
-Eso es muy parecido al modelo global de herramientas como `gentle-ai`.
+Ese es el modelo recomendado para usar el orquestador sin ensuciar el repo real del producto.
 
 ## Instalación desde npm
 
