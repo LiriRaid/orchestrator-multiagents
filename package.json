@@ -34,7 +34,8 @@
     "CLAUDE.md",
     "ENGRAM.md",
     "AGENT-CONFIG.md",
-    "QUEUE.md"
+    "QUEUE.md",
+    "LICENSE"
   ],
   "scripts": {
     "start": "node orchestrator.js",

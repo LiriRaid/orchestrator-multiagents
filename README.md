@@ -1,5 +1,7 @@
 # Orquestador Multiagente
 
+> by **LiriRaid**
+
 Un dashboard TUI en terminal que despacha tareas a múltiples agentes de IA trabajando en paralelo sobre tu codebase. Defines tareas en un archivo Markdown simple, y el orchestrator las asigna a los agentes, sigue el progreso, maneja rate limits y dependencias.
 
 ![orchestrator-demo](https://img.shields.io/badge/TUI-blessed%20%2B%20ink-cyan)
@@ -475,4 +477,6 @@ Toda la salida se guarda en `logs/`:
 
 ## Licencia
 
-CC BY-NC-SA 4.0 - Atribución, No Comercial, Compartir Igual
+MIT
+
+Este paquete usa una licencia estándar de software libre y el texto completo está en `LICENSE`.
