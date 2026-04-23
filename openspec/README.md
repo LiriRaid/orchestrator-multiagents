@@ -9,6 +9,7 @@ openspec/
 ├── changes/
 │   ├── archive/
 │   └── <change-name>/
+├── FLOW.md
 ├── specs/
 └── templates/
 ```
@@ -33,6 +34,19 @@ Usar `openspec/` como capa persistente para cambios importantes, sin depender so
 5. Cuando el cambio termine:
    - moverlo a `openspec/changes/archive/`
    - reflejar aprendizaje útil en Engram
+
+## Flujo canónico
+
+Consulta también:
+
+- `openspec/FLOW.md`
+
+Ese archivo define:
+
+- cuándo nace un change
+- cuándo proposal pasa a spec
+- cuándo tasks baja a `QUEUE.md`
+- cómo verificar y archivar
 
 ## Regla de diseño
 

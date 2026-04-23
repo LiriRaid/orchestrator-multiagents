@@ -65,6 +65,7 @@ Actualmente se incluyen skills locales base para:
 - `orchestrator-explore`
 - `orchestrator-queue-planning`
 - `orchestrator-memory`
+- `orchestrator-openspec`
 
 Puedes regenerar el registry local con:
 
@@ -79,6 +80,41 @@ Eso escribe:
 ```
 
 El registry local prioriza siempre las skills del repo sobre cualquier skill global instalada en tu máquina.
+
+## Configuración por agente
+
+El proyecto ahora separa:
+
+- `agents` — instancias operativas que el motor puede lanzar
+- `agentProfiles` — perfiles reutilizables por tipo de agente
+
+Eso permite usar hoy solo:
+
+- `claude`
+- `codex`
+- `opencode`
+
+pero seguir dejando la arquitectura abierta para:
+
+- un solo agente
+- más agentes después
+- o perfiles deshabilitados por defecto
+
+Puedes inicializar la capa local por agente con:
+
+```bash
+npm run agent-config:init
+```
+
+Eso asegura estas carpetas base del proyecto:
+
+```bash
+.claude/
+.codex/
+.opencode/
+```
+
+La regla es: la configuración local del proyecto debe ganar sobre la configuración global del usuario cuando el orquestador reusable esté instalado en un workspace.
 
 ## Memoria persistente con Engram
 
@@ -104,6 +140,7 @@ El proyecto ya incluye una estructura inicial de `openspec/` para cambios grande
 ```bash
 openspec/
 ├── changes/
+├── FLOW.md
 ├── specs/
 └── templates/
 ```
@@ -129,6 +166,7 @@ La idea es que:
 - `openspec/` guarde el razonamiento y artefactos del cambio
 - `QUEUE.md` siga siendo la cola operativa del motor
 - Engram guarde memoria y continuidad entre sesiones
+- `openspec/FLOW.md` sea la guía de cuándo cada artefacto debe crearse o avanzar
 
 ## Atajos de teclado
 
@@ -154,10 +192,28 @@ Edita `orchestrator.config.json`:
     "backend": "/path/to/backend-repo",
     "frontend": "/path/to/frontend-repo"
   },
+  "agentProfiles": {
+    "claude": {
+      "enabled": true,
+      "localConfigDir": ".claude",
+      "skillsDir": ".claude/skills",
+      "primary": true,
+      "useForOrchestration": true
+    },
+    "codex": {
+      "enabled": true,
+      "localConfigDir": ".codex"
+    },
+    "opencode": {
+      "enabled": true,
+      "localConfigDir": ".opencode"
+    }
+  },
 
   "agents": {
     "Backend": {
       "cli": "claude",
+      "profile": "claude",
       "defaultRepo": "backend",
       "model": "sonnet",
       "instructionsFile": "agents/BACKEND.md"
@@ -202,11 +258,23 @@ Edita `orchestrator.config.json`:
 | Campo              | Requerido | Descripción                                                                                              |
 | ------------------ | --------- | -------------------------------------------------------------------------------------------------------- |
 | `cli`              | Sí        | Tipo de CLI: `claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai` o cualquier CLI personalizado |
+| `profile`          | No        | Profile definido en `agentProfiles` para reutilizar configuración por familia de agente                 |
 | `defaultRepo`      | Sí        | Clave del mapa `repos` donde ese agente trabaja por defecto                                              |
 | `model`            | No        | Override de modelo, por ejemplo `sonnet` u `opus` (solo para Claude)                                     |
 | `instructionsFile` | No        | Ruta a un archivo Markdown con instrucciones específicas del agente                                      |
 | `command`          | No        | Override completo del comando, por ejemplo `my-cli --flag1 --flag2`                                      |
 | `args`             | No        | Array de argumentos para agentes genéricos                                                               |
+
+### Profiles por agente
+
+`agentProfiles` te permite decir:
+
+- qué perfiles están habilitados
+- cuál es el principal
+- qué directorio local usa cada familia de agente
+- y cuáles quedan listos para más adelante aunque no se usen hoy
+
+Eso hace que el repo reusable no quede atado a “exactamente tres agentes”, aunque hoy tu flujo principal sí use `Claude`, `Codex` y `OpenCode`.
 
 ### Agregar un agente personalizado
 

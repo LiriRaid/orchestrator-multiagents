@@ -12,7 +12,8 @@
     "start:ink": "node src/ink/index.mjs",
     "start:ink:paused": "node src/ink/index.mjs --paused",
     "skills:registry": "node scripts/update-skill-registry.mjs",
-    "openspec:new": "node scripts/scaffold-openspec-change.mjs"
+    "openspec:new": "node scripts/scaffold-openspec-change.mjs",
+    "agent-config:init": "node scripts/scaffold-agent-configs.mjs"
   },
   "keywords": [
     "ai",

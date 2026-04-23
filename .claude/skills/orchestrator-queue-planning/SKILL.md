@@ -22,6 +22,7 @@ Traducir una necesidad del usuario o hallazgos de exploración en tareas concret
 - Usa dependencias `> after:TASK-NNN` cuando una tarea no pueda arrancar todavía.
 - Prioriza mantener ocupados los agentes permitidos por defecto sin inventar trabajo fuera del alcance.
 - Si el trabajo es exploratorio, usa primero `OpenCode`; si es ejecución estructurada, reparte según el dominio.
+- Si existe un `openspec/changes/<change-name>/tasks.md`, usa ese archivo como fuente de verdad para traducirlo a `QUEUE.md`.
 - No sobrecargues una sola IA con demasiadas tareas si puedes paralelizar sin riesgo.
 - Mantén `QUEUE.md` coherente con el objetivo actual del usuario.
 

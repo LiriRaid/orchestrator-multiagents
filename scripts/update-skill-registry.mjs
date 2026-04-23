@@ -40,8 +40,8 @@ function extractName(content, fallback) {
 	return match ? match[1].trim().replace(/^['"]|['"]$/g, '') : fallback;
 }
 
-function extractTrigger(value = '') {
-	const match = value.match(/Trigger:\s*(.*)$/i);
+function extractTrigger(content = '') {
+	const match = content.match(/Trigger:\s*["']?(.+?)["']?$/im);
 	return match ? match[1].trim() : 'manual';
 }
 

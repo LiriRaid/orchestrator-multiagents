@@ -13,6 +13,9 @@ También ya existe una base local para skills del proyecto:
 - `./.atl/skill-registry.md` — registry generado localmente
 - `ENGRAM.md` — convención local para memoria persistente
 - `openspec/` — artefactos persistentes para cambios grandes (`proposal`, `spec`, `design`, `tasks`, `verify`)
+- `openspec/FLOW.md` — flujo canónico de artefactos y transición hacia `QUEUE.md`
+- `agentProfiles` en `orchestrator.config.json` — capa reusable de configuración por familia de agente
+- `.claude/`, `.codex/`, `.opencode/` — capa local por agente dentro del proyecto reusable
 
 La regla de diseño es: **priorizar skills del repo y no depender de las globales** instaladas por terceros.
 

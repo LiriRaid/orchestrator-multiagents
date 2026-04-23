@@ -9,6 +9,7 @@ Este archivo define cómo **Claude Code** debe comportarse dentro de este repo y
 3. Usa `ENGRAM.md` como convención local para memoria persistente
 4. No dependas de `~/.claude/skills/` para el flujo principal del orquestador
 5. Si existe una skill global con el mismo nombre, la **local** del proyecto gana
+6. Si existe `openspec/`, úsalo como capa persistente para cambios grandes antes de delegar implementación amplia
 
 ## Routing automático de intención -> skill
 
@@ -52,6 +53,22 @@ usa la skill:
 
 - `orchestrator-queue-planning`
 
+### OpenSpec / cambios grandes
+
+Si el usuario dice algo como:
+
+- `crea un change`
+- `abre openspec`
+- `haz proposal`
+- `haz spec`
+- `haz design`
+- `prepara tasks del cambio`
+- `documentemos este cambio antes de implementarlo`
+
+usa la skill:
+
+- `orchestrator-openspec`
+
 ### Memoria / continuidad / recordatorios
 
 Si el usuario dice algo como:
@@ -70,8 +87,10 @@ usa la skill:
 
 - Si hay ambigüedad entre explorar y planificar, explora primero.
 - Si el usuario pide iniciar sesión del orquestador, arranca con `orchestrator-init` antes de cualquier otra cosa.
+- Si el trabajo es grande, multifase o involucra varios agentes, pasa por `orchestrator-openspec` antes de llenar `QUEUE.md`.
 - Si una exploración ya produjo suficiente contexto, el siguiente paso natural es `orchestrator-queue-planning`.
 - Si el usuario pide continuidad o recordar trabajo previo, usa `orchestrator-memory`.
+- Si el usuario pide proposal/spec/design/tasks de un cambio, usa `orchestrator-openspec`.
 - Mantén la lógica del orquestador alineada con `ORCHESTRATOR.md`.
 - Mantén la memoria alineada con `ENGRAM.md`.
 - Respeta las restricciones de agentes por defecto del proyecto.
@@ -82,4 +101,5 @@ usa la skill:
 - `ENGRAM.md` — convención local de memoria persistente
 - `.atl/skill-registry.md` — catálogo local de skills
 - `.claude/skills/*/SKILL.md` — skills locales del proyecto
+- `openspec/` — artefactos persistentes para cambios grandes
 - `QUEUE.md` — cola activa del motor
