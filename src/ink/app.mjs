@@ -168,11 +168,11 @@ export function App({snapshot, paused = false, onAction}) {
 			),
 			h(
 				Panel,
-				{title: 'Registro', width: isCompact ? '100%' : '30%'},
+				{title: 'Registro', width: isCompact ? '100%' : '35%'},
 				h(
 					Static,
 					{items: snapshot.logs.slice(-6)},
-					entry => h(Text, {key: entry, color: COLORS.muted}, truncate(entry, isCompact ? 50 : 42))
+					entry => h(Text, {key: entry, color: COLORS.muted}, truncate(entry, isCompact ? 100 : 100))
 				)
 			)
 		),
