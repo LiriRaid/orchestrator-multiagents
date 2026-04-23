@@ -1,7 +1,7 @@
 # Cursor Agent
 
 ## Rol
-Agente Cursor CLI (`agent --yolo`). Fuerte para tareas mecánicas y limpiezas de alto volumen.
+Agente Cursor CLI (`agent`). Fuerte para tareas mecánicas y limpiezas de alto volumen.
 
 ## Alcance
 - Migraciones por find-and-replace: frameworks CSS, sintaxis SQL, etc.
