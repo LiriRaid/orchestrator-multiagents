@@ -2,75 +2,110 @@
 
 > by **LiriRaid**
 
-Un dashboard TUI en terminal que despacha tareas a múltiples agentes de IA trabajando en paralelo sobre tu codebase. Defines tareas en un archivo Markdown simple, y el orchestrator las asigna a los agentes, sigue el progreso, maneja rate limits y dependencias.
+Orquestador reusable para trabajar con múltiples agentes de código desde terminal, con un TUI propio, cola operativa, skills locales, memoria persistente con Engram y artefactos OpenSpec para cambios grandes.
 
-![orchestrator-demo](https://img.shields.io/badge/TUI-blessed%20%2B%20ink-cyan)
+La idea central no es dejar que una sola IA haga todo, sino:
 
-## Agentes soportados
+- usar a **Claude** como orquestador principal
+- usar **OpenCode** para exploración, lectura y contexto
+- usar **Codex** para ejecución estructurada
+- reflejar todo en una **TUI** que muestra estado, cola, agentes, logs y actividad real
 
-| Agente             | CLI        | Cómo se conecta                               |
-| ------------------ | ---------- | --------------------------------------------- |
-| **Claude Code**    | `claude`   | Modo pipe (`-p`), salida `stream-json`        |
-| **Codex** (OpenAI) | `codex`    | Modo exec (`--yolo`), prompt por stdin        |
-| **Gemini CLI**     | `gemini`   | Approval mode yolo, `stream-json`             |
-| **Cursor**         | `agent`    | Modo yolo, prompt por stdin                   |
-| **OpenCode**       | `opencode` | Modo run, salida JSON                         |
-| **Abacus AI**      | `abacusai` | Modo print (`-p`), prompt por archivo pipeado |
-| **Custom**         | cualquiera | Configurando `command` o `args` en el config  |
+## Qué es hoy
 
-## Inicio rápido
+Este repo ya no es solo un runner con `QUEUE.md`.
 
-```bash
-# 1. Clonar e instalar
-git clone https://github.com/LiriRaid/orchestrator-multiagents.git
-cd orchestrator-multiagents
-npm install
+Hoy incluye:
 
-# 2. Configurar tu proyecto
-#    Edita orchestrator.config.json con tus repos y agentes
+- **motor de orquestación** en `orchestrator.js`
+- **TUI Ink** conectada al motor real
+- **skills locales** en `.claude/skills/`
+- **routing local** con `CLAUDE.md`
+- **memoria persistente** con `ENGRAM.md`
+- **OpenSpec** para cambios grandes
+- **configuración por agente** con `agentProfiles`
+- **base de installer / ecosystem configurator**
 
-# 3. Agregar tareas a QUEUE.md
+## Diferencia frente a gentle-ai
 
-# 4. Ejecutar
-node orchestrator.js
-```
+Este proyecto toma ideas de `gentle-ai`, pero no intenta ser una copia.
 
-## Installer / Ecosystem Configurator
+Lo que sí hereda como inspiración:
 
-El paquete ya tiene una primera base de installer para que más adelante pueda publicarse en npm con tu identidad.
+- skills locales
+- registry local
+- memoria persistente
+- OpenSpec / SDD
+- installer / ecosystem configurator
 
-Comando objetivo:
+Lo que agrega como valor propio:
 
-```bash
-npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
-```
+- TUI multiagente visible en tiempo real
+- cola operativa (`QUEUE.md`) integrada al runtime
+- delegación real para ahorro de tokens
+- separación clara entre:
+  - exploración
+  - planificación
+  - ejecución
+  - verificación
 
-o, si está instalado globalmente:
+## Modelo de uso recomendado
 
-```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto
-```
+Este orquestador **no debería ensuciar el repo real del producto**.
 
-Ese comando crea un **workspace sibling** al proyecto real.
-
-Ejemplo:
+La instalación recomendada es:
 
 - proyecto real:
   - `C:/code/omniinbox`
 - workspace del orquestador:
   - `C:/code/orchestrator-omniinbox`
 
-Eso evita ensuciar el repo del proyecto con archivos como:
+O sea:
 
-- `QUEUE.md`
-- `logs/`
-- `openspec/`
-- `handoffs/`
-- `progress/`
+- el orquestador vive en una carpeta sibling del proyecto
+- el proyecto real queda limpio
+- el orquestador apunta al proyecto por config
 
-El installer deja el orquestador afuera del proyecto, pero configurado para trabajar sobre él.
+Eso es muy parecido al modelo global de herramientas como `gentle-ai`.
 
-Ese workspace instala:
+## Instalación desde npm
+
+Nombre del paquete:
+
+```bash
+@liriraid/orchestrator-multiagents
+```
+
+Uso esperado:
+
+```bash
+npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+o instalado globalmente:
+
+```bash
+npm install -g @liriraid/orchestrator-multiagents
+orchestrator-multiagents init-workspace C:/code/mi-proyecto
+```
+
+Ese comando crea un workspace reusable del orquestador junto al proyecto real.
+
+## Instalación desde el repo fuente
+
+Si vas a modificar el orquestador mismo:
+
+```bash
+git clone https://github.com/LiriRaid/orchestrator-multiagents.git
+cd orchestrator-multiagents
+npm install
+```
+
+Este repo local es la **fuente reusable** que tú modificas para agregar herramientas, cambiar el flujo o extender el sistema.
+
+## Qué instala el installer
+
+Cuando usas `init-workspace`, el installer crea una base de trabajo con:
 
 - `ORCHESTRATOR.md`
 - `CLAUDE.md`
@@ -84,62 +119,123 @@ Ese workspace instala:
 - `.codex/`
 - `.opencode/`
 
-También crea carpetas runtime base:
+También crea carpetas runtime:
 
 - `logs/`
 - `handoffs/`
 - `progress/`
 - `briefs/`
 
-Ejemplo:
+## Flujo operativo esperado
+
+### 1. Crear el workspace del orquestador
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/omniinbox --workspace-name orchestrator-omniinbox
+orchestrator-multiagents init-workspace C:/code/omniinbox
 ```
 
-Si alguna vez sí quieres instalar directo en una carpeta manual, sigue existiendo:
+### 2. Ajustar el config
+
+Edita:
 
 ```bash
-orchestrator-multiagents init .
+orchestrator.config.json
 ```
 
-### Preview Ink experimental
+para apuntar a los repos reales.
 
-La migración del TUI a Ink ya comenzó en la rama `development`. Puedes abrir la vista experimental con:
+### 3. Arrancar la TUI
+
+Modo Ink:
 
 ```bash
-npm run start:ink
+orchestrator-multiagents ink --paused
 ```
 
-o en pausa:
+o desde el repo fuente:
 
 ```bash
 npm run start:ink:paused
 ```
 
-Por ahora esa vista es un dashboard nuevo para validar layout y experiencia visual; el motor principal actual sigue viviendo en `orchestrator.js`.
+### 4. Abrir Claude Code en el workspace del orquestador
 
-Si instalas el paquete globalmente, también puedes usar:
+Y darle el prompt de arranque:
+
+```text
+Lee ORCHESTRATOR.md y arranca.
+```
+
+o mejor:
+
+```text
+Lee ORCHESTRATOR.md, asume el rol de orquestador y arranca.
+```
+
+### 5. Pedir una tarea
+
+Ejemplos:
+
+- `explora este proyecto`
+- `analiza estos archivos`
+- `crea tareas para implementar este cambio`
+- `abre un change y prepara proposal, spec y tasks`
+
+Claude usará:
+
+- `CLAUDE.md` como routing local
+- `.claude/skills/` como skills del proyecto
+- `ENGRAM.md` para continuidad
+- `openspec/` para cambios grandes
+- `QUEUE.md` para ejecución viva en el motor
+
+## UIs disponibles
+
+### Ink
+
+Comandos:
 
 ```bash
-orchestrator-multiagents tui --paused
 orchestrator-multiagents ink
-orchestrator-multiagents skills:registry
-orchestrator-multiagents openspec:new -- add-mi-cambio
-orchestrator-multiagents agent-config:init
+orchestrator-multiagents ink --paused
+```
+
+o desde el repo fuente:
+
+```bash
+npm run start:ink
+npm run start:ink:paused
+```
+
+Estado actual:
+
+- conectada al motor real
+- muestra `Pausado` / `Ejecutando`
+- muestra tiempo activo
+- usa controles reales:
+  - `S`
+  - `P`
+  - `R`
+  - `Q`
+
+### Blessed
+
+Sigue existiendo como runtime base histórico:
+
+```bash
+node orchestrator.js
+node orchestrator.js --paused
 ```
 
 ## Skills locales del proyecto
 
-Este repo ya puede alojar skills propias del orquestador dentro de:
+Las skills viven en:
 
 ```bash
 .claude/skills/
 ```
 
-La intención es **no depender de las skills globales** instaladas en `~/.claude/skills/` por herramientas como `gentle-ai`.
-
-Actualmente se incluyen skills locales base para:
+Actualmente incluye:
 
 - `orchestrator-init`
 - `orchestrator-explore`
@@ -147,75 +243,58 @@ Actualmente se incluyen skills locales base para:
 - `orchestrator-memory`
 - `orchestrator-openspec`
 
-Puedes regenerar el registry local con:
+Estas skills son **locales del repo** y deben priorizarse sobre cualquier skill global instalada en el home del usuario.
+
+## Registry local
+
+Se regenera con:
 
 ```bash
 npm run skills:registry
 ```
 
-Eso escribe:
+Salida:
 
 ```bash
 .atl/skill-registry.md
 ```
 
-El registry local prioriza siempre las skills del repo sobre cualquier skill global instalada en tu máquina.
-
-## Configuración por agente
-
-El proyecto ahora separa:
-
-- `agents` — instancias operativas que el motor puede lanzar
-- `agentProfiles` — perfiles reutilizables por tipo de agente
-
-Eso permite usar hoy solo:
-
-- `claude`
-- `codex`
-- `opencode`
-
-pero seguir dejando la arquitectura abierta para:
-
-- un solo agente
-- más agentes después
-- o perfiles deshabilitados por defecto
-
-Puedes inicializar la capa local por agente con:
-
-```bash
-npm run agent-config:init
-```
-
-Eso asegura estas carpetas base del proyecto:
-
-```bash
-.claude/
-.codex/
-.opencode/
-```
-
-La regla es: la configuración local del proyecto debe ganar sobre la configuración global del usuario cuando el orquestador reusable esté instalado en un workspace.
+Este registry sirve como catálogo local del proyecto y como fuente de resolución para Claude.
 
 ## Memoria persistente con Engram
 
-El proyecto ya incluye una convención local de memoria en:
+La convención local vive en:
 
 ```bash
 ENGRAM.md
 ```
 
-La idea es que Claude/orquestador use Engram para:
+Engram se usa para:
 
-- recordar decisiones
-- recuperar contexto entre sesiones
-- guardar resúmenes de sesión
-- evitar repetir exploración innecesaria
+- decisiones importantes
+- hallazgos no obvios
+- bugs y causas raíz
+- continuidad entre sesiones
+- resúmenes de sesión
 
-Engram complementa la TUI, `QUEUE.md` y los handoffs; no los reemplaza.
+Engram no reemplaza:
 
-## OpenSpec local
+- `QUEUE.md`
+- la TUI
+- `ORCHESTRATOR.md`
+- handoffs
 
-El proyecto ya incluye una estructura inicial de `openspec/` para cambios grandes:
+Los complementa.
+
+## OpenSpec
+
+OpenSpec vive en:
+
+```bash
+openspec/
+```
+
+Estructura:
 
 ```bash
 openspec/
@@ -225,13 +304,19 @@ openspec/
 └── templates/
 ```
 
-Puedes crear un change nuevo con:
+Crear un change:
 
 ```bash
-npm run openspec:new -- add-nombre-del-cambio
+orchestrator-multiagents openspec:new -- add-mi-cambio
 ```
 
-Eso genera en `openspec/changes/<change-name>/`:
+o desde el repo fuente:
+
+```bash
+npm run openspec:new -- add-mi-cambio
+```
+
+Artefactos del change:
 
 - `proposal.md`
 - `specs/spec.md`
@@ -240,26 +325,66 @@ Eso genera en `openspec/changes/<change-name>/`:
 - `verify-report.md`
 - `archive-report.md`
 - `.openspec.yaml`
-- `specs/`
 
-La idea es que:
-- `openspec/` guarde el razonamiento y artefactos del cambio
-- `QUEUE.md` siga siendo la cola operativa del motor
-- Engram guarde memoria y continuidad entre sesiones
-- `openspec/FLOW.md` sea la guía de cuándo cada artefacto debe crearse o avanzar
+El flujo canónico está en:
 
-## Atajos de teclado
+```bash
+openspec/FLOW.md
+```
 
-| Tecla | Acción                         |
-| ----- | ------------------------------ |
-| **S** | Iniciar / Reanudar             |
-| **P** | Pausar / Reanudar              |
-| **R** | Recargar cola desde QUEUE.md   |
-| **Q** | Salir (mata todos los agentes) |
+## Configuración por agente
 
-## Configuración
+La configuración ahora se divide en dos capas:
 
-Edita `orchestrator.config.json`:
+### `agents`
+
+Instancias operativas visibles para el motor.
+
+Ejemplo:
+
+- `Backend`
+- `Frontend`
+- `Codex`
+- `OpenCode`
+
+### `agentProfiles`
+
+Configuración reusable por familia de agente.
+
+Ejemplo actual:
+
+- `claude`
+- `codex`
+- `opencode`
+- `gemini`
+- `cursor`
+- `abacusai`
+
+Esto permite:
+
+- usar 1 agente
+- usar 3 agentes
+- dejar más perfiles preparados para el futuro
+
+### Inicializar carpetas locales por agente
+
+```bash
+orchestrator-multiagents agent-config:init
+```
+
+o:
+
+```bash
+npm run agent-config:init
+```
+
+Eso asegura:
+
+- `.claude/`
+- `.codex/`
+- `.opencode/`
+
+## Config ejemplo
 
 ```json
 {
@@ -267,10 +392,9 @@ Edita `orchestrator.config.json`:
   "maxConcurrent": 5,
   "pollIntervalSeconds": 30,
   "taskTimeoutMinutes": 30,
-
   "repos": {
-    "backend": "/path/to/backend-repo",
-    "frontend": "/path/to/frontend-repo"
+    "backend": "C:/code/mi-backend",
+    "frontend": "C:/code/mi-frontend"
   },
   "agentProfiles": {
     "claude": {
@@ -289,7 +413,6 @@ Edita `orchestrator.config.json`:
       "localConfigDir": ".opencode"
     }
   },
-
   "agents": {
     "Backend": {
       "cli": "claude",
@@ -298,185 +421,51 @@ Edita `orchestrator.config.json`:
       "model": "sonnet",
       "instructionsFile": "agents/BACKEND.md"
     },
-    "Frontend": {
-      "cli": "claude",
-      "defaultRepo": "frontend",
-      "model": "sonnet",
-      "instructionsFile": "agents/FRONTEND.md"
-    },
     "Codex": {
       "cli": "codex",
+      "profile": "codex",
       "defaultRepo": "backend",
       "instructionsFile": "agents/CODEX.md"
     },
-    "Gemini": {
-      "cli": "gemini",
-      "defaultRepo": "backend",
-      "instructionsFile": "agents/GEMINI.md"
-    },
     "OpenCode": {
       "cli": "opencode",
+      "profile": "opencode",
       "defaultRepo": "backend",
       "instructionsFile": "agents/OPENCODE.md"
-    },
-    "Cursor": {
-      "cli": "cursor",
-      "defaultRepo": "backend",
-      "instructionsFile": "agents/CURSOR.md"
-    },
-    "Abacus": {
-      "cli": "abacusai",
-      "defaultRepo": "backend",
-      "instructionsFile": "agents/ABACUS.md"
     }
   }
 }
 ```
 
-### Opciones de configuración por agente
+## Controles de la TUI
 
-| Campo              | Requerido | Descripción                                                                                              |
-| ------------------ | --------- | -------------------------------------------------------------------------------------------------------- |
-| `cli`              | Sí        | Tipo de CLI: `claude`, `codex`, `gemini`, `cursor`, `opencode`, `abacusai` o cualquier CLI personalizado |
-| `profile`          | No        | Profile definido en `agentProfiles` para reutilizar configuración por familia de agente                 |
-| `defaultRepo`      | Sí        | Clave del mapa `repos` donde ese agente trabaja por defecto                                              |
-| `model`            | No        | Override de modelo, por ejemplo `sonnet` u `opus` (solo para Claude)                                     |
-| `instructionsFile` | No        | Ruta a un archivo Markdown con instrucciones específicas del agente                                      |
-| `command`          | No        | Override completo del comando, por ejemplo `my-cli --flag1 --flag2`                                      |
-| `args`             | No        | Array de argumentos para agentes genéricos                                                               |
+| Tecla | Acción |
+|------|--------|
+| `S` | iniciar / reanudar |
+| `P` | pausar |
+| `R` | recargar `QUEUE.md` |
+| `Q` | salir y matar agentes |
 
-### Profiles por agente
+## Lo que este repo ya soporta
 
-`agentProfiles` te permite decir:
+- cola operativa con `QUEUE.md`
+- TUI conectada al motor real
+- skills locales del proyecto
+- routing local con `CLAUDE.md`
+- memoria persistente con Engram
+- OpenSpec para cambios grandes
+- configuración reusable por agente
+- installer / ecosystem configurator base
 
-- qué perfiles están habilitados
-- cuál es el principal
-- qué directorio local usa cada familia de agente
-- y cuáles quedan listos para más adelante aunque no se usen hoy
+## Lo que todavía sigue evolucionando
 
-Eso hace que el repo reusable no quede atado a “exactamente tres agentes”, aunque hoy tu flujo principal sí use `Claude`, `Codex` y `OpenCode`.
-
-### Agregar un agente personalizado
-
-Cualquier CLI que acepte un prompt por stdin y salga con código 0 al completar con éxito puede usarse como agente:
-
-```json
-{
-  "agents": {
-    "MyAgent": {
-      "cli": "my-custom-cli",
-      "args": ["--no-interactive", "--format", "json"],
-      "defaultRepo": "backend"
-    }
-  }
-}
-```
-
-## Formato de la cola (`QUEUE.md`)
-
-Las tareas se definen en `QUEUE.md` usando un formato pipe-separated:
-
-```markdown
-## Pending
-
-TASK-001 | Fix login bug | Backend | P1 | backend | Fix the 401 error on /auth/login endpoint
-TASK-002 | Add dark mode | Frontend | P2 | frontend | Implement dark mode toggle in header
-TASK-003 | Write tests | Codex | P2 | backend | Add unit tests for auth module > after:TASK-001
-
-## In Progress
-
-## Completed
-```
-
-### Campos
-
-| Campo         | Descripción                                                            |
-| ------------- | ---------------------------------------------------------------------- |
-| `id`          | ID único de la tarea, por ejemplo `TASK-001`                           |
-| `title`       | Descripción corta                                                      |
-| `agent`       | Nombre del agente, debe coincidir con una key de `agents` en el config |
-| `priority`    | `P1` (alta), `P2` (media), `P3` (baja)                                 |
-| `repo`        | Clave del repositorio, debe coincidir con una key de `repos`           |
-| `description` | Descripción detallada de la tarea                                      |
-
-### Dependencias
-
-Agrega `> after:TASK-NNN` al final de la descripción para bloquear una tarea hasta que otra se complete:
-
-```
-TASK-003 | Write tests | Backend | P2 | backend | Test the auth module > after:TASK-001
-```
-
-### Secciones
-
-- **`## Pending`** — Tareas esperando ser tomadas
-- **`## In Progress`** — Gestionada por el orchestrator
-- **`## Completed`** — Tareas finalizadas, movidas automáticamente por el orchestrator
-
-## Archivos opcionales
-
-| Archivo                        | Propósito                                                                |
-| ------------------------------ | ------------------------------------------------------------------------ |
-| `agents/BACKEND.md`            | Instrucciones que se inyectan al prompt del agente Backend               |
-| `agents/FRONTEND.md`           | Instrucciones que se inyectan al prompt del agente Frontend              |
-| `AGENT-PROTOCOL.md`            | Reglas compartidas inyectadas a todos los agentes                        |
-| `TASKS.md`                     | Especificaciones detalladas de tareas, usando encabezados `### TASK-NNN` |
-| `briefs/TASK-001-BRIEF.md`     | Brief detallado para una tarea específica                                |
-| `progress/PROGRESS-Backend.md` | Archivo de progreso del agente, actualizado por los agentes              |
-
-## Características
-
-- **Ejecución paralela** — Todos los agentes idle corren simultáneamente
-- **Cadenas de dependencia** — `> after:TASK-NNN` bloquea hasta que la dependencia complete
-- **Manejo de rate limits** — Detecta 429 y reintenta al momento del reset, hasta 10 veces
-- **Auto-retry** — Las tareas fallidas reintentan hasta 2 veces, o 10 si fue rate limit
-- **Salida en vivo** — Ves el stdout de cada agente en paneles divididos
-- **Seguimiento de costo** — Acumula `total_cost_usd` desde el `stream-json` de Claude
-- **Límite de presupuesto** — `--max-budget=N` detiene el proceso cuando el gasto supera `$N`
-- **Recarga en caliente** — Presiona **R** para recargar `QUEUE.md` sin reiniciar
-- **Estado persistente** — Las tareas completadas sobreviven al reinicio de la TUI
-- **Detección de procesos muertos** — Heartbeat cada 15 segundos
-
-## Opciones CLI
-
-```
-node orchestrator.js [options]
-
-Options:
-  --paused         Inicia en pausa (presiona S para arrancar)
-  --max-budget=N   Se detiene después de gastar $N
-  --help           Muestra la ayuda
-```
-
-## Variables de entorno
-
-| Variable           | Default | Descripción                                                         |
-| ------------------ | ------- | ------------------------------------------------------------------- |
-| `SKIP_PERMISSIONS` | `false` | Si está en `true`, usa `--dangerously-skip-permissions` para Claude |
-
-## Cómo funciona
-
-1. Lee `QUEUE.md` para encontrar tareas pendientes
-2. Para cada agente idle con una tarea compatible, genera un prompt o brief que incluye:
-   - La descripción y el contexto de la tarea
-   - Las instrucciones específicas del agente, desde `instructionsFile`
-   - Las reglas del protocolo, desde `AGENT-PROTOCOL.md`
-   - Un brief detallado, desde `briefs/TASK-NNN-BRIEF.md`
-3. Lanza el CLI del agente con el prompt por stdin
-4. Streamea la salida al panel de la TUI y al archivo de logs
-5. Si el proceso sale con código 0, mueve la tarea a `Completed` y dispara la siguiente
-6. Si falla, reintenta o la marca como fallida permanentemente
-7. Revisa dependencias antes de lanzar tareas bloqueadas
-
-## Logs
-
-Toda la salida se guarda en `logs/`:
-
-- `orchestrator-YYYY-MM-DD.log` — Eventos del orchestrator
-- `TASK-NNN-AgentName-timestamp.log` — Salida completa del agente por tarea
+- publicación definitiva en npm
+- pulido del installer
+- integración más profunda entre OpenSpec, routing y cola
+- futuras skills SDD más completas si hacen falta
 
 ## Licencia
 
 MIT
 
-Este paquete usa una licencia estándar de software libre y el texto completo está en `LICENSE`.
+El texto completo está en `LICENSE`.
