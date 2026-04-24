@@ -1,5 +1,5 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import {Box, Static, Text, useInput, useStdout} from 'ink';
+import React, {useMemo} from 'react';
+import {Box, Text, useInput, useStdout} from 'ink';
 
 const h = React.createElement;
 
@@ -13,15 +13,6 @@ const COLORS = {
 const truncate = (value, size) => {
 	if (!value) return '';
 	return value.length > size ? `${value.slice(0, Math.max(0, size - 1))}…` : value;
-};
-
-const formatDuration = seconds => {
-	if (!Number.isFinite(seconds) || seconds <= 0) return '0s';
-	if (seconds < 60) return `${seconds}s`;
-	const minutes = Math.floor(seconds / 60);
-	if (minutes < 60) return `${minutes}m${seconds % 60 ? `${seconds % 60}s` : ''}`;
-	const hours = Math.floor(minutes / 60);
-	return `${hours}h${minutes % 60}m`;
 };
 
 const Panel = ({title, width, children}) =>
@@ -66,12 +57,12 @@ export function App({snapshot, paused = false, onAction}) {
 	const {stdout} = useStdout();
 	const columns = stdout?.columns ?? 120;
 	const isCompact = columns < 120;
-	const [now, setNow] = useState(Date.now());
-
-	useEffect(() => {
-		const timer = setInterval(() => setNow(Date.now()), 1000);
-		return () => clearInterval(timer);
-	}, []);
+	const summaryWidth = Math.max(20, Math.floor((isCompact ? columns : columns * 0.28) - 8));
+	const queueWidth = Math.max(20, Math.floor((isCompact ? columns : columns * 0.42) - 8));
+	const logWidth = Math.max(20, Math.floor((isCompact ? columns : columns * 0.35) - 8));
+	const heroWidth = Math.max(20, columns - 8);
+	const shortcutWidth = Math.max(20, columns - 4);
+	const agentWidth = Math.max(18, Math.floor((isCompact ? columns : columns * 0.24) - 8));
 
 	useInput((input, key) => {
 		if (key.ctrl && input === 'c') {
@@ -86,9 +77,7 @@ export function App({snapshot, paused = false, onAction}) {
 		if (normalized === 'q') onAction?.('quit');
 	});
 
-	const liveActiveLabel = snapshot.startedAt
-		? formatDuration(Math.max(0, Math.round((now - snapshot.startedAt) / 1000)))
-		: snapshot.activeLabel || '0s';
+	const liveActiveLabel = snapshot.activeLabel || '0s';
 
 	const busyCount = snapshot.agents.filter(agent => agent.status === 'busy').length;
 	const overview = useMemo(
@@ -102,6 +91,14 @@ export function App({snapshot, paused = false, onAction}) {
 			`Costo: ${snapshot.totalCost}`
 		],
 		[busyCount, liveActiveLabel, paused, snapshot]
+	);
+	const heroLine = truncate(
+		`${snapshot.timestamp}  |  ${snapshot.stateLabel || (paused ? 'Pausado' : 'Ink preview')}  |  activo ${liveActiveLabel}`,
+		heroWidth
+	);
+	const shortcutRest = truncate(
+		'S iniciar/reanudar  P pausar  R recargar QUEUE.md  Q salir y matar agentes',
+		Math.max(0, shortcutWidth - 8)
 	);
 
 	return h(
@@ -118,28 +115,20 @@ export function App({snapshot, paused = false, onAction}) {
 				flexDirection: 'column'
 			},
 			h(Text, {bold: true, color: COLORS.accent}, snapshot.projectName),
-			h(
-				Text,
-				{color: COLORS.muted},
-				`${snapshot.timestamp}  |  ${snapshot.stateLabel || (paused ? 'Pausado' : 'Ink preview')}  |  activo ${liveActiveLabel}`
-			)
+			h(Text, {color: COLORS.muted}, heroLine)
 		),
 		h(
 			Box,
 			{marginBottom: 1},
-			h(
-				Text,
-				{color: COLORS.warning},
-				'Atajos: '
-			),
+			h(Text, {color: COLORS.warning}, 'Atajos: '),
 			h(Text, {bold: true}, 'S'),
-			h(Text, {color: COLORS.muted}, ' iniciar/reanudar  '),
+			h(Text, {color: COLORS.muted}, truncate(' iniciar/reanudar  ', Math.max(0, shortcutWidth - 40))),
 			h(Text, {bold: true}, 'P'),
-			h(Text, {color: COLORS.muted}, ' pausar  '),
+			h(Text, {color: COLORS.muted}, truncate(' pausar  ', Math.max(0, shortcutWidth - 55))),
 			h(Text, {bold: true}, 'R'),
-			h(Text, {color: COLORS.muted}, ' recargar QUEUE.md  '),
+			h(Text, {color: COLORS.muted}, truncate(' recargar QUEUE.md  ', Math.max(0, shortcutWidth - 70))),
 			h(Text, {bold: true}, 'Q'),
-			h(Text, {color: COLORS.muted}, ' salir y matar agentes')
+			h(Text, {color: COLORS.muted}, truncate(' salir y matar agentes', Math.max(0, shortcutWidth - 90)))
 		),
 		h(
 			Box,
@@ -151,7 +140,7 @@ export function App({snapshot, paused = false, onAction}) {
 			h(
 				Panel,
 				{title: 'Resumen', width: isCompact ? '100%' : '28%'},
-				...overview.map(line => h(Text, {key: line}, line))
+				...overview.map(line => h(Text, {key: line}, truncate(line, summaryWidth)))
 			),
 			h(
 				Panel,
@@ -162,18 +151,16 @@ export function App({snapshot, paused = false, onAction}) {
 							h(
 								Text,
 								{key: task.id},
-								`${task.id} · ${truncate(task.title, isCompact ? 40 : 54)}`
+								truncate(`${task.id} · ${task.title}`, queueWidth)
 							)
 					  ))
 			),
 			h(
 				Panel,
-				{title: 'Registro', width: isCompact ? '100%' : '30%'},
-				h(
-					Static,
-					{items: snapshot.logs.slice(-6)},
-					entry => h(Text, {key: entry, color: COLORS.muted}, truncate(entry, isCompact ? 50 : 42))
-				)
+				{title: 'Registro', width: isCompact ? '100%' : '35%'},
+				...snapshot.logs
+					.slice(-6)
+					.map(entry => h(Text, {key: entry, color: COLORS.muted}, truncate(entry, logWidth)))
 			)
 		),
 		h(
@@ -184,7 +171,17 @@ export function App({snapshot, paused = false, onAction}) {
 				columnGap: 1,
 				rowGap: 1
 			},
-			...snapshot.agents.map(agent => h(AgentCard, {key: agent.name, agent}))
+			...snapshot.agents.map(agent =>
+				h(AgentCard, {
+					key: agent.name,
+					agent: {
+						...agent,
+						name: truncate(agent.name, agentWidth),
+						task: agent.task ? truncate(agent.task, agentWidth) : null,
+						detail: truncate(agent.detail || 'Listo para trabajar', agentWidth)
+					}
+				})
+			)
 		)
 	);
 }

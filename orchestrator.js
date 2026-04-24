@@ -11,10 +11,14 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
+const WORKSPACE = process.env.ORCHESTRATOR_WORKSPACE
+  ? path.resolve(process.env.ORCHESTRATOR_WORKSPACE)
+  : path.resolve(process.cwd());
+
 // ============================================================================
 // CONFIGURATION — loaded from orchestrator.config.json
 // ============================================================================
-const CONFIG_FILE = path.join(__dirname, "orchestrator.config.json");
+const CONFIG_FILE = path.join(WORKSPACE, "orchestrator.config.json");
 
 const CONFIG_TEMPLATE = {
   projectName: "My Project",
@@ -95,7 +99,6 @@ if (!fs.existsSync(CONFIG_FILE)) {
 
 const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
 
-const WORKSPACE = path.resolve(__dirname);
 const QUEUE_FILE = path.join(WORKSPACE, "QUEUE.md");
 const LOG_DIR = path.join(WORKSPACE, "logs");
 
@@ -153,6 +156,20 @@ if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 const LOCK_FILE = path.join(LOG_DIR, "orchestrator.lock");
 const STATE_FILE = path.join(LOG_DIR, "orchestrator-state.json");
 const CONTROL_FILE = path.join(LOG_DIR, "orchestrator-control.json");
+
+// Limpiar control.json orphan al iniciar (si el proceso anterior fechou mal)
+if (fs.existsSync(CONTROL_FILE)) {
+  try {
+    const content = JSON.parse(fs.readFileSync(CONTROL_FILE, "utf-8"));
+    const age = Date.now() - (content.requestedAt || 0);
+    if (age > 5000) {
+      fs.unlinkSync(CONTROL_FILE);
+    }
+  } catch {
+    fs.unlinkSync(CONTROL_FILE);
+  }
+}
+
 if (fs.existsSync(LOCK_FILE)) {
   const lockPid = parseInt(fs.readFileSync(LOCK_FILE, "utf-8").trim(), 10);
   let running = false;
@@ -187,12 +204,23 @@ const cleanupControl = () => {
 process.on("exit", cleanupLock);
 process.on("exit", cleanupState);
 process.on("exit", cleanupControl);
-// 'exit' doesn't fire on Windows Ctrl+C or SIGTERM — hook signals explicitly.
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) {
+// Windows: process.on('exit') no siempre corre con Ctrl+C
+// Usar handle uncaught para asegurar limpieza
+process.on("uncaughtException", () => {
+  cleanupLock();
+  cleanupState();
+  cleanupControl();
+});
+// Signal handlers con limpieza sincrona forzada
+const doCleanup = () => {
+  cleanupLock();
+  cleanupState();
+  cleanupControl();
+};
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   process.on(sig, () => {
-    cleanupLock();
-    cleanupState();
-    cleanupControl();
+    doCleanup();
+    // Forzar exit sincrono para Windows
     process.exit(0);
   });
 }
