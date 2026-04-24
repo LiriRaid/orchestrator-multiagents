@@ -11,10 +11,14 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
+const WORKSPACE = process.env.ORCHESTRATOR_WORKSPACE
+  ? path.resolve(process.env.ORCHESTRATOR_WORKSPACE)
+  : path.resolve(process.cwd());
+
 // ============================================================================
 // CONFIGURATION — loaded from orchestrator.config.json
 // ============================================================================
-const CONFIG_FILE = path.join(__dirname, "orchestrator.config.json");
+const CONFIG_FILE = path.join(WORKSPACE, "orchestrator.config.json");
 
 const CONFIG_TEMPLATE = {
   projectName: "My Project",
@@ -95,7 +99,6 @@ if (!fs.existsSync(CONFIG_FILE)) {
 
 const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
 
-const WORKSPACE = path.resolve(__dirname);
 const QUEUE_FILE = path.join(WORKSPACE, "QUEUE.md");
 const LOG_DIR = path.join(WORKSPACE, "logs");
 

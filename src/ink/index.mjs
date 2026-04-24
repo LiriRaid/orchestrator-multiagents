@@ -4,13 +4,16 @@ import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import {spawn} from 'child_process';
+import {fileURLToPath} from 'url';
 import React from 'react';
 import {render} from 'ink';
 import {App} from './app.mjs';
 
+const __filename = fileURLToPath(import.meta.url);
+const PACKAGE_ROOT = path.resolve(path.dirname(__filename), '..', '..');
 const ROOT = process.cwd();
 const CONFIG_FILE = path.join(ROOT, 'orchestrator.config.json');
-const ENGINE_FILE = path.join(ROOT, 'orchestrator.js');
+const ENGINE_FILE = path.join(PACKAGE_ROOT, 'orchestrator.js');
 const STATE_FILE = path.join(ROOT, 'logs', 'orchestrator-state.json');
 const LOCK_FILE = path.join(ROOT, 'logs', 'orchestrator.lock');
 const CONTROL_FILE = path.join(ROOT, 'logs', 'orchestrator-control.json');
@@ -36,9 +39,21 @@ let refreshTimer = null;
 let spawnedEngine = null;
 let localEvents = [];
 let quitRequested = false;
+let resizeTimer = null;
+let isResizing = false;
+let lastColumns = process.stdout?.columns ?? 0;
+
+function normalizeInlineMessage(message) {
+	return String(message ?? '')
+		.replace(/\r?\n+/g, ' ')
+		.replace(/\s{2,}/g, ' ')
+		.trim();
+}
 
 function pushLocalEvent(message) {
-	const line = `[${new Date().toLocaleTimeString('es-HN', {hour12: false})}] [INK] ${message}`;
+	const normalized = normalizeInlineMessage(message);
+	if (!normalized) return;
+	const line = `[${new Date().toLocaleTimeString('es-HN', {hour12: false})}] [INK] ${normalized}`;
 	localEvents.push(line);
 	if (localEvents.length > 20) localEvents.shift();
 }
@@ -197,12 +212,19 @@ function ensureEngine() {
 
 	spawnedEngine = spawn(process.execPath, childArgs, {
 		cwd: ROOT,
+		env: {
+			...process.env,
+			ORCHESTRATOR_WORKSPACE: ROOT,
+			NODE_PATH: [path.join(PACKAGE_ROOT, 'node_modules'), process.env.NODE_PATH]
+				.filter(Boolean)
+				.join(path.delimiter)
+		},
 		stdio: ['ignore', 'ignore', 'pipe'],
 		windowsHide: false
 	});
 
 	spawnedEngine.stderr.on('data', chunk => {
-		const text = String(chunk).trim();
+		const text = normalizeInlineMessage(String(chunk));
 		if (text) pushLocalEvent(text);
 	});
 
@@ -216,6 +238,8 @@ function ensureEngine() {
 }
 
 function refresh() {
+	if (isResizing) return;
+
 	const snapshot = buildSnapshot();
 	if (!inkApp) {
 		inkApp = render(React.createElement(App, {snapshot, onAction: requestAction}), {
@@ -227,6 +251,11 @@ function refresh() {
 	}
 
 	inkApp.rerender(React.createElement(App, {snapshot, onAction: requestAction}));
+}
+
+function clearTerminal() {
+	if (!process.stdout.isTTY) return;
+	process.stdout.write('\x1b[2J\x1b[3J\x1b[H');
 }
 
 function requestAction(action) {
@@ -257,6 +286,7 @@ function requestAction(action) {
 
 function shutdown() {
 	if (refreshTimer) clearInterval(refreshTimer);
+	if (resizeTimer) clearTimeout(resizeTimer);
 	if (spawnedEngine && !spawnedEngine.killed && quitRequested) {
 		try {
 			spawnedEngine.kill('SIGTERM');
@@ -273,6 +303,27 @@ function mount() {
 	ensureEngine();
 	refresh();
 	refreshTimer = setInterval(refresh, 1000);
+
+	if (process.stdout.isTTY) {
+		process.stdout.on('resize', () => {
+			const nextColumns = process.stdout.columns ?? 0;
+			const shrinking = nextColumns > 0 && lastColumns > 0 && nextColumns < lastColumns;
+			lastColumns = nextColumns;
+			isResizing = true;
+			if (resizeTimer) clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(() => {
+				if (shrinking) {
+					clearTerminal();
+					if (inkApp) {
+						inkApp.unmount();
+						inkApp = null;
+					}
+				}
+				isResizing = false;
+				refresh();
+			}, 180);
+		});
+	}
 }
 
 process.on('SIGINT', () => {

@@ -176,6 +176,13 @@ function runNodeScript(relativeScript, args = []) {
 	const scriptPath = path.join(PACKAGE_ROOT, relativeScript);
 	const child = spawn(process.execPath, [scriptPath, ...args], {
 		cwd: process.cwd(),
+		env: {
+			...process.env,
+			ORCHESTRATOR_WORKSPACE: process.cwd(),
+			NODE_PATH: [path.join(PACKAGE_ROOT, 'node_modules'), process.env.NODE_PATH]
+				.filter(Boolean)
+				.join(path.delimiter)
+		},
 		stdio: 'inherit'
 	});
 
