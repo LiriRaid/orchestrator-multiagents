@@ -188,6 +188,7 @@ Este proyecto debe:
 - **permitir trabajar con 3 agentes hoy y más mañana**
 - **mantener a Claude como orquestador principal**
 - **permitir que OpenCode y Codex implementen código, con Claude como revisor final y fallback**
+- **permitir que Claude también avance código como Claude-Worker (`Backend` / `Frontend`) cuando haya tareas paralelas o cuando otro agente falle**
 
 ## Flujo operativo esperado
 
@@ -207,6 +208,7 @@ Lee ORCHESTRATOR.md y arranca.
    - usa Engram
    - usa OpenSpec si el cambio es grande
    - traduce trabajo a `QUEUE.md`
+   - reparte la primera tanda entre Claude-Worker, Codex y OpenCode cuando existan tareas independientes suficientes
 7. El motor ejecuta
 8. La TUI refleja el movimiento real de los agentes
 

@@ -63,30 +63,35 @@
       "cli": "codex",
       "profile": "codex",
       "defaultRepo": "backend",
+      "model": "gpt-5.5",
       "instructionsFile": "agents/CODEX.md"
     },
     "Gemini": {
       "cli": "gemini",
       "profile": "gemini",
       "defaultRepo": "backend",
+      "model": "gemini-3-pro-preview",
       "instructionsFile": "agents/GEMINI.md"
     },
     "OpenCode": {
       "cli": "opencode",
       "profile": "opencode",
       "defaultRepo": "backend",
+      "model": "opencode/glm-5-free",
       "instructionsFile": "agents/OPENCODE.md"
     },
     "Cursor": {
       "cli": "cursor",
       "profile": "cursor",
       "defaultRepo": "backend",
+      "model": "auto",
       "instructionsFile": "agents/CURSOR.md"
     },
     "Abacus": {
       "cli": "abacusai",
       "profile": "abacusai",
       "defaultRepo": "backend",
+      "model": "abacus-ai-agent",
       "instructionsFile": "agents/ABACUS.md"
     }
   }

@@ -27,9 +27,12 @@ El orquestador se divide en:
 ## Modelo operativo por defecto
 
 - Claude es el orquestador principal
-- OpenCode explora, lee contexto y también puede implementar
-- Codex implementa trabajo estructurado
+- Claude también puede trabajar como agente ejecutor mediante los workers `Backend` y `Frontend`
+- OpenCode explora, lee contexto, audita y también puede implementar código
+- Codex implementa trabajo estructurado en backend y también puede apoyar frontend en tareas acotadas
 - Claude sigue siendo el revisor final y el filtro principal de calidad
+
+El rol interactivo de Claude no edita el proyecto real directamente; coordina y revisa. La ejecución de código por Claude ocurre a través de una TASK asignada a un agente Claude-Worker en la cola.
 
 ## Modelo de permisos
 

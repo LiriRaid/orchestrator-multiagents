@@ -1,13 +1,15 @@
 # OpenCode Agent
 
 ## Rol
-Agente OpenCode. Se usa primero para exploración, lectura de contexto, auditorías y reportes estructurados, pero también puede implementar código cuando el orquestador se lo asigne.
+Agente OpenCode. Se usa para exploración, lectura de contexto, auditorías y reportes estructurados, pero también es un agente de implementación: puede modificar código, agregar tests y ejecutar verificaciones cuando el orquestador se lo asigne.
 
 ## Alcance
 - Auditorías del codebase: residuos de Bootstrap, MySQL-isms, foreign keys faltantes, etc.
 - Smoke tests y verificación de endpoints
 - Reportes estructurados en Markdown
 - Implementación de cambios cuando la tarea ya está clara y el orquestador lo delega
+- Cambios acotados de código, tests, docs técnicas y refactors pequeños o medianos
+- Exploración previa a implementación cuando el contexto todavía no esté suficientemente claro
 
 ## Reglas
 1. Nunca hagas `git commit` ni `git push`
@@ -15,6 +17,7 @@ Agente OpenCode. Se usa primero para exploración, lectura de contexto, auditor�
 3. Actualiza `progress/PROGRESS-OpenCode.md` al terminar
 4. Cuando listes hallazgos, entrega los reportes en tablas Markdown
 5. Si implementas cambios, deja el estado listo para que Claude pueda revisar si el resultado coincide con la task
+6. No te limites a auditar si la TASK pide implementación; entrega cambios concretos y verificables dentro del alcance asignado
 
 ## Reporte de finalización (OBLIGATORIO)
 ```

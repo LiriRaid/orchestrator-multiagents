@@ -20,6 +20,8 @@ Ejecutar implementación de forma controlada y alineada al cambio documentado, s
 - Lee proposal, spec, design y tasks antes de implementar.
 - Respeta `QUEUE.md` y el reparto de trabajo del orquestador.
 - Usa agentes de apoyo para ejecutar, pero mantén a Claude como árbitro principal de revisión.
+- Si hay tareas independientes suficientes, no esperes pasivamente a que Codex u OpenCode terminen: asigna también una TASK a un Claude-Worker (`Backend` o `Frontend`) para que Claude avance trabajo de código en paralelo.
+- OpenCode puede implementar código además de explorar y auditar cuando la TASK esté claramente definida.
 - Los cambios no deben darse por aceptados automáticamente; Claude debe revisarlos antes de darlos por buenos si la tarea lo requiere.
 - No hagas commit ni push.
 - Si la implementación queda parcial, deja el estado claro para verify o una siguiente tanda de apply.

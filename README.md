@@ -246,11 +246,12 @@ Por defecto, el orquestador no debería correr en modo bypass total.
 Recomendación:
 
 - **Claude** como orquestador y autoridad final de revisión
+- **Claude-Worker** (`Backend` / `Frontend`) para tomar una tarea de código en paralelo cuando haya trabajo independiente suficiente o como fallback
 - **OpenCode** para lectura, exploración, contexto e implementación cuando se le asigne
-- **Codex** para implementación estructurada y apoyo técnico
+- **Codex** para implementación estructurada y apoyo técnico, incluyendo apoyo frontend acotado cuando la TASK lo indique
 - cambios sensibles o resultados dudosos deben volver a **Claude** para validación
 
-La idea es que los agentes trabajen, pero no autoacepten todo ciegamente. El usuario conserva la aprobación final, con Claude como filtro principal de calidad.
+La idea es que los agentes trabajen, pero no autoacepten todo ciegamente. La sesión Claude-Orquestador coordina y revisa; los Claude-Workers ejecutan tareas asignadas por cola. El usuario conserva la aprobación final, con Claude como filtro principal de calidad.
 
 ## UIs disponibles
 
@@ -512,12 +513,14 @@ Eso asegura:
       "cli": "codex",
       "profile": "codex",
       "defaultRepo": "backend",
+      "model": "gpt-5.5",
       "instructionsFile": "agents/CODEX.md"
     },
     "OpenCode": {
       "cli": "opencode",
       "profile": "opencode",
       "defaultRepo": "backend",
+      "model": "opencode/glm-5-free",
       "instructionsFile": "agents/OPENCODE.md"
     }
   }
@@ -526,12 +529,12 @@ Eso asegura:
 
 ## Controles de la TUI
 
-| Tecla | Acción |
-|------|--------|
-| `S` | iniciar / reanudar |
-| `P` | pausar |
-| `R` | recargar `QUEUE.md` |
-| `Q` | salir y matar agentes |
+| Tecla | Acción                |
+| ----- | --------------------- |
+| `S`   | iniciar / reanudar    |
+| `P`   | pausar                |
+| `R`   | recargar `QUEUE.md`   |
+| `Q`   | salir y matar agentes |
 
 ## Lo que este repo ya soporta
 

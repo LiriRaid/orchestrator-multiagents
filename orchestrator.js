@@ -410,7 +410,7 @@ function applyControlCommand(command) {
     case "start":
       if (state.paused) {
         state.paused = false;
-        log("INFO", "Reanudado");
+        log("INFO", "REANUDADO");
       }
       scheduleNext();
       renderDashboard();
@@ -818,6 +818,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         cmd: "codex",
         args: [
           "exec",
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           ...(CLI.yolo ? ["--dangerously-bypass-approvals-and-sandbox"] : []),
           "--add-dir",
           WORKSPACE,
@@ -829,6 +830,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         cmd: "opencode",
         args: [
           "run",
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           "--format",
           "json",
           "--pure",
@@ -839,6 +841,7 @@ function buildCliCommand(agentCfg, task, prompt) {
       return {
         cmd: "gemini",
         args: [
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           ...(CLI.yolo ? ["--approval-mode=yolo"] : []),
           "--include-directories",
           WORKSPACE,
@@ -849,7 +852,13 @@ function buildCliCommand(agentCfg, task, prompt) {
         ],
       };
     case "cursor":
-      return { cmd: "agent", args: CLI.yolo ? ["--yolo"] : [] };
+      return {
+        cmd: "agent",
+        args: [
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
+          ...(CLI.yolo ? ["--yolo"] : []),
+        ],
+      };
     case "abacusai": {
       const promptFile = path.join(LOG_DIR, `abacus-prompt-${task.id}.txt`);
       fs.writeFileSync(promptFile, prompt, "utf-8");
