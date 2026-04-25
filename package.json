@@ -1,40 +1,29 @@
 {
-  "name": "@liriraid/orchestrator-multiagents",
-  "version": "1.0.7",
-  "description": "TUI dashboard para orquestar múltiples agentes de IA de código trabajando en paralelo sobre tu codebase",
+  "name": "@liriraid/agentflow-ai",
+  "version": "1.0.10",
+  "description": "Multi-agent workspace orchestrator with TUI. Coordinates AI coding agents over your real frontend and backend projects.",
   "author": "LiriRaid",
-  "homepage": "https://github.com/LiriRaid/orchestrator-multiagents#readme",
+  "homepage": "https://github.com/LiriRaid/agentflow-ai#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LiriRaid/orchestrator-multiagents.git"
+    "url": "git+https://github.com/LiriRaid/agentflow-ai.git"
   },
   "bugs": {
-    "url": "https://github.com/LiriRaid/orchestrator-multiagents/issues"
+    "url": "https://github.com/LiriRaid/agentflow-ai/issues"
   },
   "publishConfig": {
     "access": "public"
   },
   "main": "orchestrator.js",
   "bin": {
-    "orchestrator-multiagents": "bin/orchestrator-multiagents.mjs"
+    "agentflow": "bin/agentflow.mjs"
   },
   "files": [
     "bin",
     "src",
-    "agents",
-    "docs",
-    "openspec",
-    ".claude",
-    ".codex",
-    ".opencode",
+    "templates",
     "scripts",
     "orchestrator.js",
-    "orchestrator.config.json",
-    "ORCHESTRATOR.md",
-    "CLAUDE.md",
-    "ENGRAM.md",
-    "AGENT-CONFIG.md",
-    "QUEUE.md",
     "LICENSE"
   ],
   "scripts": {
@@ -45,13 +34,13 @@
     "skills:registry": "node scripts/update-skill-registry.mjs",
     "openspec:new": "node scripts/scaffold-openspec-change.mjs",
     "agent-config:init": "node scripts/scaffold-agent-configs.mjs",
-    "cli:help": "node bin/orchestrator-multiagents.mjs --help"
+    "cli:help": "node bin/agentflow.mjs --help"
   },
   "keywords": [
     "ai",
     "agents",
     "orchestrator",
-    "orchestrator-multiagents",
+    "agentflow-ai",
     "claude",
     "codex",
     "gemini",

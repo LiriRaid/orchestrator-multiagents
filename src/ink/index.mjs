@@ -20,6 +20,59 @@ const CONTROL_FILE = path.join(ROOT, 'logs', 'orchestrator-control.json');
 
 const argv = process.argv.slice(2);
 const startPaused = argv.includes('--paused');
+const TEXT = {
+	es: {
+		configMissing: root =>
+			`No se encontró orchestrator.config.json en ${root}. Ejecuta esta UI desde la raíz del proyecto.`,
+		waitingEngine: 'Esperando motor',
+		startingEngine: '[INFO] Iniciando motor del orchestrator...',
+		paused: 'Pausado',
+		running: 'Ejecutando',
+		ready: 'Listo para trabajar',
+		attached: pid => `Adjuntado a motor existente (PID ${pid})`,
+		startPaused: 'Levantando motor en modo PAUSADO',
+		startRunning: 'Levantando motor en modo EJECUTANDO',
+		engineExited: code => `Motor finalizado con código ${code ?? 0}`,
+		engineError: message => `Error iniciando motor: ${message}`,
+		resume: 'Comando enviado: REANUDAR',
+		pause: 'Comando enviado: PAUSAR',
+		reload: 'Comando enviado: RECARGAR COLA',
+		quit: 'Comando enviado: SALIR'
+	},
+	en: {
+		configMissing: root =>
+			`orchestrator.config.json was not found in ${root}. Run this UI from the project root.`,
+		waitingEngine: 'Waiting for engine',
+		startingEngine: '[INFO] Starting orchestrator engine...',
+		paused: 'Paused',
+		running: 'Running',
+		ready: 'Ready to work',
+		attached: pid => `Attached to existing engine (PID ${pid})`,
+		startPaused: 'Starting engine in PAUSED mode',
+		startRunning: 'Starting engine in RUNNING mode',
+		engineExited: code => `Engine exited with code ${code ?? 0}`,
+		engineError: message => `Error starting engine: ${message}`,
+		resume: 'Command sent: RESUME',
+		pause: 'Command sent: PAUSE',
+		reload: 'Command sent: RELOAD QUEUE',
+		quit: 'Command sent: QUIT'
+	}
+};
+
+function languageFromConfig(config) {
+	return config.workspaceLanguage === 'en' ? 'en' : 'es';
+}
+
+let detectedLanguage = 'en';
+try {
+	if (fs.existsSync(CONFIG_FILE)) {
+		const _cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+		detectedLanguage = languageFromConfig(_cfg);
+	}
+} catch {}
+
+const SYSTEM_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale;
+function getLocale() { return SYSTEM_LOCALE; }
 
 // Limpiar control.json orphan al iniciar
 if (fs.existsSync(CONTROL_FILE)) {
@@ -53,19 +106,19 @@ function normalizeInlineMessage(message) {
 function pushLocalEvent(message) {
 	const normalized = normalizeInlineMessage(message);
 	if (!normalized) return;
-	const line = `[${new Date().toLocaleTimeString('es-HN', {hour12: false})}] [INK] ${normalized}`;
+	const line = `[${new Date().toLocaleTimeString(getLocale(), {hour12: false})}] [INK] ${normalized}`;
 	localEvents.push(line);
 	if (localEvents.length > 20) localEvents.shift();
 }
 
 function loadConfig() {
 	if (!fs.existsSync(CONFIG_FILE)) {
-		throw new Error(
-			`No se encontró orchestrator.config.json en ${ROOT}. Ejecuta esta UI desde la raíz del proyecto.`
-		);
+		throw new Error(TEXT[detectedLanguage].configMissing(ROOT));
 	}
 
-	return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+	const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+	detectedLanguage = languageFromConfig(config);
+	return config;
 }
 
 function isPidRunning(pid) {
@@ -121,25 +174,28 @@ function sendControlCommand(type) {
 }
 
 function buildFallbackSnapshot(config) {
+	const language = languageFromConfig(config);
+	const text = TEXT[language];
 	const agents = Object.keys(config.agents || {}).map(name => ({
 		name,
 		status: 'idle',
 		task: null,
-		detail: 'Esperando motor'
+		detail: text.waitingEngine
 	}));
 
 	return {
 		projectName: config.projectName || 'Orchestrator Multi-Agents',
-		timestamp: new Date().toLocaleString('es-HN', {hour12: false}),
+		timestamp: new Date().toLocaleString(getLocale(), {hour12: false}),
 		totalCost: '$0.00',
 		queue: [],
 		completed: [],
 		logs:
 			localEvents.length > 0
 				? localEvents.slice(-6)
-				: ['[INFO] Iniciando motor del orchestrator...'],
+				: [text.startingEngine],
 		agents,
-		stateLabel: startPaused ? 'Pausado' : 'Ejecutando',
+		stateLabel: startPaused ? text.paused : text.running,
+		workspaceLanguage: language,
 		activeLabel: '0s',
 		startedAt: null,
 		isRunning: false
@@ -148,6 +204,8 @@ function buildFallbackSnapshot(config) {
 
 function buildSnapshot() {
 	const config = loadConfig();
+	const language = languageFromConfig(config);
+	const text = TEXT[language];
 	const engineState = readEngineState();
 
 	if (!engineState) {
@@ -167,7 +225,7 @@ function buildSnapshot() {
 			detail:
 				agent?.status === 'busy'
 					? `${agent.task?.priority || 'P?'} · ${agent.task?.repo || 'repo'}`
-					: agent?.lastLine || 'Listo para trabajar'
+					: agent?.lastLine || text.ready
 		};
 	});
 
@@ -177,7 +235,7 @@ function buildSnapshot() {
 
 	return {
 		projectName: engineState.projectName || config.projectName || 'Orchestrator Multi-Agents',
-		timestamp: new Date().toLocaleString('es-HN', {hour12: false}),
+		timestamp: new Date().toLocaleString(getLocale(), {hour12: false}),
 		totalCost:
 			typeof engineState.totalCost === 'number'
 				? `$${engineState.totalCost.toFixed(2)}`
@@ -189,7 +247,8 @@ function buildSnapshot() {
 				? engineState.logs.slice(-6)
 				: localEvents.slice(-6),
 		agents,
-		stateLabel: engineState.paused ? 'Pausado' : 'Ejecutando',
+		stateLabel: engineState.paused ? text.paused : text.running,
+		workspaceLanguage: engineState.workspaceLanguage || language,
 		activeLabel: formatDuration(activeSeconds),
 		startedAt: engineState.startTime || null,
 		isRunning: busyCount > 0 || isPidRunning(engineState.pid)
@@ -197,9 +256,11 @@ function buildSnapshot() {
 }
 
 function ensureEngine() {
+	const config = loadConfig();
+	const text = TEXT[languageFromConfig(config)];
 	const runningPid = readLockPid();
 	if (runningPid && isPidRunning(runningPid)) {
-		pushLocalEvent(`Adjuntado a motor existente (PID ${runningPid})`);
+		pushLocalEvent(text.attached(runningPid));
 		return;
 	}
 
@@ -207,7 +268,7 @@ function ensureEngine() {
 	if (startPaused) childArgs.push('--paused');
 
 	pushLocalEvent(
-		startPaused ? 'Levantando motor en modo PAUSADO' : 'Levantando motor en modo EJECUTANDO'
+		startPaused ? text.startPaused : text.startRunning
 	);
 
 	spawnedEngine = spawn(process.execPath, childArgs, {
@@ -229,11 +290,11 @@ function ensureEngine() {
 	});
 
 	spawnedEngine.on('exit', code => {
-		pushLocalEvent(`Motor finalizado con código ${code ?? 0}`);
+		pushLocalEvent(text.engineExited(code));
 	});
 
 	spawnedEngine.on('error', error => {
-		pushLocalEvent(`Error iniciando motor: ${error.message}`);
+		pushLocalEvent(text.engineError(error.message));
 	});
 }
 
@@ -259,22 +320,24 @@ function clearTerminal() {
 }
 
 function requestAction(action) {
+	const config = loadConfig();
+	const text = TEXT[languageFromConfig(config)];
 	switch (action) {
 		case 'start':
-			pushLocalEvent('Comando enviado: REANUDAR');
+			pushLocalEvent(text.resume);
 			sendControlCommand('start');
 			break;
 		case 'pause':
-			pushLocalEvent('Comando enviado: PAUSAR');
+			pushLocalEvent(text.pause);
 			sendControlCommand('pause');
 			break;
 		case 'reload':
-			pushLocalEvent('Comando enviado: RECARGAR COLA');
+			pushLocalEvent(text.reload);
 			sendControlCommand('reload');
 			break;
 		case 'quit':
 			quitRequested = true;
-			pushLocalEvent('Comando enviado: SALIR');
+			pushLocalEvent(text.quit);
 			sendControlCommand('quit');
 			setTimeout(() => {
 				shutdown();

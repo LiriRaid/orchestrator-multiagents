@@ -90,6 +90,27 @@ if (process.argv.includes("--init")) {
   process.exit(0);
 }
 
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  console.log(`
+Orchestrator Multi-Agents TUI
+
+Usage: node orchestrator.js [options]
+
+Options:
+  --init         Generate the default orchestrator.config.json
+  --headless     Run only the engine, without the Blessed UI
+  --paused       Start paused
+  --yolo         Enable explicit bypass/aggressive mode for this session
+  --max-budget=N Stop after spending $N
+  --help         Show this help
+
+Keyboard:
+  S  Start/resume   P  Pause/resume
+  R  Reload queue   Q  Quit
+`);
+  process.exit(0);
+}
+
 if (!fs.existsSync(CONFIG_FILE)) {
   console.error(
     `No se encontró la configuración: ${CONFIG_FILE}\nEjecuta: node orchestrator.js --init`,
@@ -105,6 +126,100 @@ const LOG_DIR = path.join(WORKSPACE, "logs");
 const REPOS = config.repos || {};
 const AGENTS = config.agents || {};
 const PROJECT_NAME = config.projectName || "Orchestrator Multi-Agents";
+const WORKSPACE_LANGUAGE = ["en", "es"].includes(config.workspaceLanguage)
+  ? config.workspaceLanguage
+  : "es";
+const TEXT = {
+  es: {
+    configExists:
+      "La configuración ya existe. Elimina orchestrator.config.json para reinicializar.",
+    configCreated: (file) =>
+      `Se creó ${file}\nEdítalo para que coincida con tus repos y agentes, luego ejecuta: node orchestrator.js`,
+    configMissing: (file) =>
+      `No se encontró la configuración: ${file}\nEjecuta: node orchestrator.js --init`,
+    usage: "Uso",
+    options: "Opciones",
+    keyboard: "Teclado",
+    headlessHelp: "Ejecuta solo el motor, sin la UI blessed",
+    pausedHelp: "Inicia en pausa (presiona S para comenzar)",
+    yoloHelp: "Activa bypass/agresivo para una sesión explícita",
+    budgetHelp: "Se detiene al gastar $N",
+    helpHelp: "Muestra esta ayuda",
+    initHelp: "Genera orchestrator.config.json por defecto",
+    startResume: "Iniciar/reanudar",
+    pauseResume: "Pausar/reanudar",
+    reloadQueue: "Recargar cola",
+    quit: "Salir",
+    summary: "Resumen de sesión",
+    duration: "Duración",
+    completed: "Completadas",
+    tasks: "tareas",
+    cost: "Costo",
+    resumed: "REANUDADO",
+    paused: "PAUSADO",
+    running: "EJECUTANDO",
+    busy: "OCUPADO",
+    idle: "EN ESPERA",
+    queueReloaded: (count) => `Cola recargada: ${count} tareas`,
+    quitRequested: "Cierre solicitado desde Ink",
+    starting: (name) => `${name} iniciando`,
+    loadedCompleted: (count) =>
+      `Se cargaron ${count} tareas completadas desde QUEUE.md`,
+    queue: "COLA",
+    pending: "pendientes",
+    empty: "(vacía)",
+    after: "después de",
+    quotaLimit: "LÍMITE DE CUOTA",
+    retryAt: (time, remaining) =>
+      `reintenta a las ${time} (${remaining} min)`,
+    log: "REGISTRO",
+    controls: "Seguir  Pausa  Recargar  Quitar",
+  },
+  en: {
+    configExists:
+      "Configuration already exists. Delete orchestrator.config.json to reinitialize.",
+    configCreated: (file) =>
+      `Created ${file}\nEdit it to match your repos and agents, then run: node orchestrator.js`,
+    configMissing: (file) =>
+      `Configuration not found: ${file}\nRun: node orchestrator.js --init`,
+    usage: "Usage",
+    options: "Options",
+    keyboard: "Keyboard",
+    headlessHelp: "Run only the engine, without the Blessed UI",
+    pausedHelp: "Start paused (press S to begin)",
+    yoloHelp: "Enable explicit bypass/aggressive mode for this session",
+    budgetHelp: "Stop after spending $N",
+    helpHelp: "Show this help",
+    initHelp: "Generate the default orchestrator.config.json",
+    startResume: "Start/resume",
+    pauseResume: "Pause/resume",
+    reloadQueue: "Reload queue",
+    quit: "Quit",
+    summary: "Session summary",
+    duration: "Duration",
+    completed: "Completed",
+    tasks: "tasks",
+    cost: "Cost",
+    resumed: "RESUMED",
+    paused: "PAUSED",
+    running: "RUNNING",
+    busy: "BUSY",
+    idle: "IDLE",
+    queueReloaded: (count) => `Queue reloaded: ${count} tasks`,
+    quitRequested: "Quit requested from Ink",
+    starting: (name) => `${name} starting`,
+    loadedCompleted: (count) => `Loaded ${count} completed tasks from QUEUE.md`,
+    queue: "QUEUE",
+    pending: "pending",
+    empty: "(empty)",
+    after: "after",
+    quotaLimit: "QUOTA LIMIT",
+    retryAt: (time, remaining) => `retry at ${time} (${remaining} min)`,
+    log: "LOG",
+    controls: "Start  Pause  Reload  Quit",
+  },
+};
+const L = TEXT[WORKSPACE_LANGUAGE];
 
 // CLI args
 const argv = process.argv.slice(2);
@@ -123,19 +238,19 @@ if (CLI.help) {
   console.log(`
 ${PROJECT_NAME} TUI
 
-Uso: node orchestrator.js [opciones]
+${L.usage}: node orchestrator.js [options]
 
-Opciones:
-  --init         Genera orchestrator.config.json por defecto
-  --headless     Ejecuta solo el motor, sin la UI blessed
-  --paused       Inicia en pausa (presiona S para comenzar)
-  --yolo         Activa bypass/agresivo para una sesión explícita
-  --max-budget=N Se detiene al gastar $N
-  --help         Muestra esta ayuda
+${L.options}:
+  --init         ${L.initHelp}
+  --headless     ${L.headlessHelp}
+  --paused       ${L.pausedHelp}
+  --yolo         ${L.yoloHelp}
+  --max-budget=N ${L.budgetHelp}
+  --help         ${L.helpHelp}
 
-Teclado:
-  S  Iniciar/reanudar   P  Pausar/reanudar
-  R  Recargar cola     Q  Salir
+${L.keyboard}:
+  S  ${L.startResume}   P  ${L.pauseResume}
+  R  ${L.reloadQueue}   Q  ${L.quit}
 `);
   process.exit(0);
 }
@@ -340,6 +455,7 @@ function log(tag, msg) {
 function persistState() {
   const snapshot = {
     projectName: PROJECT_NAME,
+    workspaceLanguage: WORKSPACE_LANGUAGE,
     paused: state.paused,
     startTime: state.startTime,
     totalCost: state.totalCost,
@@ -393,10 +509,10 @@ function stopAllAgents() {
 function exitWithSummary() {
   stopAllAgents();
   if (!CLI.headless && screen) screen.destroy();
-  console.log(`\n${PROJECT_NAME} — Resumen de sesión`);
-  console.log(`  Duración: ${elapsedSince(state.startTime)}`);
-  console.log(`  Completadas: ${state.completed.length} tareas`);
-  console.log(`  Costo: $${state.totalCost.toFixed(2)}`);
+  console.log(`\n${PROJECT_NAME} — ${L.summary}`);
+  console.log(`  ${L.duration}: ${elapsedSince(state.startTime)}`);
+  console.log(`  ${L.completed}: ${state.completed.length} ${L.tasks}`);
+  console.log(`  ${L.cost}: $${state.totalCost.toFixed(2)}`);
   for (const t of state.completed)
     console.log(
       `    ✓ ${t.id} ${t.title} (${t.agent}, ${formatDuration(t.elapsed)})`,
@@ -410,7 +526,7 @@ function applyControlCommand(command) {
     case "start":
       if (state.paused) {
         state.paused = false;
-        log("INFO", "Reanudado");
+        log("INFO", L.resumed);
       }
       scheduleNext();
       renderDashboard();
@@ -418,17 +534,17 @@ function applyControlCommand(command) {
     case "pause":
       if (!state.paused) {
         state.paused = true;
-        log("INFO", "PAUSADO");
+        log("INFO", L.paused);
       }
       renderDashboard();
       break;
     case "reload":
       reloadQueue();
-      log("INFO", `Cola recargada: ${state.queue.length} tareas`);
+      log("INFO", L.queueReloaded(state.queue.length));
       renderDashboard();
       break;
     case "quit":
-      log("INFO", "Cierre solicitado desde Ink");
+      log("INFO", L.quitRequested);
       exitWithSummary();
       break;
   }
@@ -471,20 +587,20 @@ function renderDashboard() {
   const up = elapsedSince(state.startTime);
   const cost = state.totalCost > 0 ? `$${state.totalCost.toFixed(2)}` : "";
   const mode = state.paused
-    ? "{yellow-fg}PAUSADO{/yellow-fg}"
-    : "{green-fg}EJECUTANDO{/green-fg}";
+    ? `{yellow-fg}${L.paused}{/yellow-fg}`
+    : `{green-fg}${L.running}{/green-fg}`;
 
-  lines.push(`  ${datestamp()} ${timestamp()}  activo ${up}  ${cost}  ${mode}`);
+  lines.push(`  ${datestamp()} ${timestamp()}  ${WORKSPACE_LANGUAGE === "es" ? "activo" : "active"} ${up}  ${cost}  ${mode}`);
   lines.push("");
 
   for (const [name, ag] of Object.entries(state.agents)) {
     const cfg = AGENTS[name];
     let status, detail;
     if (ag.status === "busy") {
-      status = "{yellow-fg}OCUPADO{/yellow-fg}";
+      status = `{yellow-fg}${L.busy}{/yellow-fg}`;
       detail = `${ag.task?.id || "?"} ${(ag.task?.title || "").slice(0, 35)} (${elapsedSince(ag.startTime)})`;
     } else {
-      status = "{gray-fg}EN ESPERA{/gray-fg}";
+      status = `{gray-fg}${L.idle}{/gray-fg}`;
       detail = ag.lastLine || "";
     }
     const dot =
@@ -494,7 +610,7 @@ function renderDashboard() {
   lines.push("");
 
   lines.push(
-    `  {bold}COLA{/bold} {gray-fg}(${state.queue.length} pendientes){/gray-fg}`,
+    `  {bold}${L.queue}{/bold} {gray-fg}(${state.queue.length} ${L.pending}){/gray-fg}`,
   );
   for (let i = 0; i < Math.min(state.queue.length, 5); i++) {
     const t = state.queue[i];
@@ -505,20 +621,20 @@ function renderDashboard() {
           ? "{yellow-fg}P2{/yellow-fg}"
           : "{gray-fg}P3{/gray-fg}";
     const dep = t.dependsOn
-      ? ` {gray-fg}[después de ${t.dependsOn}]{/gray-fg}`
+      ? ` {gray-fg}[${L.after} ${t.dependsOn}]{/gray-fg}`
       : "";
     lines.push(
       `    ${i + 1}. {bold}${escBl(t.id)}{/bold} ${escBl(String(t.title || "").slice(0, 35))} | ${escBl(t.agent)} | ${pri}${dep}`,
     );
   }
-  if (state.queue.length === 0) lines.push("    {gray-fg}(vacía){/gray-fg}");
+  if (state.queue.length === 0) lines.push(`    {gray-fg}${L.empty}{/gray-fg}`);
 
   const rlEntries = [...rateLimitedAgents.entries()].filter(
     ([, t]) => Date.now() < t,
   );
   if (rlEntries.length > 0) {
     lines.push("");
-    lines.push(`  {bold}LÍMITE DE CUOTA{/bold}`);
+    lines.push(`  {bold}${L.quotaLimit}{/bold}`);
     for (const [name, cooldown] of rlEntries) {
       const remaining = Math.ceil((cooldown - Date.now()) / 60000);
       const retryAt = new Date(cooldown).toLocaleTimeString("es-HN", {
@@ -527,7 +643,7 @@ function renderDashboard() {
         hour12: false,
       });
       lines.push(
-        `    {yellow-fg}⏳{/yellow-fg} ${name} — reintenta a las ${retryAt} (${remaining} min)`,
+        `    {yellow-fg}⏳{/yellow-fg} ${name} — ${L.retryAt(retryAt, remaining)}`,
       );
     }
   }
@@ -537,7 +653,7 @@ function renderDashboard() {
   lines.push("");
 
   lines.push(
-    `  {bold}COMPLETADAS{/bold} {gray-fg}(${state.completed.length}){/gray-fg}`,
+    `  {bold}${L.completed.toUpperCase()}{/bold} {gray-fg}(${state.completed.length}){/gray-fg}`,
   );
   for (const t of state.completed.slice(-4)) {
     const c = t.cost ? ` $${t.cost.toFixed(2)}` : "";
@@ -547,13 +663,13 @@ function renderDashboard() {
   }
   lines.push("");
 
-  lines.push(`  {bold}REGISTRO{/bold}`);
+  lines.push(`  {bold}${L.log}{/bold}`);
   for (const entry of state.logs.slice(-4)) {
     lines.push(`    {gray-fg}${escBl(entry)}{/gray-fg}`);
   }
   lines.push("");
   lines.push(
-    "  {cyan-fg}S{/cyan-fg}eguir  {cyan-fg}P{/cyan-fg}ausa  {cyan-fg}R{/cyan-fg}ecargar  {cyan-fg}Q{/cyan-fg}uitar",
+    `  {cyan-fg}S{/cyan-fg} ${L.controls}`,
   );
 
   dashboard.setContent(lines.join("\n"));
@@ -818,6 +934,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         cmd: "codex",
         args: [
           "exec",
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           ...(CLI.yolo ? ["--dangerously-bypass-approvals-and-sandbox"] : []),
           "--add-dir",
           WORKSPACE,
@@ -829,6 +946,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         cmd: "opencode",
         args: [
           "run",
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           "--format",
           "json",
           "--pure",
@@ -839,6 +957,7 @@ function buildCliCommand(agentCfg, task, prompt) {
       return {
         cmd: "gemini",
         args: [
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           ...(CLI.yolo ? ["--approval-mode=yolo"] : []),
           "--include-directories",
           WORKSPACE,
@@ -849,7 +968,13 @@ function buildCliCommand(agentCfg, task, prompt) {
         ],
       };
     case "cursor":
-      return { cmd: "agent", args: CLI.yolo ? ["--yolo"] : [] };
+      return {
+        cmd: "agent",
+        args: [
+          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
+          ...(CLI.yolo ? ["--yolo"] : []),
+        ],
+      };
     case "abacusai": {
       const promptFile = path.join(LOG_DIR, `abacus-prompt-${task.id}.txt`);
       fs.writeFileSync(promptFile, prompt, "utf-8");
@@ -1404,12 +1529,12 @@ if (!CLI.headless && screen) {
   });
   screen.key("p", () => {
     state.paused = !state.paused;
-    log("INFO", state.paused ? "PAUSADO" : "REANUDADO");
+    log("INFO", state.paused ? L.paused : L.resumed);
     renderDashboard();
   });
   screen.key("r", () => {
     reloadQueue();
-    log("INFO", `Cola recargada: ${state.queue.length} tareas`);
+    log("INFO", L.queueReloaded(state.queue.length));
     renderDashboard();
   });
 }
@@ -1417,14 +1542,14 @@ if (!CLI.headless && screen) {
 // ============================================================================
 // MAIN
 // ============================================================================
-log("INFO", `${PROJECT_NAME} iniciando`);
+log("INFO", L.starting(PROJECT_NAME));
 state.completed = parseCompletedFromFile();
 log(
   "INFO",
-  `Se cargaron ${state.completed.length} tareas completadas desde QUEUE.md`,
+  L.loadedCompleted(state.completed.length),
 );
 reloadQueue();
-log("INFO", `Cola: ${state.queue.length} tareas`);
+log("INFO", `${L.queue}: ${state.queue.length} ${L.tasks}`);
 renderDashboard();
 if (!state.paused) {
   scheduleNext();

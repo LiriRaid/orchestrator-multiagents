@@ -1,0 +1,99 @@
+{
+  "projectName": "PROJECT_NAME_HERE",
+  "workspaceLanguage": "en",
+  "maxConcurrent": 5,
+  "pollIntervalSeconds": 30,
+  "taskTimeoutMinutes": 30,
+
+  "repos": {
+    "backend": "ABSOLUTE_PATH_TO_BACKEND",
+    "frontend": "ABSOLUTE_PATH_TO_FRONTEND"
+  },
+  "agentProfiles": {
+    "claude": {
+      "enabled": true,
+      "localConfigDir": ".claude",
+      "skillsDir": ".claude/skills",
+      "primary": true,
+      "useForOrchestration": true,
+      "notes": "Main project profile. Prioritizes local repo configuration."
+    },
+    "codex": {
+      "enabled": true,
+      "localConfigDir": ".codex",
+      "primary": false,
+      "useForOrchestration": false,
+      "notes": "Support profile for structured implementation and focused work."
+    },
+    "opencode": {
+      "enabled": true,
+      "localConfigDir": ".opencode",
+      "primary": false,
+      "useForOrchestration": false,
+      "notes": "Support profile for exploration, audits, context, and scoped implementation."
+    },
+    "gemini": {
+      "enabled": false,
+      "localConfigDir": ".gemini"
+    },
+    "cursor": {
+      "enabled": false,
+      "localConfigDir": ".cursor"
+    },
+    "abacusai": {
+      "enabled": false,
+      "localConfigDir": ".abacus"
+    }
+  },
+  "agents": {
+    "Backend": {
+      "cli": "claude",
+      "profile": "claude",
+      "defaultRepo": "backend",
+      "model": "sonnet",
+      "instructionsFile": "agents/BACKEND.md"
+    },
+    "Frontend": {
+      "cli": "claude",
+      "profile": "claude",
+      "defaultRepo": "frontend",
+      "model": "sonnet",
+      "instructionsFile": "agents/FRONTEND.md"
+    },
+    "Codex": {
+      "cli": "codex",
+      "profile": "codex",
+      "defaultRepo": "backend",
+      "model": "gpt-5.5",
+      "instructionsFile": "agents/CODEX.md"
+    },
+    "Gemini": {
+      "cli": "gemini",
+      "profile": "gemini",
+      "defaultRepo": "backend",
+      "model": "gemini-3-pro-preview",
+      "instructionsFile": "agents/GEMINI.md"
+    },
+    "OpenCode": {
+      "cli": "opencode",
+      "profile": "opencode",
+      "defaultRepo": "backend",
+      "model": "opencode/glm-5-free",
+      "instructionsFile": "agents/OPENCODE.md"
+    },
+    "Cursor": {
+      "cli": "cursor",
+      "profile": "cursor",
+      "defaultRepo": "backend",
+      "model": "auto",
+      "instructionsFile": "agents/CURSOR.md"
+    },
+    "Abacus": {
+      "cli": "abacusai",
+      "profile": "abacusai",
+      "defaultRepo": "backend",
+      "model": "abacus-ai-agent",
+      "instructionsFile": "agents/ABACUS.md"
+    }
+  }
+}
