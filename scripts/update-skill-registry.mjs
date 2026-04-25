@@ -7,6 +7,46 @@ const ROOT = process.cwd();
 const SKILLS_DIR = path.join(ROOT, '.claude', 'skills');
 const OUTPUT_DIR = path.join(ROOT, '.atl');
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'skill-registry.md');
+const CONFIG_FILE = path.join(ROOT, 'orchestrator.config.json');
+const CONFIG = fs.existsSync(CONFIG_FILE)
+	? JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))
+	: {};
+const LANGUAGE = CONFIG.workspaceLanguage === 'en' ? 'en' : 'es';
+const TEXT = {
+	es: {
+		fallbackRule: 'Usa esta skill solo para el propósito definido en su descripción.',
+		entryPoint: 'Punto de entrada de la sesión del orquestador',
+		intro:
+			'**Project-local only.** Este registry prioriza las skills dentro de `./.claude/skills/` para evitar depender de instalaciones globales como `gentle-ai`.',
+		noSkills: '| manual | none | _No hay skills locales todavía_ |',
+		noRegistered: 'No hay skills locales registradas todavía.',
+		noConventions: '| none | none | No se encontraron archivos de convención |',
+		policy: [
+			'Prioriza siempre skills locales de `./.claude/skills/`.',
+			'No dependas de `~/.claude/skills/` para el funcionamiento principal del orquestador.',
+			'Si una skill global existe con el mismo nombre, la local del proyecto gana.',
+			'Regenera este archivo después de crear, borrar o cambiar skills locales.'
+		],
+		updated: file => `Skill registry actualizado en ${file}`
+	},
+	en: {
+		fallbackRule: 'Use this skill only for the purpose defined in its description.',
+		entryPoint: 'Orchestrator session entry point',
+		intro:
+			'**Project-local only.** This registry prioritizes skills inside `./.claude/skills/` so the workflow does not depend on global installations such as `gentle-ai`.',
+		noSkills: '| manual | none | _No local skills yet_ |',
+		noRegistered: 'No local skills are registered yet.',
+		noConventions: '| none | none | No convention files found |',
+		policy: [
+			'Always prefer local skills from `./.claude/skills/`.',
+			'Do not depend on `~/.claude/skills/` for the main orchestrator workflow.',
+			'If a global skill has the same name as a project-local skill, the local skill wins.',
+			'Regenerate this file after creating, deleting, or changing local skills.'
+		],
+		updated: file => `Skill registry updated at ${file}`
+	}
+};
+const L = TEXT[LANGUAGE];
 
 const CONVENTION_FILES = [
 	'AGENTS.md',
@@ -63,7 +103,7 @@ function compactRules(content) {
 	const selected = bullets.slice(0, 8);
 	return selected.length > 0
 		? selected
-		: ['Usa esta skill solo para el propósito definido en su descripción.'];
+		: [L.fallbackRule];
 }
 
 function toPosix(filePath) {
@@ -86,14 +126,14 @@ function buildRegistry() {
 		file => ({
 			file,
 			path: toPosix(file),
-			notes: file === 'ORCHESTRATOR.md' ? 'Punto de entrada de la sesión del orquestador' : ''
+			notes: file === 'ORCHESTRATOR.md' ? L.entryPoint : ''
 		})
 	);
 
 	const registry = [
 		'# Skill Registry',
 		'',
-		'**Project-local only.** Este registry prioriza las skills dentro de `./.claude/skills/` para evitar depender de instalaciones globales como `gentle-ai`.',
+		L.intro,
 		'',
 		'## User Skills',
 		'',
@@ -101,7 +141,7 @@ function buildRegistry() {
 		'|---------|-------|------|',
 		...(skills.length > 0
 			? skills.map(skill => `| ${skill.trigger.replaceAll('|', '\\|')} | ${skill.name} | \`${skill.path}\` |`)
-			: ['| manual | none | _No hay skills locales todavía_ |']),
+			: [L.noSkills]),
 		'',
 		'## Compact Rules',
 		'',
@@ -111,21 +151,18 @@ function buildRegistry() {
 					...skill.rules.map(rule => `- ${rule}`),
 					''
 			  ])
-			: ['No hay skills locales registradas todavía.', '']),
+			: [L.noRegistered, '']),
 		'## Project Conventions',
 		'',
 		'| File | Path | Notes |',
 		'|------|------|-------|',
 		...(conventions.length > 0
 			? conventions.map(item => `| ${item.file} | \`${item.path}\` | ${item.notes || ''} |`)
-			: ['| none | none | No se encontraron archivos de convención |']),
+			: [L.noConventions]),
 		'',
 		'## Resolution Policy',
 		'',
-		'- Prioriza siempre skills locales de `./.claude/skills/`.',
-		'- No dependas de `~/.claude/skills/` para el funcionamiento principal del orquestador.',
-		'- Si una skill global existe con el mismo nombre, la local del proyecto gana.',
-		'- Regenera este archivo después de crear, borrar o cambiar skills locales.'
+		...L.policy.map(rule => `- ${rule}`)
 	];
 
 	return registry.join('\n');
@@ -134,4 +171,4 @@ function buildRegistry() {
 ensureDir(OUTPUT_DIR);
 const registry = buildRegistry();
 fs.writeFileSync(OUTPUT_FILE, `${registry}\n`, 'utf8');
-console.log(`Skill registry actualizado en ${OUTPUT_FILE}`);
+console.log(L.updated(OUTPUT_FILE));
