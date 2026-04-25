@@ -4,7 +4,7 @@ description: >
   Close and archive a completed OpenSpec change after implementation and verification.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

@@ -4,7 +4,7 @@ description: >
   Initialize the orchestrator session: read ORCHESTRATOR.md, config, queue, progress, handoffs, and visible state before asking for the next priority.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

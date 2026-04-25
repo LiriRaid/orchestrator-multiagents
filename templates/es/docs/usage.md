@@ -5,20 +5,20 @@
 ### 1. Instalar el CLI globalmente
 
 ```bash
-npm i -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/agentflow
 ```
 
 ### 2. Crear un workspace hermano para un proyecto
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto
+agentflow init-workspace C:/code/mi-proyecto
 ```
 
 Si no pasas idioma, el CLI preguntará si quieres `EN` o `ES`. También puedes elegirlo directo:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang en
-orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang es
+agentflow init-workspace C:/code/mi-proyecto --lang en
+agentflow init-workspace C:/code/mi-proyecto --lang es
 ```
 
 ### 3. Abrir el workspace del orquestador
@@ -31,7 +31,7 @@ Usa dos terminales:
 ### 4. Iniciar la TUI
 
 ```bash
-orchestrator-multiagents ink --paused
+agentflow ink --paused
 ```
 
 ### 5. Iniciar Claude en el workspace del orquestador

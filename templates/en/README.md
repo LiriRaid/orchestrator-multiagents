@@ -1,4 +1,4 @@
-# orchestrator-multiagents
+# agentflow
 
 A reusable multi-agent workspace for coordinating coding agents around a real project without placing orchestrator files inside the product repository.
 
@@ -50,20 +50,20 @@ Gemini, Cursor, and Abacus can remain configured but are disabled operationally 
 ## Install
 
 ```bash
-npm i -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/agentflow
 ```
 
 ## Create A Workspace
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/my-project
+agentflow init-workspace C:/code/my-project
 ```
 
 If no language is passed, the CLI asks whether to generate the workspace in **EN** or **ES**. You can also pass it directly:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/my-project --lang en
-orchestrator-multiagents init-workspace C:/code/my-project --lang es
+agentflow init-workspace C:/code/my-project --lang en
+agentflow init-workspace C:/code/my-project --lang es
 ```
 
 This creates a sibling workspace:
@@ -95,7 +95,7 @@ Open one terminal in the orchestrator workspace:
 
 ```bash
 cd C:/code/orchestrator-my-project
-orchestrator-multiagents ink
+agentflow ink
 ```
 
 Open another terminal in the same orchestrator workspace:

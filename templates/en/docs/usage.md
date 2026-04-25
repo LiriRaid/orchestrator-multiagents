@@ -5,20 +5,20 @@
 ### 1. Install the CLI
 
 ```bash
-npm i -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/agentflow
 ```
 
 ### 2. Create a sibling orchestrator workspace
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/my-project
+agentflow init-workspace C:/code/my-project
 ```
 
 If no language is passed, the CLI asks whether to generate the workspace in `EN` or `ES`. You can also pass it directly:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/my-project --lang en
-orchestrator-multiagents init-workspace C:/code/my-project --lang es
+agentflow init-workspace C:/code/my-project --lang en
+agentflow init-workspace C:/code/my-project --lang es
 ```
 
 ### 3. Open the orchestrator workspace
@@ -32,7 +32,7 @@ Use two terminals:
 
 ```bash
 cd C:/code/orchestrator-my-project
-orchestrator-multiagents ink --paused
+agentflow ink --paused
 ```
 
 ### 5. Start Claude in the orchestrator workspace

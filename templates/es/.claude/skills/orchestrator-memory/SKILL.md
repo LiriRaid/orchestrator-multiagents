@@ -4,7 +4,7 @@ description: >
   Recupera o guarda contexto persistente del proyecto usando Engram. Úsala cuando el usuario pide recordar trabajo previo, cuando aparece una decisión importante, o cuando se necesita cerrar sesión con continuidad.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "0.1"
 ---
 

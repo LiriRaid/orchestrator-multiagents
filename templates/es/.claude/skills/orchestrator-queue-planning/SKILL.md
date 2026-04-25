@@ -5,7 +5,7 @@ description: >
   Trigger: "crea tareas", "planifica en queue", "divide el trabajo", "delegar tareas", "llenar queue"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "0.1"
 ---
 

@@ -41,7 +41,7 @@ const TEXT = {
 		next: 'Siguiente paso recomendado:',
 		step1: '1. Edita orchestrator.config.json con rutas reales',
 		step2: '2. Revisa ORCHESTRATOR.md, CLAUDE.md y docs/',
-		step3: '3. Ejecuta: orchestrator-multiagents ink --paused',
+		step3: '3. Ejecuta: agentflow ink --paused',
 		invalidProject: projectPath => `Ruta de proyecto inválida: ${projectPath}`,
 		realProject: projectPath => `Proyecto real: ${projectPath}`,
 		workspace: workspaceDir => `Workspace del orquestador: ${workspaceDir}`,
@@ -57,7 +57,7 @@ const TEXT = {
 		next: 'Recommended next steps:',
 		step1: '1. Edit orchestrator.config.json with real paths',
 		step2: '2. Review ORCHESTRATOR.md, CLAUDE.md, and docs/',
-		step3: '3. Run: orchestrator-multiagents ink --paused',
+		step3: '3. Run: agentflow ink --paused',
 		invalidProject: projectPath => `Invalid project path: ${projectPath}`,
 		realProject: projectPath => `Real project: ${projectPath}`,
 		workspace: workspaceDir => `Orchestrator workspace: ${workspaceDir}`,
@@ -69,22 +69,22 @@ const TEXT = {
 
 function printHelp() {
 	console.log(`
-orchestrator-multiagents
+agentflow
 
 Uso:
-  orchestrator-multiagents init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
-  orchestrator-multiagents init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
-  orchestrator-multiagents tui [--paused] [--yolo]
-  orchestrator-multiagents ink [--paused] [--yolo]
-  orchestrator-multiagents skills:registry
-  orchestrator-multiagents openspec:new <change-name>
-  orchestrator-multiagents agent-config:init
+  agentflow init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
+  agentflow init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
+  agentflow tui [--paused] [--yolo]
+  agentflow ink [--paused] [--yolo]
+  agentflow skills:registry
+  agentflow openspec:new <change-name>
+  agentflow agent-config:init
 
 Ejemplos:
-  orchestrator-multiagents init . --project-name "Mi Proyecto" --lang es
-  orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang en
-  orchestrator-multiagents tui --paused
-  orchestrator-multiagents ink
+  agentflow init . --project-name "Mi Proyecto" --lang es
+  agentflow init-workspace C:/code/mi-proyecto --lang en
+  agentflow tui --paused
+  agentflow ink
 `);
 }
 
@@ -178,7 +178,7 @@ function patchGitignore(targetDir) {
 	if (toAdd.length === 0) return;
 
 	const trailingNewline = existing.endsWith('\n') ? '' : '\n';
-	const block = `${trailingNewline}\n### orchestrator-multiagents\n${toAdd.join('\n')}\n`;
+	const block = `${trailingNewline}\n### agentflow\n${toAdd.join('\n')}\n`;
 	fs.writeFileSync(gitignorePath, existing + block, 'utf8');
 }
 

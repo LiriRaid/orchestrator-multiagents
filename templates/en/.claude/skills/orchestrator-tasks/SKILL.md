@@ -4,7 +4,7 @@ description: >
   Break a change into implementation tasks that can later be translated into QUEUE.md.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

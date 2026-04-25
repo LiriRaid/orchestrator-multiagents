@@ -4,7 +4,7 @@ description: >
   Use persistent memory for decisions, discoveries, bugs, setup notes, and session summaries.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

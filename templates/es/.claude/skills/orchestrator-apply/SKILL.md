@@ -5,7 +5,7 @@ description: >
   Trigger: "implementa", "aplica el cambio", "ejecuta las tareas", "ponlo en marcha"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

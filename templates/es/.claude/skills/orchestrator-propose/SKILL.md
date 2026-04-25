@@ -5,7 +5,7 @@ description: >
   Trigger: "haz proposal", "crea propuesta", "propone este cambio", "documenta el alcance"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

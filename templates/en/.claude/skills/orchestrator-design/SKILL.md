@@ -4,7 +4,7 @@ description: >
   Create or update the technical design for a change.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

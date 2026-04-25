@@ -5,7 +5,7 @@ description: >
   Trigger: "archiva el cambio", "cierra el change", "finaliza el cambio", "mueve al archive"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

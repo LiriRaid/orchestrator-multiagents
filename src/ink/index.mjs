@@ -63,6 +63,17 @@ function languageFromConfig(config) {
 	return config.workspaceLanguage === 'en' ? 'en' : 'es';
 }
 
+let detectedLanguage = 'en';
+try {
+	if (fs.existsSync(CONFIG_FILE)) {
+		const _cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+		detectedLanguage = languageFromConfig(_cfg);
+	}
+} catch {}
+
+const SYSTEM_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale;
+function getLocale() { return SYSTEM_LOCALE; }
+
 // Limpiar control.json orphan al iniciar
 if (fs.existsSync(CONTROL_FILE)) {
 	try {
@@ -95,20 +106,19 @@ function normalizeInlineMessage(message) {
 function pushLocalEvent(message) {
 	const normalized = normalizeInlineMessage(message);
 	if (!normalized) return;
-	const line = `[${new Date().toLocaleTimeString('es-HN', {hour12: false})}] [INK] ${normalized}`;
+	const line = `[${new Date().toLocaleTimeString(getLocale(), {hour12: false})}] [INK] ${normalized}`;
 	localEvents.push(line);
 	if (localEvents.length > 20) localEvents.shift();
 }
 
 function loadConfig() {
 	if (!fs.existsSync(CONFIG_FILE)) {
-		const text = TEXT.es;
-		throw new Error(
-			text.configMissing(ROOT)
-		);
+		throw new Error(TEXT[detectedLanguage].configMissing(ROOT));
 	}
 
-	return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+	const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+	detectedLanguage = languageFromConfig(config);
+	return config;
 }
 
 function isPidRunning(pid) {
@@ -175,7 +185,7 @@ function buildFallbackSnapshot(config) {
 
 	return {
 		projectName: config.projectName || 'Orchestrator Multi-Agents',
-		timestamp: new Date().toLocaleString('es-HN', {hour12: false}),
+		timestamp: new Date().toLocaleString(getLocale(), {hour12: false}),
 		totalCost: '$0.00',
 		queue: [],
 		completed: [],
@@ -225,7 +235,7 @@ function buildSnapshot() {
 
 	return {
 		projectName: engineState.projectName || config.projectName || 'Orchestrator Multi-Agents',
-		timestamp: new Date().toLocaleString('es-HN', {hour12: false}),
+		timestamp: new Date().toLocaleString(getLocale(), {hour12: false}),
 		totalCost:
 			typeof engineState.totalCost === 'number'
 				? `$${engineState.totalCost.toFixed(2)}`

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`orchestrator-multiagents` is a reusable workspace for coordinating multiple coding agents around a real project without placing orchestrator files inside the product repo.
+`agentflow` is a reusable workspace for coordinating multiple coding agents around a real project without placing orchestrator files inside the product repo.
 
 The intended layout is:
 

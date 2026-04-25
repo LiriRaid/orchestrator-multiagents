@@ -4,7 +4,7 @@ description: >
   Convert user requests, specs, or findings into concrete TASK entries for QUEUE.md.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

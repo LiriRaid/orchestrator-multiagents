@@ -4,7 +4,7 @@ description: >
   Verify that implementation matches proposal, spec, design, tasks, and user intent.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

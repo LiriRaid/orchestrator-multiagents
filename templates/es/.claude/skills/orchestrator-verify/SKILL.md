@@ -5,7 +5,7 @@ description: >
   Trigger: "verifica", "valida el cambio", "review contra spec", "confirma la implementación"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

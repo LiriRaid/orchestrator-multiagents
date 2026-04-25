@@ -5,7 +5,7 @@ description: >
   Trigger: "haz spec", "crea especificación", "documenta requerimientos", "define escenarios"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

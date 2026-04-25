@@ -145,7 +145,7 @@ export function App({snapshot, paused = false, onAction}) {
 		[busyCount, liveActiveLabel, paused, snapshot, text]
 	);
 	const heroLine = truncate(
-		`${snapshot.timestamp}  |  ${snapshot.stateLabel || (paused ? text.paused : 'Ink preview')}  |  ${text.active.toLowerCase()} ${liveActiveLabel}`,
+		`${snapshot.timestamp}  |  ${snapshot.stateLabel || (paused ? text.paused : text.preview)}  |  ${text.active.toLowerCase()} ${liveActiveLabel}`,
 		heroWidth
 	);
 	const shortcutRest = truncate(
@@ -231,7 +231,7 @@ export function App({snapshot, paused = false, onAction}) {
 						...agent,
 						name: truncate(agent.name, agentWidth),
 						task: agent.task ? truncate(agent.task, agentWidth) : null,
-						detail: truncate(agent.detail || 'Listo para trabajar', agentWidth)
+						detail: truncate(agent.detail || text.ready, agentWidth)
 					}
 				})
 			)

@@ -5,7 +5,7 @@ description: >
   Trigger: "haz design", "diseño técnico", "arquitectura del cambio", "enfoque técnico"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

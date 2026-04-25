@@ -4,7 +4,7 @@ description: >
   Guide the implementation phase by translating ready work into queued worker tasks.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

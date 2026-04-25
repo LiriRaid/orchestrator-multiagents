@@ -4,7 +4,7 @@ description: >
   Abre, crea o actualiza artefactos de OpenSpec para cambios grandes o de varias fases.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "0.1"
 ---
 

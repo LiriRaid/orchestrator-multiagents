@@ -4,7 +4,7 @@ description: >
   Create or update the proposal for a significant change before implementation.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

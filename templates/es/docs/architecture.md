@@ -6,7 +6,7 @@ El orquestador se divide en:
 
 1. **Paquete CLI global**
    - se instala una sola vez con npm
-   - expone `orchestrator-multiagents`
+   - expone `agentflow`
 2. **Workspace del orquestador por proyecto**
    - se crea como carpeta hermana del proyecto real
    - contiene cola, estado runtime, docs, skills y artefactos

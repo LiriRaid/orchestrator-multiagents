@@ -5,7 +5,7 @@ description: >
   Trigger: "explora", "analiza", "investiga", "revisa este proyecto", "revisa estos archivos"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "0.1"
 ---
 

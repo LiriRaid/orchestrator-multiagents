@@ -4,7 +4,7 @@ description: >
   Create or update OpenSpec artifacts for large or multi-phase changes.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

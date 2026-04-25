@@ -1,4 +1,4 @@
-# orchestrator-multiagents
+# agentflow
 
 Reusable multi-agent orchestration workspace for coding projects.
 
@@ -13,7 +13,7 @@ my-product-workspace/
 ## Install
 
 ```bash
-npm i -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/agentflow
 ```
 
 ## Create a Workspace
@@ -21,14 +21,14 @@ npm i -g @liriraid/orchestrator-multiagents
 Interactive language selection:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/my-project
+agentflow init-workspace C:/code/my-project
 ```
 
 Direct language selection:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/my-project --lang en
-orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang es
+agentflow init-workspace C:/code/my-project --lang en
+agentflow init-workspace C:/code/mi-proyecto --lang es
 ```
 
 The selected language controls the generated workspace files:
@@ -55,7 +55,7 @@ Start the TUI from the generated orchestrator workspace:
 
 ```bash
 cd C:/code/orchestrator-my-project
-orchestrator-multiagents ink --paused
+agentflow ink --paused
 ```
 
 Then open Claude Code in the same workspace and start with the prompt from that workspace's `ORCHESTRATOR.md`.

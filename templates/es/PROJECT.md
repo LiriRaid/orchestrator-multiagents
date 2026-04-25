@@ -44,13 +44,13 @@ Esto evita ensuciar el repo del producto con:
 La instalación recomendada para usuarios finales es:
 
 ```bash
-npm i -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/agentflow
 ```
 
 Después, por cada proyecto real:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto
+agentflow init-workspace C:/code/mi-proyecto
 ```
 
 El comando puede recibir `--lang en` o `--lang es`; si no se pasa, pregunta interactivamente.
@@ -58,10 +58,10 @@ El comando puede recibir `--lang en` o `--lang es`; si no se pasa, pregunta inte
 La variante con `npx` sigue siendo válida:
 
 ```bash
-npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
+npx @liriraid/agentflow init-workspace C:/code/mi-proyecto
 ```
 
-No se recomienda `npm install @liriraid/orchestrator-multiagents` dentro del repo del producto, porque eso lo vuelve una dependencia local del proyecto en vez de una herramienta global del entorno.
+No se recomienda `npm install @liriraid/agentflow` dentro del repo del producto, porque eso lo vuelve una dependencia local del proyecto en vez de una herramienta global del entorno.
 
 ## Regla de permisos
 
@@ -147,7 +147,7 @@ Hoy incluyen:
 
 ### 8. Installer / ecosystem configurator
 
-- `bin/orchestrator-multiagents.mjs`
+- `bin/agentflow.mjs`
 - instalación en workspace sibling
 - base preparada para npm
 

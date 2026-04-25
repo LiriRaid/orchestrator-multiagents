@@ -5,7 +5,7 @@ description: >
   Trigger: "haz tasks", "descompón el cambio", "crea tareas del cambio", "plan de tareas"
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

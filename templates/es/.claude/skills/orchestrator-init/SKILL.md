@@ -4,7 +4,7 @@ description: >
   Inicializa la sesión del orquestador para este proyecto: lee ORCHESTRATOR.md, la configuración, la cola y el estado visible antes de pedir la siguiente prioridad.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "0.1"
 ---
 

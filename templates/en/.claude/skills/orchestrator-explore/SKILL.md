@@ -4,7 +4,7 @@ description: >
   Explore, analyze, or investigate the project before proposing or delegating implementation.
 license: MIT
 metadata:
-  owner: orchestrator-multiagents
+  owner: agentflow
   version: "1.0"
 ---
 

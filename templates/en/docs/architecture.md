@@ -6,7 +6,7 @@ The orchestrator has three layers:
 
 1. **Global CLI package**
    - installed once with npm
-   - exposes `orchestrator-multiagents`
+   - exposes `agentflow`
 2. **Orchestrator workspace per project**
    - created as a sibling of the real project
    - contains queue, docs, skills, logs, handoffs, and artifacts

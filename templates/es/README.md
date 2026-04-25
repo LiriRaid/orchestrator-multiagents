@@ -81,13 +81,13 @@ Ese es el modelo recomendado para usar el orquestador sin ensuciar el repo real 
 Nombre del paquete:
 
 ```bash
-@liriraid/orchestrator-multiagents
+@liriraid/agentflow
 ```
 
 La página de npm puede mostrar el snippet genérico:
 
 ```bash
-npm i @liriraid/orchestrator-multiagents
+npm i @liriraid/agentflow
 ```
 
 pero **ese no es el flujo recomendado** para este proyecto.
@@ -97,20 +97,20 @@ pero **ese no es el flujo recomendado** para este proyecto.
 Instala el CLI una sola vez:
 
 ```bash
-npm i -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/agentflow
 ```
 
 Luego, para cada proyecto real, crea un workspace sibling del orquestador:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto
+agentflow init-workspace C:/code/mi-proyecto
 ```
 
 El installer preguntará si quieres generar el workspace en **EN** o **ES**. También puedes pasarlo directo:
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang en
-orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang es
+agentflow init-workspace C:/code/mi-proyecto --lang en
+agentflow init-workspace C:/code/mi-proyecto --lang es
 ```
 
 Eso debería dejar algo así:
@@ -125,7 +125,7 @@ Eso debería dejar algo así:
 Si no quieres instalarlo globalmente, puedes usar `npx`:
 
 ```bash
-npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang es
+npx @liriraid/agentflow init-workspace C:/code/mi-proyecto --lang es
 ```
 
 Ese comando crea un workspace reusable del orquestador junto al proyecto real.
@@ -135,8 +135,8 @@ Ese comando crea un workspace reusable del orquestador junto al proyecto real.
 Si vas a modificar el orquestador mismo:
 
 ```bash
-git clone https://github.com/LiriRaid/orchestrator-multiagents.git
-cd orchestrator-multiagents
+git clone https://github.com/LiriRaid/agentflow.git
+cd agentflow
 npm install
 ```
 
@@ -170,13 +170,13 @@ También crea carpetas runtime:
 ### 1. Instalar el CLI globalmente
 
 ```bash
-npm i -g @liriraid/orchestrator-multiagents
+npm i -g @liriraid/agentflow
 ```
 
 ### 2. Crear el workspace del orquestador
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang es
+agentflow init-workspace C:/code/mi-proyecto --lang es
 ```
 
 Si tu proyecto vive, por ejemplo, en:
@@ -206,7 +206,7 @@ para apuntar a los repos reales.
 Modo Ink:
 
 ```bash
-orchestrator-multiagents ink --paused
+agentflow ink --paused
 ```
 
 o desde el repo fuente:
@@ -267,9 +267,9 @@ La idea es que los agentes trabajen, pero no autoacepten todo ciegamente. La ses
 Comandos:
 
 ```bash
-orchestrator-multiagents ink
-orchestrator-multiagents ink --paused
-orchestrator-multiagents ink --yolo
+agentflow ink
+agentflow ink --paused
+agentflow ink --yolo
 ```
 
 o desde el repo fuente:
@@ -295,7 +295,7 @@ Estado actual:
 Si en una sesión concreta quieres permitir modo agresivo para entornos de confianza, puedes iniciar el motor con:
 
 ```bash
-orchestrator-multiagents ink --yolo
+agentflow ink --yolo
 ```
 
 o:
@@ -402,7 +402,7 @@ openspec/
 Crear un change:
 
 ```bash
-orchestrator-multiagents openspec:new -- add-mi-cambio
+agentflow openspec:new -- add-mi-cambio
 ```
 
 o desde el repo fuente:
@@ -464,7 +464,7 @@ Esto permite:
 ### Inicializar carpetas locales por agente
 
 ```bash
-orchestrator-multiagents agent-config:init
+agentflow agent-config:init
 ```
 
 o:
