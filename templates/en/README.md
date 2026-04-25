@@ -50,7 +50,7 @@ Gemini, Cursor, and Abacus can remain configured but are disabled operationally 
 ## Install
 
 ```bash
-npm i -g @liriraid/agentflow
+npm i -g @liriraid/agentflow-ai
 ```
 
 ## Create A Workspace

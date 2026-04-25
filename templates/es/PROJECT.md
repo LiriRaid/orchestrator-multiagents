@@ -44,7 +44,7 @@ Esto evita ensuciar el repo del producto con:
 La instalación recomendada para usuarios finales es:
 
 ```bash
-npm i -g @liriraid/agentflow
+npm i -g @liriraid/agentflow-ai
 ```
 
 Después, por cada proyecto real:
@@ -58,10 +58,10 @@ El comando puede recibir `--lang en` o `--lang es`; si no se pasa, pregunta inte
 La variante con `npx` sigue siendo válida:
 
 ```bash
-npx @liriraid/agentflow init-workspace C:/code/mi-proyecto
+npx @liriraid/agentflow-ai-ai init-workspace C:/code/mi-proyecto
 ```
 
-No se recomienda `npm install @liriraid/agentflow` dentro del repo del producto, porque eso lo vuelve una dependencia local del proyecto en vez de una herramienta global del entorno.
+No se recomienda `npm install @liriraid/agentflow-ai-ai  dentro del repo del producto, porque eso lo vuelve una dependencia local del proyecto en vez de una herramienta global del entorno.
 
 ## Regla de permisos
 

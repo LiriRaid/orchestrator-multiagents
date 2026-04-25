@@ -1,15 +1,15 @@
 {
-  "name": "@liriraid/agentflow",
+  "name": "@liriraid/agentflow-ai",
   "version": "1.0.10",
   "description": "Multi-agent workspace orchestrator with TUI. Coordinates AI coding agents over your real frontend and backend projects.",
   "author": "LiriRaid",
-  "homepage": "https://github.com/LiriRaid/orchestrator-multiagents#readme",
+  "homepage": "https://github.com/LiriRaid/agentflow-ai#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LiriRaid/orchestrator-multiagents.git"
+    "url": "git+https://github.com/LiriRaid/agentflow-ai.git"
   },
   "bugs": {
-    "url": "https://github.com/LiriRaid/orchestrator-multiagents/issues"
+    "url": "https://github.com/LiriRaid/agentflow-ai/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -40,7 +40,7 @@
     "ai",
     "agents",
     "orchestrator",
-    "agentflow",
+    "agentflow-ai",
     "claude",
     "codex",
     "gemini",

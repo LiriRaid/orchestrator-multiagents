@@ -81,13 +81,13 @@ Ese es el modelo recomendado para usar el orquestador sin ensuciar el repo real 
 Nombre del paquete:
 
 ```bash
-@liriraid/agentflow
+@liriraid/agentflow-ai
 ```
 
 La página de npm puede mostrar el snippet genérico:
 
 ```bash
-npm i @liriraid/agentflow
+npm i @liriraid/agentflow-ai
 ```
 
 pero **ese no es el flujo recomendado** para este proyecto.
@@ -97,7 +97,7 @@ pero **ese no es el flujo recomendado** para este proyecto.
 Instala el CLI una sola vez:
 
 ```bash
-npm i -g @liriraid/agentflow
+npm i -g @liriraid/agentflow-ai
 ```
 
 Luego, para cada proyecto real, crea un workspace sibling del orquestador:
@@ -125,7 +125,7 @@ Eso debería dejar algo así:
 Si no quieres instalarlo globalmente, puedes usar `npx`:
 
 ```bash
-npx @liriraid/agentflow init-workspace C:/code/mi-proyecto --lang es
+npx @liriraid/agentflow-ai-ai init-workspace C:/code/mi-proyecto --lang es
 ```
 
 Ese comando crea un workspace reusable del orquestador junto al proyecto real.
@@ -170,7 +170,7 @@ También crea carpetas runtime:
 ### 1. Instalar el CLI globalmente
 
 ```bash
-npm i -g @liriraid/agentflow
+npm i -g @liriraid/agentflow-ai
 ```
 
 ### 2. Crear el workspace del orquestador

@@ -73,3 +73,7 @@ The npm package ships:
 - `LICENSE`
 
 The workspace docs and prompts live inside `templates/en` and `templates/es`; they are copied into the generated workspace based on the selected language.
+
+## Acknowledgements
+
+Inspired by [Orquestador-AI](https://github.com/ariellontero/Orquestador-AI) by Ariel Lontero (originally MIT). Built from scratch with a different architecture (Ink TUI, npm package, multi-language template system).
