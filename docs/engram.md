@@ -1,30 +1,16 @@
 # Engram
 
-Engram is the persistent memory layer for this orchestrator.
+Engram is used for persistent memory across orchestrator sessions.
 
-## What it stores
+Use it for:
 
 - decisions
 - discoveries
-- bug fixes
-- project conventions
+- bugs and fixes
+- setup details
+- routing changes
 - session summaries
-- important user preferences
 
-## What it does not replace
+Do not store secrets, API keys, credentials, or private customer data.
 
-- `QUEUE.md`
-- the TUI
-- OpenSpec change artifacts
-- progress files
-
-## Role in the workflow
-
-- gives continuity across sessions
-- prevents re-discovering the same facts repeatedly
-- supports Claude as orchestrator when context grows
-
-## Local references
-
-- `ENGRAM.md`
-- `.claude/skills/orchestrator-memory/SKILL.md`
+Engram complements `QUEUE.md`, OpenSpec, handoffs, and docs. It does not replace the live queue.

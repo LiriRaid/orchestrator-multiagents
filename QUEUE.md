@@ -1,17 +1,17 @@
-# Cola
+# Queue
 
-> Formato: `id | titulo | agente | prioridad | repo | descripcion`
-> Dependencias: agrega `> after:TASK-NNN` al final de la descripción
-> Comentarios: líneas que empiecen con `#`
+> Format: `id | title | agent | priority | repo | description`
+> Dependencies: append `> after:TASK-NNN` to the description.
+> Comments: lines that start with `#`.
 
-## Pendientes
+## Pending
 
-# === Tareas de ejemplo (borra estas y agrega las tuyas) ===
+# === Example tasks. Delete these before adding real project work. ===
 
-TASK-001 | Estructura inicial del proyecto | Backend | P1 | backend | Crear estructura inicial de carpetas y boilerplate
-TASK-002 | Crear landing page | Frontend | P1 | frontend | Construir sección hero con layout responsive
-TASK-003 | Documentación de API | Codex | P2 | backend | Documentar endpoints REST en docs/api-reference.md > after:TASK-001
+TASK-001 | Create initial backend structure | Backend | P1 | backend | Create base folders, boilerplate, and initial tests
+TASK-002 | Build landing page | Frontend | P1 | frontend | Build a responsive hero section and first viewport
+TASK-003 | Document API endpoints | Codex | P2 | backend | Document REST endpoints in docs/api-reference.md > after:TASK-001
 
-## En progreso
+## In Progress
 
-## Completadas
+## Completed

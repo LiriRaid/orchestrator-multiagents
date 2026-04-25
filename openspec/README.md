@@ -1,77 +1,29 @@
 # OpenSpec Workspace
 
-Esta carpeta guarda los artefactos SDD del proyecto.
+This folder stores durable change artifacts.
 
-## Estructura
+Use it when a change is large, multi-phase, or needs traceability beyond the current chat.
+
+## Flow
+
+```text
+proposal -> spec -> design -> tasks -> queue -> verify -> archive
+```
+
+## Structure
 
 ```text
 openspec/
-├── changes/
-│   ├── archive/
-│   └── <change-name>/
-├── FLOW.md
-├── specs/
-└── templates/
+  FLOW.md
+  changes/
+    <change-name>/
+      proposal.md
+      specs/
+        spec.md
+      design.md
+      tasks.md
+      verify-report.md
+      archive-report.md
 ```
 
-## Objetivo
-
-Usar `openspec/` como capa persistente para cambios importantes, sin depender solo de conversación, `QUEUE.md` o memoria corta.
-
-## Flujo recomendado
-
-1. **Explorar** una idea o problema
-2. Crear un **change** en `openspec/changes/<change-name>/`
-3. Escribir:
-   - `proposal.md`
-   - `specs/spec.md`
-   - `design.md`
-   - `tasks.md`
-   - `verify-report.md`
-   - `archive-report.md`
-4. Guardar specs delta dentro de:
-   - `openspec/changes/<change-name>/specs/`
-5. Cuando el cambio termine:
-   - moverlo a `openspec/changes/archive/`
-   - reflejar aprendizaje útil en Engram
-
-## Flujo canónico
-
-Consulta también:
-
-- `openspec/FLOW.md`
-
-Ese archivo define:
-
-- cuándo nace un change
-- cuándo proposal pasa a spec
-- cuándo tasks baja a `QUEUE.md`
-- cómo verificar y archivar
-
-## Regla de diseño
-
-- `openspec/` complementa `QUEUE.md`; no lo reemplaza.
-- `QUEUE.md` sigue siendo la cola operativa del motor.
-- `openspec/` guarda la intención, la spec delta, el diseño, el checklist y la verificación de cambios relevantes.
-
-## Nombres de changes
-
-Usa nombres claros, por ejemplo:
-
-- `add-orchestrator-installer`
-- `integrate-openspec-routing`
-- `add-agent-config-sync`
-- `improve-open-code-exploration`
-
-Evita:
-
-- `test`
-- `wip`
-- `change-1`
-
-## Relación con el orquestador
-
-- Claude puede usar `openspec/` para pensar y persistir cambios más grandes.
-- `QUEUE.md` puede derivarse de `tasks.md`.
-- Engram guarda continuidad y decisiones.
-- La TUI sigue mostrando ejecución viva; `openspec/` guarda el razonamiento y la estructura.
+Translate ready tasks into `QUEUE.md` when execution begins.

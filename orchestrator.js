@@ -75,7 +75,7 @@ const CONFIG_TEMPLATE = {
 if (process.argv.includes("--init")) {
   if (fs.existsSync(CONFIG_FILE)) {
     console.log(
-      "La configuración ya existe. Elimina orchestrator.config.json para reinicializar.",
+      "Configuration already exists. Delete orchestrator.config.json to reinitialize.",
     );
     process.exit(0);
   }
@@ -85,14 +85,14 @@ if (process.argv.includes("--init")) {
     "utf-8",
   );
   console.log(
-    `Se creó ${CONFIG_FILE}\nEdítalo para que coincida con tus repos y agentes, luego ejecuta: node orchestrator.js`,
+    `Created ${CONFIG_FILE}\nEdit it to match your repos and agents, then run: node orchestrator.js`,
   );
   process.exit(0);
 }
 
 if (!fs.existsSync(CONFIG_FILE)) {
   console.error(
-    `No se encontró la configuración: ${CONFIG_FILE}\nEjecuta: node orchestrator.js --init`,
+    `Configuration not found: ${CONFIG_FILE}\nRun: node orchestrator.js --init`,
   );
   process.exit(1);
 }
@@ -123,19 +123,19 @@ if (CLI.help) {
   console.log(`
 ${PROJECT_NAME} TUI
 
-Uso: node orchestrator.js [opciones]
+Usage: node orchestrator.js [options]
 
-Opciones:
-  --init         Genera orchestrator.config.json por defecto
-  --headless     Ejecuta solo el motor, sin la UI blessed
-  --paused       Inicia en pausa (presiona S para comenzar)
-  --yolo         Activa bypass/agresivo para una sesión explícita
-  --max-budget=N Se detiene al gastar $N
-  --help         Muestra esta ayuda
+Options:
+  --init         Generate the default orchestrator.config.json
+  --headless     Run only the engine, without the Blessed UI
+  --paused       Start paused (press S to begin)
+  --yolo         Enable explicit bypass/aggressive mode for this session
+  --max-budget=N Stop after spending $N
+  --help         Show this help
 
-Teclado:
-  S  Iniciar/reanudar   P  Pausar/reanudar
-  R  Recargar cola     Q  Salir
+Keyboard:
+  S  Start/resume   P  Pause/resume
+  R  Reload queue   Q  Quit
 `);
   process.exit(0);
 }
@@ -393,10 +393,10 @@ function stopAllAgents() {
 function exitWithSummary() {
   stopAllAgents();
   if (!CLI.headless && screen) screen.destroy();
-  console.log(`\n${PROJECT_NAME} — Resumen de sesión`);
-  console.log(`  Duración: ${elapsedSince(state.startTime)}`);
-  console.log(`  Completadas: ${state.completed.length} tareas`);
-  console.log(`  Costo: $${state.totalCost.toFixed(2)}`);
+  console.log(`\n${PROJECT_NAME} - Session Summary`);
+  console.log(`  Duration: ${elapsedSince(state.startTime)}`);
+  console.log(`  Completed: ${state.completed.length} tasks`);
+  console.log(`  Cost: $${state.totalCost.toFixed(2)}`);
   for (const t of state.completed)
     console.log(
       `    ✓ ${t.id} ${t.title} (${t.agent}, ${formatDuration(t.elapsed)})`,
@@ -410,7 +410,7 @@ function applyControlCommand(command) {
     case "start":
       if (state.paused) {
         state.paused = false;
-        log("INFO", "REANUDADO");
+        log("INFO", "RESUMED");
       }
       scheduleNext();
       renderDashboard();
@@ -418,17 +418,17 @@ function applyControlCommand(command) {
     case "pause":
       if (!state.paused) {
         state.paused = true;
-        log("INFO", "PAUSADO");
+        log("INFO", "PAUSED");
       }
       renderDashboard();
       break;
     case "reload":
       reloadQueue();
-      log("INFO", `Cola recargada: ${state.queue.length} tareas`);
+      log("INFO", `Queue reloaded: ${state.queue.length} tasks`);
       renderDashboard();
       break;
     case "quit":
-      log("INFO", "Cierre solicitado desde Ink");
+      log("INFO", "Quit requested from Ink");
       exitWithSummary();
       break;
   }
@@ -1413,12 +1413,12 @@ if (!CLI.headless && screen) {
   });
   screen.key("p", () => {
     state.paused = !state.paused;
-    log("INFO", state.paused ? "PAUSADO" : "REANUDADO");
+    log("INFO", state.paused ? "PAUSED" : "RESUMED");
     renderDashboard();
   });
   screen.key("r", () => {
     reloadQueue();
-    log("INFO", `Cola recargada: ${state.queue.length} tareas`);
+    log("INFO", `Queue reloaded: ${state.queue.length} tasks`);
     renderDashboard();
   });
 }
@@ -1426,14 +1426,14 @@ if (!CLI.headless && screen) {
 // ============================================================================
 // MAIN
 // ============================================================================
-log("INFO", `${PROJECT_NAME} iniciando`);
+log("INFO", `${PROJECT_NAME} starting`);
 state.completed = parseCompletedFromFile();
 log(
   "INFO",
-  `Se cargaron ${state.completed.length} tareas completadas desde QUEUE.md`,
+  `Loaded ${state.completed.length} completed tasks from QUEUE.md`,
 );
 reloadQueue();
-log("INFO", `Cola: ${state.queue.length} tareas`);
+log("INFO", `Queue: ${state.queue.length} tasks`);
 renderDashboard();
 if (!state.paused) {
   scheduleNext();

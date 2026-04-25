@@ -1,8 +1,7 @@
 ---
 name: orchestrator-tasks
 description: >
-  Descompone un cambio en tareas de implementación concretas y listas para traducirse a QUEUE.md.
-  Trigger: "haz tasks", "descompón el cambio", "crea tareas del cambio", "plan de tareas"
+  Break a change into implementation tasks that can later be translated into QUEUE.md.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
@@ -11,22 +10,18 @@ metadata:
 
 # Skill: orchestrator-tasks
 
-## Propósito
+## Purpose
 
-Convertir la propuesta, la spec y el diseño en tareas claras que el orquestador pueda delegar a agentes concretos.
+Convert proposal, spec, and design into concrete implementation tasks.
 
-## Reglas críticas
+## Critical Rules
 
-- Lee propuesta, spec y design antes de escribir tareas.
-- Crea o actualiza `openspec/changes/<change-name>/tasks.md`.
-- Las tareas deben ser:
-  - pequeñas
-  - delegables
-  - ordenables
-  - entendibles por un agente sin contexto infinito
-- Marca si `tasks.md` ya fue traducido a `QUEUE.md`.
-- Si el usuario quiere ejecución inmediata, el siguiente paso natural es `orchestrator-queue-planning`.
+- Use `openspec/changes/<change-name>/tasks.md`.
+- Tasks should be small, ordered, and delegable.
+- Mark dependencies clearly.
+- Mark which tasks are ready to become `QUEUE.md` entries.
+- Do not implement tasks directly.
 
-## Resultado esperado
+## Expected Result
 
-Una lista de tareas lista para convertirse en cola viva del motor.
+A task list ready for queue planning.

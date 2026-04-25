@@ -1,7 +1,7 @@
 {
   "name": "@liriraid/orchestrator-multiagents",
   "version": "1.0.9",
-  "description": "TUI dashboard para orquestar múltiples agentes de IA de código trabajando en paralelo sobre tu codebase",
+  "description": "TUI dashboard for orchestrating multiple coding AI agents working in parallel on your codebase",
   "author": "LiriRaid",
   "homepage": "https://github.com/LiriRaid/orchestrator-multiagents#readme",
   "repository": {

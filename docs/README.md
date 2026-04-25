@@ -1,12 +1,14 @@
-# Documentación
+# Documentation
 
-Este directorio contiene la capa reusable de documentación del workspace del orquestador.
+This folder contains reusable documentation for the orchestrator workspace.
 
-Documentos disponibles:
+## Files
 
-- `architecture.md` — capas del sistema y flujo de datos
-- `components.md` — componentes implementados y su estado actual
-- `agents.md` — cómo se modelan las familias de agentes
-- `engram.md` — rol y uso de la memoria
-- `openspec.md` — modelo de artefactos y flujo de cambios
-- `usage.md` — flujo recomendado de uso end-to-end
+- `usage.md`: recommended workflow
+- `architecture.md`: system shape and execution model
+- `agents.md`: supported agent families and routing policy
+- `components.md`: implemented components
+- `openspec.md`: OpenSpec flow
+- `engram.md`: memory usage
+
+The root files (`ORCHESTRATOR.md`, `CLAUDE.md`, `QUEUE.md`, and `orchestrator.config.json`) are the runtime source of truth.

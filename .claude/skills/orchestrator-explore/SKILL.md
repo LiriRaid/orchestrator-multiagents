@@ -1,31 +1,29 @@
 ---
 name: orchestrator-explore
 description: >
-  Explora, analiza o investiga el proyecto antes de proponer cambios. Ideal cuando el usuario pide entender archivos, flujos o arquitectura antes de delegar implementación.
-  Trigger: "explora", "analiza", "investiga", "revisa este proyecto", "revisa estos archivos"
+  Explore, analyze, or investigate the project before proposing or delegating implementation.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
-  version: "0.1"
+  version: "1.0"
 ---
 
 # Skill: orchestrator-explore
 
-## Propósito
+## Purpose
 
-Guiar la fase de exploración del orquestador para reunir contexto útil antes de crear o delegar tareas.
+Gather useful context before creating TASKs or OpenSpec artifacts.
 
-## Reglas críticas
+## Critical Rules
 
-- Empieza por entender el alcance exacto del pedido del usuario.
-- Si hace falta lectura amplia, prioriza exploración y análisis antes de planear implementación.
-- Usa `OpenCode` como primer apoyo para lectura, contexto y hallazgos estructurados cuando aplique.
-- No llenes `QUEUE.md` con implementación hasta tener suficiente contexto.
-- Resume hallazgos en términos accionables: qué existe, qué falta, qué riesgo hay y qué tareas salen de eso.
-- Si la exploración revela un cambio grande o multifase, el siguiente paso natural es abrir o actualizar un change en `openspec/`.
-- Si descubres una línea clara de trabajo, el siguiente paso natural es convertir hallazgos en TASKs concretas.
-- Mantén el foco dentro del alcance pedido; explorar no es rediseñar todo el sistema.
+- Understand the user's exact scope first.
+- Prefer exploration before implementation when context is unclear.
+- Use OpenCode as the first support worker for broad reading, audits, and structured findings when appropriate.
+- Do not fill `QUEUE.md` with implementation tasks until enough context exists.
+- Summarize findings in actionable terms: what exists, what is missing, what risks exist, and what tasks follow.
+- If the change is large or multi-phase, move toward OpenSpec.
+- If work is clear, convert findings into concrete TASKs.
 
-## Resultado esperado
+## Expected Result
 
-Una exploración útil que permita al orquestador decidir si ya puede crear TASKs o si necesita una investigación adicional.
+The orchestrator can decide whether to plan TASKs or continue investigation.

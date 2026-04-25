@@ -1,83 +1,75 @@
 # Agent Config
 
-Este archivo define la capa de configuración por agente del orquestador reusable.
+This file documents the reusable agent configuration layer.
 
-## Objetivo
+## Goal
 
-Separar dos niveles:
+Separate two levels:
 
 1. **Runtime config**
-   Vive en `orchestrator.config.json` bajo `agents` y `repos`.
-   Controla qué agentes puede lanzar el motor y cómo se conectan a los repos.
+   - Lives in `orchestrator.config.json` under `agents` and `repos`.
+   - Controls which agents the engine can launch and which repos they work on.
 
 2. **Agent profile config**
-   Vive en `orchestrator.config.json` bajo `agentProfiles`.
-   Controla cómo se organiza la configuración local por CLI o familia de agente.
+   - Lives in `orchestrator.config.json` under `agentProfiles`.
+   - Describes local config folders and shared settings for each CLI family.
 
-Esto permite:
+This allows the workspace to run one agent, the default three-agent setup, or a larger future setup without redesigning the config.
 
-- usar solo 1 agente
-- usar 3 agentes como base (`claude`, `codex`, `opencode`)
-- o escalar a más agentes sin rediseñar el config
+## Design Rule
 
-## Regla de diseño
+- `agents`: operational worker instances visible to the TUI.
+- `agentProfiles`: reusable configuration by agent family.
 
-- `agents` = instancias operativas visibles para el motor
-- `agentProfiles` = configuración reusable por tipo de agente
+Examples:
 
-Ejemplo:
+- `Backend` and `Frontend` share the `claude` profile.
+- `Codex` uses the `codex` profile.
+- `OpenCode` uses the `opencode` profile.
 
-- `Backend` y `Frontend` pueden compartir el profile `claude`
-- `Codex` usa el profile `codex`
-- `OpenCode` usa el profile `opencode`
+## Claude-Orchestrator vs Claude-Worker
 
-## Claude-Orquestador vs Claude-Worker
+The `claude` profile can appear in two operational roles:
 
-El profile `claude` puede aparecer en dos formas operativas:
+- **Claude-Orchestrator**: the interactive session that reads `ORCHESTRATOR.md`, updates `QUEUE.md`, delegates, monitors, and reviews.
+- **Claude-Worker**: workers such as `Backend` and `Frontend`, launched by the TUI, that can edit code when they receive a TASK.
 
-- **Claude-Orquestador**: sesión interactiva que lee `ORCHESTRATOR.md`, mantiene `QUEUE.md`, delega y revisa.
-- **Claude-Worker**: agentes como `Backend` y `Frontend`, lanzados por la TUI, que sí pueden implementar código cuando tienen una TASK asignada.
+Claude-Orchestrator must not modify the real project directly. If Claude should work on code, assign a TASK to `Backend` or `Frontend`.
 
-La sesión orquestadora no modifica el repo real directamente. Si Claude debe trabajar en código, se le asigna una TASK a `Backend` o `Frontend`.
+Default routing should put executable work on Codex or OpenCode first when they are suitable. Claude-Worker is used for fallback, extra capacity, sensitive work, or broad frontend/backend implementation.
 
-Cuando haya varias tareas independientes, el reparto recomendado es mantener ocupados a `Claude-Worker`, `Codex` y `OpenCode` en paralelo antes de acumular varias tareas en un solo agente.
+## Suggested `agentProfiles` Fields
 
-## Campos sugeridos de `agentProfiles`
+| Field | Required | Purpose |
+| --- | --- | --- |
+| `enabled` | No | Whether the profile is active for the project |
+| `localConfigDir` | No | Local project folder for that agent |
+| `skillsDir` | No | Local skills folder, when applicable |
+| `primary` | No | Whether this profile is the main orchestrator profile |
+| `useForOrchestration` | No | Whether this profile can orchestrate |
+| `notes` | No | Operational notes or restrictions |
 
-| Campo                 | Requerido | Propósito                                  |
-| --------------------- | --------- | ------------------------------------------ |
-| `enabled`             | No        | Si este profile está activo en el proyecto |
-| `localConfigDir`      | No        | Carpeta local del proyecto para ese agente |
-| `skillsDir`           | No        | Carpeta local de skills si aplica          |
-| `primary`             | No        | Si es el agente principal del flujo        |
-| `useForOrchestration` | No        | Si puede actuar como orquestador           |
-| `notes`               | No        | Notas o restricciones operativas           |
+## Initial Convention
 
-## Convención inicial
+- `claude` is the primary profile.
+- `codex` and `opencode` are support profiles.
+- Other profiles can exist while remaining disabled by default.
 
-Para este proyecto reusable:
-
-- `claude` es el profile principal
-- `codex` y `opencode` son profiles de apoyo
-- otros profiles pueden existir, aunque no estén habilitados por defecto
-
-## Directorios locales sugeridos
+## Suggested Local Folders
 
 - `.claude/`
 - `.codex/`
 - `.opencode/`
 
-Estos directorios no tienen que ser iguales a los del home del usuario. Son la capa local del proyecto.
+These folders are project-local. They should not depend only on the user's global home configuration.
 
-## Prioridad
+## Priority
 
-Si existe configuración global del agente en el home del usuario y también una local del proyecto:
+If both global and local agent configuration exist, the local project config should win for this orchestrator workflow.
 
-- la local del proyecto debe ganar en el flujo del orquestador reusable
+## Relationship With Skills
 
-## Relación con skills
-
-- `Claude` usa `.claude/skills/` como base principal del proyecto
-- `Codex` y `OpenCode` pueden tener configuración local propia aunque hoy no usen el mismo modelo de skills
-- `OpenCode` no es solo auditor: puede explorar, auditar e implementar cuando la TASK esté clara
-- el diseño debe permitir que mañana también tengan una capa local más rica
+- Claude uses `.claude/skills/` as the main project skill base.
+- Codex and OpenCode can have their own local config even if they do not use the same skill model today.
+- OpenCode can explore, audit, and implement when the TASK is clear.
+- The design should allow richer local layers for additional agents later.

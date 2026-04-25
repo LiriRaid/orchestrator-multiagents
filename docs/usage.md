@@ -1,47 +1,59 @@
-# Uso
+# Usage
 
-## Flujo recomendado
+## Recommended Flow
 
-### 1. Instalar el CLI globalmente
+### 1. Install the CLI
 
 ```bash
 npm i -g @liriraid/orchestrator-multiagents
 ```
 
-### 2. Crear un workspace hermano para un proyecto
+### 2. Create a sibling orchestrator workspace
 
 ```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto
+orchestrator-multiagents init-workspace C:/code/my-project
 ```
 
-### 3. Abrir el workspace del orquestador
+### 3. Open the orchestrator workspace
 
-Usa dos terminales:
+Use two terminals:
 
-- una para la TUI
-- otra para Claude Code
+- one for the TUI
+- one for Claude Code
 
-### 4. Iniciar la TUI
+### 4. Start the TUI
 
 ```bash
+cd C:/code/orchestrator-my-project
 orchestrator-multiagents ink --paused
 ```
 
-### 5. Iniciar Claude en el workspace del orquestador
+### 5. Start Claude in the orchestrator workspace
 
-Luego dile:
-
-```text
-Lee ORCHESTRATOR.md, asume el rol de orquestador y arranca.
+```bash
+cd C:/code/orchestrator-my-project
+claude
 ```
 
-### 6. Pedir trabajo
+Then say:
 
-Ejemplos:
+```text
+Read ORCHESTRATOR.md and start.
+```
 
-- `explora esta carpeta de componentes`
-- `analiza este flujo`
-- `prepara proposal, spec y tasks`
-- `verifica que la implementación cumpla la spec`
+### 6. Ask for work
 
-Claude debe rutear naturalmente a las skills locales correctas del orquestador y reflejar ese flujo en la TUI.
+Examples:
+
+- `Audit the current frontend routing and create tasks.`
+- `Prepare a proposal, spec, design, and tasks for the billing module.`
+- `Create queue tasks for the next frontend iteration.`
+- `Verify that the implementation matches the spec.`
+
+Claude-Orchestrator should write tasks to `QUEUE.md`; it should not implement project work directly.
+
+### 7. Run tasks
+
+Press `R` in the TUI to reload `QUEUE.md`. Press `S` if paused.
+
+The TUI launches the workers and streams their progress.

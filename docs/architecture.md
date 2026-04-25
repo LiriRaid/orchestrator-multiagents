@@ -1,41 +1,43 @@
-# Arquitectura
+# Architecture
 
-## Modelo general
+## General Model
 
-El orquestador se divide en:
+The orchestrator has three layers:
 
-1. **Paquete CLI global**
-   - se instala una sola vez con npm
-   - expone `orchestrator-multiagents`
-2. **Workspace del orquestador por proyecto**
-   - se crea como carpeta hermana del proyecto real
-   - contiene cola, estado runtime, docs, skills y artefactos
-3. **Repositorio real del proyecto**
-   - permanece limpio
-   - es referenciado desde `orchestrator.config.json`
+1. **Global CLI package**
+   - installed once with npm
+   - exposes `orchestrator-multiagents`
+2. **Orchestrator workspace per project**
+   - created as a sibling of the real project
+   - contains queue, docs, skills, logs, handoffs, and artifacts
+3. **Real project repo**
+   - remains clean
+   - referenced from `orchestrator.config.json`
 
-## Capas principales
+## Main Components
 
-- **Runtime** — `orchestrator.js`, parser de cola, scheduler y lanzador de agentes
-- **UI** — TUI en Ink y TUI histórica en Blessed
-- **Routing** — `ORCHESTRATOR.md`, `CLAUDE.md` y skill registry local
-- **Skills** — skills locales del proyecto en `.claude/skills/`
-- **Memoria** — Engram y sus convenciones de uso
-- **Artefactos** — ciclo de vida de cambios en OpenSpec
-- **Installer** — CLI global + creación de workspace
+- **Runtime**: `orchestrator.js`, queue parser, scheduler, agent launcher
+- **UI**: Ink TUI and legacy Blessed TUI
+- **Routing**: `ORCHESTRATOR.md`, `CLAUDE.md`, local skills
+- **Skills**: project-local skills in `.claude/skills/`
+- **Memory**: Engram conventions and summaries
+- **Artifacts**: OpenSpec lifecycle
+- **Installer**: CLI commands for creating workspaces
 
-## Modelo operativo por defecto
+## Execution Model
 
-- Claude es el orquestador principal
-- Claude también puede trabajar como agente ejecutor mediante los workers `Backend` y `Frontend`
-- OpenCode explora, lee contexto, audita y también puede implementar código
-- Codex implementa trabajo estructurado en backend y también puede apoyar frontend en tareas acotadas
-- Claude sigue siendo el revisor final y el filtro principal de calidad
+Claude-Orchestrator coordinates work but does not edit the real project directly.
 
-El rol interactivo de Claude no edita el proyecto real directamente; coordina y revisa. La ejecución de código por Claude ocurre a través de una TASK asignada a un agente Claude-Worker en la cola.
+Workers execute TASKs:
 
-## Modelo de permisos
+- Codex for structured implementation
+- OpenCode for exploration, audits, and scoped implementation
+- Backend/Frontend as Claude-Workers for fallback, extra capacity, and broad implementation
 
-- Seguro por defecto
-- Sin bypass / YOLO por defecto
-- Bypass explícito solo si el usuario inicia una sesión con `--yolo`
+The queue is the boundary between orchestration and execution.
+
+## Permissions
+
+- Safe by default
+- No commit or push from workers
+- Bypass/YOLO only when explicitly started by the user

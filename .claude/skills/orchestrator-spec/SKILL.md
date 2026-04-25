@@ -1,8 +1,7 @@
 ---
 name: orchestrator-spec
 description: >
-  Crea o actualiza la especificación funcional del cambio con requerimientos y escenarios.
-  Trigger: "haz spec", "crea especificación", "documenta requerimientos", "define escenarios"
+  Create or update the behavioral specification for a change.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
@@ -11,18 +10,18 @@ metadata:
 
 # Skill: orchestrator-spec
 
-## Propósito
+## Purpose
 
-Traducir la propuesta del cambio en una especificación clara para que la implementación y la verificación tengan una referencia estable.
+Turn the proposal into clear required behavior and acceptance criteria.
 
-## Reglas críticas
+## Critical Rules
 
-- Lee la propuesta antes de escribir la spec.
-- Crea o actualiza `openspec/changes/<change-name>/specs/spec.md`.
-- Expresa requerimientos y escenarios de forma verificable.
-- No mezcles demasiado diseño técnico dentro de la spec salvo que sea necesario para entender el comportamiento.
-- Si faltan datos del usuario, deja explícitas las suposiciones.
+- Use `openspec/changes/<change-name>/specs/spec.md`.
+- Focus on observable behavior.
+- Include acceptance criteria when useful.
+- Do not mix implementation details into the spec unless needed for clarity.
+- Do not implement code directly.
 
-## Resultado esperado
+## Expected Result
 
-Una spec que permita pasar a design, tasks o verify sin depender de la conversación.
+A spec that can guide design, tasks, implementation, and verification.

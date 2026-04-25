@@ -1,33 +1,26 @@
-# Design
-
-## Context
-
-Describe el contexto técnico del cambio.
+# Design: <change-name>
 
 ## Approach
 
-Explica cómo se implementará el cambio.
+Describe the technical approach.
 
-## Components Affected
+## Affected Areas
 
-- Archivo / módulo
-- Archivo / módulo
+- File or module 1
+- File or module 2
 
 ## Data Flow
 
-Describe el flujo importante entre piezas del sistema.
-
-## Decisions
-
-- Decisión 1
-- Decisión 2
+Describe important data flow changes.
 
 ## Tradeoffs
 
 - Tradeoff 1
-- Tradeoff 2
 
-## Open Questions
+## Risks
 
-- Pregunta 1
-- Pregunta 2
+- Risk 1
+
+## Verification Plan
+
+- Verification step 1

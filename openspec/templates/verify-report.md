@@ -1,24 +1,21 @@
-# Verify Report
+# Verify Report: <change-name>
 
-## Change
+## Result
 
-`<change-name>`
+Status: pending | passed | failed | partial
 
-## Completeness
+## Checked Against
 
-- Qué quedó hecho
-- Qué falta
+- Proposal
+- Spec
+- Design
+- Tasks
+- Queue results
 
-## Correctness
+## Findings
 
-- Qué validaste
-- Qué dudas quedan
+- Finding 1
 
-## Coherence
+## Follow-Up Tasks
 
-- Si el código refleja el diseño
-- Si las tareas cubren el cambio
-
-## Verdict
-
-`PASS | WARNING | FAIL`
+- Follow-up 1

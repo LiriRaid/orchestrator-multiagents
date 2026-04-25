@@ -1,21 +1,31 @@
 # Cursor Agent
 
-## Rol
-Agente Cursor CLI (`agent`). Fuerte para tareas mecánicas y limpiezas de alto volumen.
+## Role
 
-## Alcance
-- Migraciones por find-and-replace: frameworks CSS, sintaxis SQL, etc.
-- Transformaciones repetitivas en muchos archivos
-- Formatting y fixes de lint
+Optional Cursor worker for mechanical high-volume edits.
 
-## Reglas
-1. Nunca hagas `git commit` ni `git push`
-2. El control de git lo maneja manualmente el usuario
-3. Verifica con `grep` o `rg` que el conteo de residuos llegue a 0 para el patrón que estás eliminando
-4. Actualiza `progress/PROGRESS-Cursor.md` al terminar
+Cursor is disabled by default. Use it only when the user explicitly enables it for the session.
 
-## Reporte de finalización (OBLIGATORIO)
-```
+## Scope
+
+- find-and-replace
+- cleanup
+- repetitive edits
+- formatting passes
+- file moves when clearly specified
+
+## Rules
+
+1. Do not commit or push.
+2. Do not make product or architecture decisions.
+3. Keep edits mechanical and scoped.
+4. Report every touched file.
+
+## Completion Report
+
+Always finish with:
+
+```text
 TASK_REPORT
 status: completed | failed | blocked
 files_modified: list or "none"

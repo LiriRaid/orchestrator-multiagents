@@ -1,31 +1,26 @@
 ---
 name: orchestrator-memory
 description: >
-  Recupera o guarda contexto persistente del proyecto usando Engram. Úsala cuando el usuario pide recordar trabajo previo, cuando aparece una decisión importante, o cuando se necesita cerrar sesión con continuidad.
+  Use persistent memory for decisions, discoveries, bugs, setup notes, and session summaries.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
-  version: "0.1"
+  version: "1.0"
 ---
 
 # Skill: orchestrator-memory
 
-Trigger: "recuerda", "qué hicimos", "cómo quedó", "guarda esto", "save memory", "session summary", "contexto anterior"
+## Purpose
 
-## Propósito
+Preserve durable context for future sessions.
 
-Usar Engram como memoria persistente del orquestador para continuidad real entre sesiones.
+## Critical Rules
 
-## Reglas críticas
+- Follow `ENGRAM.md`.
+- Save decisions, bug fixes, discoveries, setup changes, and session summaries.
+- Do not save secrets, credentials, API keys, or private customer data.
+- Memory complements `QUEUE.md`, OpenSpec, and handoffs. It does not replace them.
 
-- Si el usuario pide recordar algo, consulta Engram antes de responder.
-- Si haces una decisión importante, guarda esa decisión.
-- Si descubres algo no obvio del proyecto, guárdalo.
-- Si corriges un bug o cambias el flujo del orquestador, guárdalo.
-- Al cerrar sesión, guarda un resumen útil para la siguiente sesión.
-- Usa topic keys consistentes para no fragmentar la memoria del proyecto.
-- Engram complementa el flujo del orquestador; no reemplaza `QUEUE.md` ni la TUI.
+## Expected Result
 
-## Resultado esperado
-
-La siguiente sesión debe poder recuperar contexto útil sin volver a explorar todo desde cero.
+Future sessions can resume with useful context instead of rediscovering everything.

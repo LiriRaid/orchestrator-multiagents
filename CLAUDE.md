@@ -1,136 +1,91 @@
 # Claude Project Routing
 
-Este archivo define cómo **Claude Code** debe comportarse dentro de este repo y qué skills locales debe priorizar.
+This file defines how Claude Code should behave inside this orchestrator workspace.
 
-## Prioridad de resolución
+## Resolution Priority
 
-1. Prioriza siempre las skills locales de este repo en `./.claude/skills/`
-2. Usa `.atl/skill-registry.md` como catálogo de skills del proyecto
-3. Usa `ENGRAM.md` como convención local para memoria persistente
-4. No dependas de `~/.claude/skills/` para el flujo principal del orquestador
-5. Si existe una skill global con el mismo nombre, la **local** del proyecto gana
-6. Si existe `openspec/`, úsalo como capa persistente para cambios grandes antes de delegar implementación amplia
+1. Prefer local project skills in `./.claude/skills/`.
+2. Use `.atl/skill-registry.md` as the local skill catalog.
+3. Use `ENGRAM.md` for persistent memory conventions.
+4. Do not rely on `~/.claude/skills/` for the main orchestrator flow.
+5. If a global skill has the same name as a local skill, the local skill wins.
+6. Use `openspec/` for large or multi-phase changes before broad implementation.
 
-## Routing automático de intención -> skill
+## Intent Routing
 
-### Inicio del orquestador
+### Orchestrator Startup
 
-Si el usuario dice algo como:
+If the user says:
 
+- `read ORCHESTRATOR.md and start`
 - `lee ORCHESTRATOR.md y arranca`
-- `arranca el orquestador`
-- `inicia el orquestador`
 - `start orchestrator`
+- `initialize the orchestrator`
 
-usa la skill:
+use:
 
 - `orchestrator-init`
 
-### Exploración / análisis / investigación
+Startup means reading context and becoming ready. It does not mean implementing the user's first task directly.
 
-Si el usuario dice algo como:
+### Exploration
 
-- `explora este proyecto`
-- `analiza estos archivos`
-- `investiga este flujo`
-- `revisa esto antes de implementar`
-
-usa la skill:
+If the user asks to explore, analyze, investigate, or review before implementation, use:
 
 - `orchestrator-explore`
 
-### Proposal / spec / design / tasks
+### Proposal, Spec, Design, Tasks
 
-Si el usuario dice algo como:
-
-- `haz proposal`
-- `haz spec`
-- `haz design`
-- `haz tasks`
-- `documentemos este cambio`
-- `prepara el cambio antes de implementarlo`
-
-usa la skill:
+If the user asks for proposal, spec, design, tasks, or a documented change, use the matching skill:
 
 - `orchestrator-propose`
 - `orchestrator-spec`
 - `orchestrator-design`
 - `orchestrator-tasks`
+- `orchestrator-openspec`
 
-### Planificación de cola / delegación
+### Queue Planning and Delegation
 
-Si el usuario dice algo como:
-
-- `crea tareas`
-- `divide el trabajo`
-- `llena la queue`
-- `deleguemos esto`
-- `planifica las tasks`
-
-usa la skill:
+If the user asks to create tasks, split work, delegate, or plan the queue, use:
 
 - `orchestrator-queue-planning`
 
-### OpenSpec / cambios grandes
+The default output should be TASK entries in `QUEUE.md`, not direct implementation by Claude-Orchestrator.
 
-Si el usuario dice algo como:
+### Apply, Verify, Archive
 
-- `crea un change`
-- `abre openspec`
-- `documentemos este cambio antes de implementarlo`
-
-usa la skill:
-
-- `orchestrator-openspec`
-
-### Apply / verify / archive
-
-Si el usuario dice algo como:
-
-- `implementa este cambio`
-- `aplica las tareas`
-- `verifica la implementación`
-- `archiva el cambio`
-
-usa la skill:
+If the user asks to implement, apply tasks, verify implementation, or archive a change, use:
 
 - `orchestrator-apply`
 - `orchestrator-verify`
 - `orchestrator-archive`
 
-### Memoria / continuidad / recordatorios
+Implementation still goes through worker agents and `QUEUE.md` unless the user explicitly overrides the orchestrator rule.
 
-Si el usuario dice algo como:
+### Memory and Continuity
 
-- `recuerda qué hicimos`
-- `cómo quedó esto`
-- `guarda este contexto`
-- `haz un resumen de sesión`
-- `trae el contexto anterior`
-
-usa la skill:
+If the user asks to remember, summarize, restore previous context, or save decisions, use:
 
 - `orchestrator-memory`
 
-## Reglas operativas
+## Operating Rules
 
-- Si hay ambigüedad entre explorar y planificar, explora primero.
-- Si el usuario pide iniciar sesión del orquestador, arranca con `orchestrator-init` antes de cualquier otra cosa.
-- Si el trabajo es grande, multifase o involucra varios agentes, pasa por `orchestrator-propose` / `orchestrator-spec` / `orchestrator-design` / `orchestrator-tasks` antes de llenar `QUEUE.md`.
-- Si una exploración ya produjo suficiente contexto, el siguiente paso natural es `orchestrator-propose` o `orchestrator-tasks`, según el nivel de claridad.
-- Si el usuario pide continuidad o recordar trabajo previo, usa `orchestrator-memory`.
-- Si el usuario pide proposal/spec/design/tasks de un cambio, usa las skills `orchestrator-*` correspondientes.
-- Mantén la lógica del orquestador alineada con `ORCHESTRATOR.md`.
-- Mantén la memoria alineada con `ENGRAM.md`.
-- Respeta las restricciones de agentes por defecto del proyecto.
+- If intent is ambiguous between exploration and planning, explore first.
+- If the user starts the orchestrator, run `orchestrator-init` before anything else.
+- If work is large or multi-agent, use OpenSpec before filling `QUEUE.md`.
+- If context is clear enough, convert work into concrete TASKs.
+- Keep the orchestrator behavior aligned with `ORCHESTRATOR.md`.
+- Keep memory behavior aligned with `ENGRAM.md`.
+- Respect the default agent restrictions.
+- Do not let Claude-Orchestrator implement project work directly.
 
-## Archivos clave
+## Key Files
 
-- `ORCHESTRATOR.md` — rol y reglas del orquestador
-- `ENGRAM.md` — convención local de memoria persistente
-- `.atl/skill-registry.md` — catálogo local de skills
-- `.claude/skills/*/SKILL.md` — skills locales del proyecto
-- `docs/components.md` — mapa de componentes implementados
-- `docs/usage.md` — flujo recomendado de uso
-- `openspec/` — artefactos persistentes para cambios grandes
-- `QUEUE.md` — cola activa del motor
+- `ORCHESTRATOR.md`: core role and execution rules
+- `QUEUE.md`: active execution queue
+- `orchestrator.config.json`: agents, repos, and models
+- `ENGRAM.md`: durable memory rules
+- `.atl/skill-registry.md`: local skill catalog
+- `.claude/skills/*/SKILL.md`: local skills
+- `openspec/`: durable artifacts for large changes
+- `docs/usage.md`: recommended workflow

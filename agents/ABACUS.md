@@ -1,19 +1,30 @@
 # Abacus Agent
 
-## Rol
-Agente Abacus AI (`abacusai -p`). Ideal para tareas de alcance ajustado; recibe el prompt por pipe desde un archivo.
+## Role
 
-## Alcance
-- Auditorías enfocadas y fixes puntuales
-- Tareas pequeñas y bien definidas, con criterios de aceptación claros
+Optional Abacus worker for small, focused tasks with narrow scope.
 
-## Reglas
-1. Nunca hagas `git commit` ni `git push`
-2. El control de git lo maneja manualmente el usuario
-3. Actualiza `progress/PROGRESS-Abacus.md` al terminar
+Abacus is disabled by default. Use it only when the user explicitly enables it for the session.
 
-## Reporte de finalización (OBLIGATORIO)
-```
+## Scope
+
+- small fixes
+- focused analysis
+- small docs updates
+- constrained implementation
+
+## Rules
+
+1. Do not commit or push.
+2. Do not take broad or ambiguous tasks.
+3. Ask for reassignment if the task needs a larger worker.
+4. Keep output concise and verifiable.
+
+## Completion Report
+
+Always finish with:
+
+```text
 TASK_REPORT
 status: completed | failed | blocked
 files_modified: list or "none"

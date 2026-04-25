@@ -1,70 +1,50 @@
-# Engram Memory Convention
+# Engram Memory
 
-Este archivo define cómo usar **Engram** dentro de este proyecto para no depender solo del contexto corto de sesión.
+This file defines how the orchestrator workspace should use persistent memory.
 
-## Objetivo
+## Purpose
 
-Guardar y recuperar:
+Engram keeps project continuity outside the short chat context. Use it to preserve decisions, discoveries, bugs, handoffs, and session summaries.
 
-- decisiones de arquitectura
-- hallazgos de exploración
-- bugs y su causa raíz
-- preferencias del usuario
-- estado de cambios importantes
-- resúmenes de sesión
+## When To Save Memory
 
-## Reglas de uso
+Save memory after:
 
-### Al iniciar una sesión del orquestador
+- architectural decisions
+- routing or agent-policy changes
+- bug fixes
+- important discoveries
+- setup or configuration changes
+- completed sessions with useful context
+- non-obvious tradeoffs
 
-- Busca memoria reciente del proyecto antes de asumir que todo empieza desde cero.
-- Si existe contexto anterior relevante, úsalo para no repetir exploración innecesaria.
-- Si el usuario menciona “recuerda”, “qué hicimos” o “cómo quedó”, consulta primero Engram.
+## Recommended Format
 
-### Durante el trabajo
+Use concise structured notes:
 
-Guarda en Engram cuando ocurra cualquiera de estas cosas:
+```text
+**What**: What changed or was discovered
+**Why**: Why it matters
+**Where**: Files or areas affected
+**Learned**: Gotchas or durable lessons
+```
 
-- una decisión importante
-- un hallazgo técnico no obvio
-- una convención nueva
-- un bug con causa identificada
-- un cambio de flujo del orquestador
-- una preferencia explícita del usuario
+## Relationship With The Orchestrator
 
-### Al terminar la sesión
+Engram complements:
 
-- Guarda un resumen de sesión con lo hecho, lo descubierto y lo que sigue.
-- El objetivo es que la próxima sesión no empiece ciega.
-
-## Topic keys recomendados
-
-- `orchestrator/session-summary`
-- `orchestrator/routing`
-- `orchestrator/skills`
-- `orchestrator/engram`
-- `orchestrator/tui`
-- `orchestrator/queue-workflow`
-
-Para cambios por feature:
-
-- `feature/<nombre-del-cambio>`
-- `bug/<nombre-del-bug>`
-- `decision/<tema>`
-
-## Regla de prioridad
-
-- Usa Engram como memoria persistente.
-- Usa `.atl/skill-registry.md` como catálogo local de skills.
-- Usa `ORCHESTRATOR.md` y `CLAUDE.md` como reglas activas del proyecto.
-
-## Importante
-
-Engram es una ayuda para continuidad, no reemplaza:
-
-- `QUEUE.md`
 - `ORCHESTRATOR.md`
-- `handoffs/`
-- el estado visible en la TUI
+- `CLAUDE.md`
+- `QUEUE.md`
+- `openspec/`
+- handoff files
 
-La memoria debe complementar el flujo del orquestador, no ocultarlo.
+It does not replace the queue or the TUI. Runtime work still goes through `QUEUE.md`.
+
+## Rules
+
+- Save memory only for information that will matter in a future session.
+- Do not store secrets, API keys, credentials, or private customer data.
+- Prefer short, searchable titles.
+- Use project-level memory for this repo's architecture and workflow.
+- At the end of meaningful work, save a session summary.

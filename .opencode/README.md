@@ -1,7 +1,7 @@
 # OpenCode Local Config
 
-Esta carpeta reserva la configuración local del proyecto para OpenCode.
+This folder reserves project-local configuration for OpenCode.
 
-- hoy se usa como base reusable del proyecto
-- mañana puede alojar reglas, prompts o convenciones específicas
-- no debe depender solo de configuración global del usuario
+- Use it as the reusable local base for OpenCode.
+- It can later hold prompts, rules, profiles, or conventions.
+- The workflow should not depend only on global user config.

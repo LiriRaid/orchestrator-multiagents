@@ -1,33 +1,18 @@
-# Spec Delta
+# Spec: <change-name>
 
-## Change
+## Required Behavior
 
-`<change-name>`
+Describe the observable behavior that must exist after the change.
 
-## Requirements
+## Acceptance Criteria
 
-### Requirement 1
+- Criterion 1
+- Criterion 2
 
-Describe un requisito verificable.
+## Edge Cases
 
-#### Scenario: Happy path
+- Edge case 1
 
-- **Given** una condición inicial
-- **When** ocurre una acción
-- **Then** el sistema produce el resultado esperado
+## Constraints
 
-### Requirement 2
-
-Describe otro requisito verificable.
-
-#### Scenario: Edge case
-
-- **Given** una condición límite
-- **When** ocurre una acción relevante
-- **Then** el sistema responde de forma correcta
-
-## Notes
-
-- Escribe requisitos observables, no implementación
-- Usa escenarios concretos
-- Esta spec debe vivir dentro de `openspec/changes/<change-name>/specs/`
+- Constraint 1

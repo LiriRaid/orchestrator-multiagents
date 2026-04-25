@@ -1,8 +1,7 @@
 ---
 name: orchestrator-design
 description: >
-  Crea o actualiza el diseño técnico del cambio con decisiones de arquitectura y enfoque de implementación.
-  Trigger: "haz design", "diseño técnico", "arquitectura del cambio", "enfoque técnico"
+  Create or update the technical design for a change.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
@@ -11,22 +10,18 @@ metadata:
 
 # Skill: orchestrator-design
 
-## Propósito
+## Purpose
 
-Definir cómo debería implementarse el cambio dentro del sistema real, respetando el flujo del orquestador y del proyecto objetivo.
+Document the technical approach, tradeoffs, affected files, risks, and rollout plan.
 
-## Reglas críticas
+## Critical Rules
 
-- Lee propuesta y spec antes de escribir diseño.
-- Crea o actualiza `openspec/changes/<change-name>/design.md`.
-- Documenta:
-  - capas afectadas
-  - archivos probables
-  - riesgos técnicos
-  - decisiones de arquitectura
-  - tradeoffs
-- Si una decisión es importante y reusable, recomienda guardarla también en Engram.
+- Use `openspec/changes/<change-name>/design.md`.
+- Prefer existing project patterns.
+- Capture tradeoffs and risks clearly.
+- Keep design aligned with the proposal and spec.
+- Do not implement code directly.
 
-## Resultado esperado
+## Expected Result
 
-Un diseño técnico accionable que permita dividir tareas sin perder consistencia.
+A technical design that can be broken into executable tasks.

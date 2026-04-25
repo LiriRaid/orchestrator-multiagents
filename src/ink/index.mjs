@@ -21,7 +21,7 @@ const CONTROL_FILE = path.join(ROOT, 'logs', 'orchestrator-control.json');
 const argv = process.argv.slice(2);
 const startPaused = argv.includes('--paused');
 
-// Limpiar control.json orphan al iniciar
+// Clean orphan control.json at startup.
 if (fs.existsSync(CONTROL_FILE)) {
 	try {
 		const content = JSON.parse(fs.readFileSync(CONTROL_FILE, 'utf8'));
@@ -61,7 +61,7 @@ function pushLocalEvent(message) {
 function loadConfig() {
 	if (!fs.existsSync(CONFIG_FILE)) {
 		throw new Error(
-			`No se encontró orchestrator.config.json en ${ROOT}. Ejecuta esta UI desde la raíz del proyecto.`
+			`orchestrator.config.json was not found in ${ROOT}. Run this UI from the project root.`
 		);
 	}
 
@@ -125,7 +125,7 @@ function buildFallbackSnapshot(config) {
 		name,
 		status: 'idle',
 		task: null,
-		detail: 'Esperando motor'
+		detail: 'Waiting for engine'
 	}));
 
 	return {
@@ -137,9 +137,9 @@ function buildFallbackSnapshot(config) {
 		logs:
 			localEvents.length > 0
 				? localEvents.slice(-6)
-				: ['[INFO] Iniciando motor del orchestrator...'],
+				: ['[INFO] Starting orchestrator engine...'],
 		agents,
-		stateLabel: startPaused ? 'Pausado' : 'Ejecutando',
+		stateLabel: startPaused ? 'Paused' : 'Running',
 		activeLabel: '0s',
 		startedAt: null,
 		isRunning: false
@@ -167,7 +167,7 @@ function buildSnapshot() {
 			detail:
 				agent?.status === 'busy'
 					? `${agent.task?.priority || 'P?'} · ${agent.task?.repo || 'repo'}`
-					: agent?.lastLine || 'Listo para trabajar'
+					: agent?.lastLine || 'Ready to work'
 		};
 	});
 
@@ -189,7 +189,7 @@ function buildSnapshot() {
 				? engineState.logs.slice(-6)
 				: localEvents.slice(-6),
 		agents,
-		stateLabel: engineState.paused ? 'Pausado' : 'Ejecutando',
+		stateLabel: engineState.paused ? 'Paused' : 'Running',
 		activeLabel: formatDuration(activeSeconds),
 		startedAt: engineState.startTime || null,
 		isRunning: busyCount > 0 || isPidRunning(engineState.pid)
@@ -199,7 +199,7 @@ function buildSnapshot() {
 function ensureEngine() {
 	const runningPid = readLockPid();
 	if (runningPid && isPidRunning(runningPid)) {
-		pushLocalEvent(`Adjuntado a motor existente (PID ${runningPid})`);
+		pushLocalEvent(`Attached to existing engine (PID ${runningPid})`);
 		return;
 	}
 
@@ -207,7 +207,7 @@ function ensureEngine() {
 	if (startPaused) childArgs.push('--paused');
 
 	pushLocalEvent(
-		startPaused ? 'Levantando motor en modo PAUSADO' : 'Levantando motor en modo EJECUTANDO'
+		startPaused ? 'Starting engine in PAUSED mode' : 'Starting engine in RUNNING mode'
 	);
 
 	spawnedEngine = spawn(process.execPath, childArgs, {
@@ -229,11 +229,11 @@ function ensureEngine() {
 	});
 
 	spawnedEngine.on('exit', code => {
-		pushLocalEvent(`Motor finalizado con código ${code ?? 0}`);
+		pushLocalEvent(`Engine exited with code ${code ?? 0}`);
 	});
 
 	spawnedEngine.on('error', error => {
-		pushLocalEvent(`Error iniciando motor: ${error.message}`);
+		pushLocalEvent(`Error starting engine: ${error.message}`);
 	});
 }
 
@@ -261,20 +261,20 @@ function clearTerminal() {
 function requestAction(action) {
 	switch (action) {
 		case 'start':
-			pushLocalEvent('Comando enviado: REANUDAR');
+			pushLocalEvent('Command sent: RESUME');
 			sendControlCommand('start');
 			break;
 		case 'pause':
-			pushLocalEvent('Comando enviado: PAUSAR');
+			pushLocalEvent('Command sent: PAUSE');
 			sendControlCommand('pause');
 			break;
 		case 'reload':
-			pushLocalEvent('Comando enviado: RECARGAR COLA');
+			pushLocalEvent('Command sent: RELOAD QUEUE');
 			sendControlCommand('reload');
 			break;
 		case 'quit':
 			quitRequested = true;
-			pushLocalEvent('Comando enviado: SALIR');
+			pushLocalEvent('Command sent: QUIT');
 			sendControlCommand('quit');
 			setTimeout(() => {
 				shutdown();
@@ -293,7 +293,7 @@ function shutdown() {
 		} catch {}
 	}
 	if (inkApp) inkApp.unmount();
-	// Limpiar archivos de control al salir
+	// Clean control files on exit.
 	try { fs.unlinkSync(CONTROL_FILE); } catch {}
 	try { fs.unlinkSync(LOCK_FILE); } catch {}
 	try { fs.unlinkSync(STATE_FILE); } catch {}

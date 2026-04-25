@@ -12,7 +12,7 @@ const COLORS = {
 
 const truncate = (value, size) => {
 	if (!value) return '';
-	return value.length > size ? `${value.slice(0, Math.max(0, size - 1))}…` : value;
+	return value.length > size ? `${value.slice(0, Math.max(0, size - 3))}...` : value;
 };
 
 const Panel = ({title, width, children}) =>
@@ -43,13 +43,13 @@ const AgentCard = ({agent}) => {
 			flexDirection: 'column'
 		},
 		h(Text, {bold: true}, agent.name),
-		h(Text, {color: statusColor}, agent.status === 'busy' ? 'Ocupado' : 'En espera'),
+	h(Text, {color: statusColor}, agent.status === 'busy' ? 'Busy' : 'Idle'),
 		h(
 			Text,
 			{color: COLORS.muted},
-			agent.task ? truncate(agent.task, 26) : 'Sin tarea activa'
+			agent.task ? truncate(agent.task, 26) : 'No active task'
 		),
-		h(Text, {color: COLORS.muted}, agent.detail || 'Listo para trabajar')
+		h(Text, {color: COLORS.muted}, agent.detail || 'Ready to work')
 	);
 };
 
@@ -82,22 +82,22 @@ export function App({snapshot, paused = false, onAction}) {
 	const busyCount = snapshot.agents.filter(agent => agent.status === 'busy').length;
 	const overview = useMemo(
 		() => [
-			`Proyecto: ${snapshot.projectName}`,
-			`Estado: ${snapshot.stateLabel || (paused ? 'Pausado' : 'Explorando Ink')}`,
-			`Activo: ${liveActiveLabel}`,
-			`Activos: ${busyCount}/${snapshot.agents.length}`,
-			`Pendientes: ${snapshot.queue.length}`,
-			`Completadas: ${snapshot.completed.length}`,
-			`Costo: ${snapshot.totalCost}`
+			`Project: ${snapshot.projectName}`,
+			`State: ${snapshot.stateLabel || (paused ? 'Paused' : 'Exploring Ink')}`,
+			`Active: ${liveActiveLabel}`,
+			`Busy: ${busyCount}/${snapshot.agents.length}`,
+			`Pending: ${snapshot.queue.length}`,
+			`Completed: ${snapshot.completed.length}`,
+			`Cost: ${snapshot.totalCost}`
 		],
 		[busyCount, liveActiveLabel, paused, snapshot]
 	);
 	const heroLine = truncate(
-		`${snapshot.timestamp}  |  ${snapshot.stateLabel || (paused ? 'Pausado' : 'Ink preview')}  |  activo ${liveActiveLabel}`,
+		`${snapshot.timestamp}  |  ${snapshot.stateLabel || (paused ? 'Paused' : 'Ink preview')}  |  active ${liveActiveLabel}`,
 		heroWidth
 	);
 	const shortcutRest = truncate(
-		'S iniciar/reanudar  P pausar  R recargar QUEUE.md  Q salir y matar agentes',
+		'S start/resume  P pause  R reload QUEUE.md  Q quit and stop agents',
 		Math.max(0, shortcutWidth - 8)
 	);
 
@@ -120,15 +120,15 @@ export function App({snapshot, paused = false, onAction}) {
 		h(
 			Box,
 			{marginBottom: 1},
-			h(Text, {color: COLORS.warning}, 'Atajos: '),
+			h(Text, {color: COLORS.warning}, 'Shortcuts: '),
 			h(Text, {bold: true}, 'S'),
-			h(Text, {color: COLORS.muted}, truncate(' iniciar/reanudar  ', Math.max(0, shortcutWidth - 40))),
+			h(Text, {color: COLORS.muted}, truncate(' start/resume  ', Math.max(0, shortcutWidth - 40))),
 			h(Text, {bold: true}, 'P'),
-			h(Text, {color: COLORS.muted}, truncate(' pausar  ', Math.max(0, shortcutWidth - 55))),
+			h(Text, {color: COLORS.muted}, truncate(' pause  ', Math.max(0, shortcutWidth - 55))),
 			h(Text, {bold: true}, 'R'),
-			h(Text, {color: COLORS.muted}, truncate(' recargar QUEUE.md  ', Math.max(0, shortcutWidth - 70))),
+			h(Text, {color: COLORS.muted}, truncate(' reload QUEUE.md  ', Math.max(0, shortcutWidth - 70))),
 			h(Text, {bold: true}, 'Q'),
-			h(Text, {color: COLORS.muted}, truncate(' salir y matar agentes', Math.max(0, shortcutWidth - 90)))
+			h(Text, {color: COLORS.muted}, truncate(' quit and stop agents', Math.max(0, shortcutWidth - 90)))
 		),
 		h(
 			Box,
@@ -139,14 +139,14 @@ export function App({snapshot, paused = false, onAction}) {
 			},
 			h(
 				Panel,
-				{title: 'Resumen', width: isCompact ? '100%' : '28%'},
+				{title: 'Summary', width: isCompact ? '100%' : '28%'},
 				...overview.map(line => h(Text, {key: line}, truncate(line, summaryWidth)))
 			),
 			h(
 				Panel,
-				{title: 'Cola activa', width: isCompact ? '100%' : '42%'},
+				{title: 'Active Queue', width: isCompact ? '100%' : '42%'},
 				...(snapshot.queue.length === 0
-					? [h(Text, {color: COLORS.muted, key: 'empty-queue'}, 'No hay tareas pendientes.')]
+					? [h(Text, {color: COLORS.muted, key: 'empty-queue'}, 'No pending tasks.')]
 					: snapshot.queue.slice(0, 6).map(task =>
 							h(
 								Text,
@@ -157,7 +157,7 @@ export function App({snapshot, paused = false, onAction}) {
 			),
 			h(
 				Panel,
-				{title: 'Registro', width: isCompact ? '100%' : '35%'},
+				{title: 'Log', width: isCompact ? '100%' : '35%'},
 				...snapshot.logs
 					.slice(-6)
 					.map(entry => h(Text, {key: entry, color: COLORS.muted}, truncate(entry, logWidth)))

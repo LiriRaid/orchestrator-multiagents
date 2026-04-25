@@ -7,7 +7,7 @@ const ROOT = process.cwd();
 const CHANGE_NAME = process.argv[2];
 
 if (!CHANGE_NAME) {
-	console.error('Uso: npm run openspec:new -- <change-name>');
+	console.error('Usage: npm run openspec:new -- <change-name>');
 	process.exit(1);
 }
 
@@ -45,7 +45,7 @@ if (!fs.existsSync(specTarget)) {
 const readme = [
 	`# ${CHANGE_NAME}`,
 	'',
-	'Este change fue generado desde las plantillas locales de `openspec/`.',
+	'This change was generated from the local `openspec/` templates.',
 	'',
 	'## Files',
 	'',
@@ -63,4 +63,4 @@ if (!fs.existsSync(changeReadme)) {
 	fs.writeFileSync(changeReadme, `${readme}\n`, 'utf8');
 }
 
-console.log(`OpenSpec change creado en ${base}`);
+console.log(`OpenSpec change created at ${base}`);

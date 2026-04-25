@@ -1,8 +1,7 @@
 ---
 name: orchestrator-verify
 description: >
-  Verifica que la implementación realmente cumpla la propuesta, la spec, el diseño y las tareas definidas.
-  Trigger: "verifica", "valida el cambio", "review contra spec", "confirma la implementación"
+  Verify that implementation matches proposal, spec, design, tasks, and user intent.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
@@ -11,21 +10,18 @@ metadata:
 
 # Skill: orchestrator-verify
 
-## Propósito
+## Purpose
 
-Validar que lo implementado coincide con lo que el orquestador planeó y que Claude lo puede aceptar con criterio.
+Let Claude-Orchestrator review worker output before accepting it.
 
-## Reglas críticas
+## Critical Rules
 
-- Lee proposal, spec, design, tasks y el estado real de implementación.
-- Crea o actualiza `openspec/changes/<change-name>/verify-report.md`.
-- Clasifica hallazgos como:
-  - crítico
-  - advertencia
-  - sugerencia
-- Si el resultado no está alineado, no lo cierres como correcto.
-- Claude debe seguir siendo quien valida si el resultado coincide con lo pedido en la task.
+- Read proposal, spec, design, tasks, queue entries, logs, and reports when present.
+- Compare implementation against the requested behavior.
+- Identify gaps, regressions, missing tests, or unclear results.
+- Do not accept worker output blindly.
+- Create follow-up TASKs in `QUEUE.md` if verification finds work to do.
 
-## Resultado esperado
+## Expected Result
 
-Un verify-report útil para decidir si el cambio se acepta, se corrige o se archiva.
+A clear verification decision and any required follow-up tasks.

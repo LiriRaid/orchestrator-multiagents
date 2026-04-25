@@ -1,35 +1,31 @@
 ---
 name: orchestrator-queue-planning
 description: >
-  Convierte contexto y hallazgos en tareas concretas para QUEUE.md, con prioridades, agente objetivo y dependencias claras.
-  Trigger: "crea tareas", "planifica en queue", "divide el trabajo", "delegar tareas", "llenar queue"
+  Convert user requests, specs, or findings into concrete TASK entries for QUEUE.md.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
-  version: "0.1"
+  version: "1.0"
 ---
 
-# Orchestrator Queue Planning
+# Skill: orchestrator-queue-planning
 
-## Propósito
+## Purpose
 
-Traducir una necesidad del usuario o hallazgos de exploración en tareas concretas para el motor del orquestador.
+Turn the user's request into executable queue work for the TUI.
 
-## Reglas críticas
+## Critical Rules
 
-- Escribe TASKs pequeñas, concretas y ejecutables.
-- Cada tarea debe tener agente, prioridad, repo y descripción clara.
-- Usa dependencias `> after:TASK-NNN` cuando una tarea no pueda arrancar todavía.
-- Prioriza mantener ocupados los agentes permitidos por defecto sin inventar trabajo fuera del alcance.
-- Si el trabajo es exploratorio, usa primero `OpenCode`; si es ejecución estructurada, reparte según el dominio.
-- Cuando haya 3 o más tareas independientes, intenta crear una primera tanda con al menos una TASK para un Claude-Worker (`Backend` o `Frontend`), una para `Codex` y una para `OpenCode`.
-- `OpenCode` puede implementar código cuando la tarea esté clara; no lo limites a lectura o auditoría si la cola necesita ejecución.
-- Codex puede trabajar en `repo=frontend`, pero con menor permisividad: úsalo para apoyo acotado y verificable; deja los cambios amplios de FE al agente `Frontend` de Claude.
-- Si Codex u OpenCode fallan por cuota, tokens, rate limit o indisponibilidad persistente, crea o reasigna una TASK de fallback a un Claude-Worker.
-- Si existe un `openspec/changes/<change-name>/tasks.md`, usa ese archivo como fuente de verdad para traducirlo a `QUEUE.md`.
-- No sobrecargues una sola IA con demasiadas tareas si puedes paralelizar sin riesgo.
-- Mantén `QUEUE.md` coherente con el objetivo actual del usuario.
+- Create small, concrete, executable TASKs.
+- Every TASK must include agent, priority, repo, and a clear description.
+- Use `> after:TASK-NNN` for dependencies.
+- Do not implement the task directly as Claude-Orchestrator.
+- Prefer assigning first executable work to `Codex` or `OpenCode` when they are suitable.
+- Use Claude-Worker only for fallback, extra capacity, sensitive work, broad implementation, or when explicitly requested.
+- Codex can work in `repo=frontend`, but only for narrow, clear, verifiable tasks.
+- Broad frontend work should go to `Frontend`/Claude-Worker.
+- Keep `QUEUE.md` aligned with the user's current objective.
 
-## Resultado esperado
+## Expected Result
 
-Una cola clara y accionable que el motor pueda despachar de inmediato.
+`QUEUE.md` contains clear TASKs ready for the TUI to run.

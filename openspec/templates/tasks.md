@@ -1,22 +1,14 @@
-# Tasks
+# Tasks: <change-name>
 
-## Queue Sync
+## Ready For Queue
 
-- [ ] Aún no se pasó nada a `QUEUE.md`
-- [ ] Ya hay tareas listas para bajar al motor
+- [ ] TASK-001 candidate: describe a small executable task
+- [ ] TASK-002 candidate: describe a dependent task
 
-## Phase 1
+## Dependencies
 
-- [ ] 1.1 Primera tarea concreta
-- [ ] 1.2 Segunda tarea concreta
-
-## Phase 2
-
-- [ ] 2.1 Tercera tarea concreta
-- [ ] 2.2 Cuarta tarea concreta
+- TASK-002 depends on TASK-001
 
 ## Notes
 
-- Cada tarea debe ser accionable
-- Cada tarea debería poder mapearse a `QUEUE.md` si va al motor
-- Marca qué tareas ya fueron convertidas a `QUEUE.md`
+Translate ready tasks into `QUEUE.md` when execution begins.

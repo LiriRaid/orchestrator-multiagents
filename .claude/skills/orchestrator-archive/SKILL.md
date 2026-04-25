@@ -1,8 +1,7 @@
 ---
 name: orchestrator-archive
 description: >
-  Cierra y archiva un cambio cuando ya fue implementado y verificado.
-  Trigger: "archiva el cambio", "cierra el change", "finaliza el cambio", "mueve al archive"
+  Close and archive a completed OpenSpec change after implementation and verification.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
@@ -11,18 +10,17 @@ metadata:
 
 # Skill: orchestrator-archive
 
-## Propósito
+## Purpose
 
-Cerrar formalmente un cambio para que el orquestador mantenga un historial limpio y reusable.
+Close a change with a durable summary of what was done and what remains.
 
-## Reglas críticas
+## Critical Rules
 
-- Confirma que proposal, spec, design, tasks y verify-report estén en estado razonable.
-- Crea o actualiza `archive-report.md`.
-- Mueve el change al área de archivo cuando corresponda.
-- Si el cambio deja aprendizajes importantes, sugiere guardarlos también en Engram.
-- No hagas commit ni push como parte del archive.
+- Confirm proposal, spec, design, tasks, and verify report are coherent.
+- Write or update `archive-report.md`.
+- Note completed work, remaining risks, and follow-ups.
+- Do not archive incomplete work as complete.
 
-## Resultado esperado
+## Expected Result
 
-Un cambio cerrado correctamente y listo para futuras referencias.
+A closed change with a useful archive report.

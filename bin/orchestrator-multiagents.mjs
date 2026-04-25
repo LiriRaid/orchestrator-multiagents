@@ -30,7 +30,7 @@ function printHelp() {
 	console.log(`
 orchestrator-multiagents
 
-Uso:
+Usage:
   orchestrator-multiagents init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--force]
   orchestrator-multiagents init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--force]
   orchestrator-multiagents tui [--paused] [--yolo]
@@ -39,9 +39,9 @@ Uso:
   orchestrator-multiagents openspec:new <change-name>
   orchestrator-multiagents agent-config:init
 
-Ejemplos:
-  orchestrator-multiagents init . --project-name "Mi Proyecto"
-  orchestrator-multiagents init-workspace C:/code/mi-proyecto
+Examples:
+  orchestrator-multiagents init . --project-name "My Project"
+  orchestrator-multiagents init-workspace C:/code/my-project
   orchestrator-multiagents tui --paused
   orchestrator-multiagents ink
 `);
@@ -135,11 +135,11 @@ function initProject(args) {
 		frontend: flags.frontend
 	});
 
-	console.log(`Orquestador instalado en ${targetDir}`);
-	console.log('Siguiente paso recomendado:');
-	console.log('1. Edita orchestrator.config.json con rutas reales');
-	console.log('2. Revisa ORCHESTRATOR.md, CLAUDE.md y docs/');
-	console.log('3. Ejecuta: orchestrator-multiagents ink --paused');
+	console.log(`Orchestrator installed at ${targetDir}`);
+	console.log('Recommended next steps:');
+	console.log('1. Edit orchestrator.config.json with real paths');
+	console.log('2. Review ORCHESTRATOR.md, CLAUDE.md, and docs/');
+	console.log('3. Run: orchestrator-multiagents ink --paused');
 }
 
 function initWorkspace(args) {
@@ -147,7 +147,7 @@ function initWorkspace(args) {
 	const projectPath = path.resolve(rest[0] || '.');
 
 	if (!fs.existsSync(projectPath) || !fs.statSync(projectPath).isDirectory()) {
-		console.error(`Ruta de proyecto inválida: ${projectPath}`);
+		console.error(`Invalid project path: ${projectPath}`);
 		process.exit(1);
 	}
 
@@ -167,9 +167,9 @@ function initWorkspace(args) {
 	]);
 
 	console.log('');
-	console.log(`Proyecto real: ${projectPath}`);
-	console.log(`Workspace del orquestador: ${workspaceDir}`);
-	console.log('Este workspace queda fuera del repo del proyecto, como sibling, para no ensuciarlo con archivos del orquestador.');
+	console.log(`Real project: ${projectPath}`);
+	console.log(`Orchestrator workspace: ${workspaceDir}`);
+	console.log('This workspace stays next to the real project as a sibling, so orchestrator files do not pollute the product repo.');
 }
 
 function runNodeScript(relativeScript, args = []) {
@@ -220,7 +220,7 @@ switch (command) {
 		runNodeScript(path.join('scripts', 'scaffold-agent-configs.mjs'));
 		break;
 	default:
-		console.error(`Comando desconocido: ${command}`);
+		console.error(`Unknown command: ${command}`);
 		printHelp();
 		process.exit(1);
 }

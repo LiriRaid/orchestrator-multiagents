@@ -1,33 +1,14 @@
-# Componentes
+# Components
 
-Este documento describe los componentes reales del orquestador y cómo se organizan dentro del sistema.
+| Component | Status | Notes |
+| --- | --- | --- |
+| Runtime | Implemented | `orchestrator.js` reads `QUEUE.md` and launches workers |
+| Ink TUI | Implemented | Main dashboard |
+| Blessed TUI | Legacy | Still available from `orchestrator.js` |
+| Routing | Implemented | `ORCHESTRATOR.md`, `CLAUDE.md`, and local skills |
+| Skills | Implemented | `.claude/skills/` |
+| OpenSpec | Implemented | Durable artifacts for large changes |
+| Engram | Implemented | Memory conventions and summaries |
+| Agent config | Implemented | `orchestrator.config.json` |
 
-| Componente | ID | Estado | Descripción |
-|---|---|---|---|
-| Engram | `engram` | Implementado | Memoria persistente entre sesiones |
-| SDD | `sdd` | Implementado | Flujo guiado por OpenSpec y skills del orquestador |
-| Skills | `skills` | Implementado | Skills locales en `.claude/skills/` con registry propio |
-| Context7 | `context7` | Soportado | Se usa cuando se necesitan docs actuales de librerías |
-| Persona | `persona` | Implementado | Claude como orquestador principal con reglas locales |
-| Permissions | `permissions` | Implementado | Seguro por defecto, bypass solo explícito |
-| GGA | `gga` | No incluido | Fuera de alcance para este orquestador |
-| Theme | `theme` | No incluido | No forma parte del alcance de este orquestador |
-
-## Skills de flujo del orquestador
-
-- `orchestrator-init`
-- `orchestrator-explore`
-- `orchestrator-propose`
-- `orchestrator-spec`
-- `orchestrator-design`
-- `orchestrator-tasks`
-- `orchestrator-queue-planning`
-- `orchestrator-apply`
-- `orchestrator-verify`
-- `orchestrator-archive`
-- `orchestrator-memory`
-- `orchestrator-openspec`
-
-## Decisión de diseño
-
-Este repo organiza sus skills alrededor del flujo real del orquestador con TUI, `QUEUE.md`, OpenSpec, Engram y Claude como coordinador.
+The runtime is queue-driven. Claude-Orchestrator should write tasks; worker agents execute them.

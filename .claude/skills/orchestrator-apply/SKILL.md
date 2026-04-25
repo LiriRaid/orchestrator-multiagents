@@ -1,8 +1,7 @@
 ---
 name: orchestrator-apply
 description: >
-  Guía la fase de implementación de un cambio siguiendo proposal, spec, design y tasks.
-  Trigger: "implementa", "aplica el cambio", "ejecuta las tareas", "ponlo en marcha"
+  Guide the implementation phase by translating ready work into queued worker tasks.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
@@ -11,22 +10,22 @@ metadata:
 
 # Skill: orchestrator-apply
 
-## Propósito
+## Purpose
 
-Ejecutar implementación de forma controlada y alineada al cambio documentado, sin dejar que una sola IA improvise todo sin control.
+Run implementation through the orchestrator, not through the interactive Claude session.
 
-## Reglas críticas
+## Critical Rules
 
-- Lee proposal, spec, design y tasks antes de implementar.
-- Respeta `QUEUE.md` y el reparto de trabajo del orquestador.
-- Usa agentes de apoyo para ejecutar, pero mantén a Claude como árbitro principal de revisión.
-- Si hay tareas independientes suficientes, no esperes pasivamente a que Codex u OpenCode terminen: asigna también una TASK a un Claude-Worker (`Backend` o `Frontend`) para que Claude avance trabajo de código en paralelo.
-- OpenCode puede implementar código además de explorar y auditar cuando la TASK esté claramente definida.
-- Los cambios no deben darse por aceptados automáticamente; Claude debe revisarlos antes de darlos por buenos si la tarea lo requiere.
-- No hagas commit ni push.
-- Si la implementación queda parcial, deja el estado claro para verify o una siguiente tanda de apply.
-- Si el cambio se desvía del plan, documenta la desviación antes de seguir.
+- Read proposal, spec, design, tasks, and queue state when present.
+- Respect `QUEUE.md` as the execution boundary.
+- Do not implement code directly as Claude-Orchestrator.
+- Add or update TASKs so workers can implement.
+- Use Codex and OpenCode first when they fit the task.
+- Use Claude-Worker for fallback, extra capacity, broad implementation, or explicit user request.
+- Keep Claude as final reviewer.
+- Do not commit or push.
+- If implementation is partial, leave clear state for verify or the next apply pass.
 
-## Resultado esperado
+## Expected Result
 
-Implementación alineada al cambio, con estado claro para la siguiente fase.
+Implementation work is queued for workers and remains reviewable by Claude-Orchestrator.

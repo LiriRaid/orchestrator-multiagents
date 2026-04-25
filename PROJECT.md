@@ -1,235 +1,69 @@
-# Orquestador Multiagente
+# Project Notes
 
-Documento interno de estado y arquitectura del repo reusable.
+## Purpose
 
-## Propósito actual
+`orchestrator-multiagents` is a reusable workspace for coordinating multiple coding agents around a real project without placing orchestrator files inside the product repo.
 
-Este repo es la **fuente reusable** del orquestador.
-
-No es el repo del producto final del usuario.
-
-Su función es:
-
-- servir como base local que LiriRaid puede seguir modificando
-- producir un paquete instalable
-- montar workspaces sibling para proyectos reales
-
-## Modelo correcto de instalación
-
-La dirección deseada no es copiar este repo dentro de cada proyecto.
-
-La dirección correcta es:
-
-- paquete global o ejecutable por `npx`
-- proyecto real separado
-- workspace sibling del orquestador al lado del proyecto
-
-Ejemplo:
-
-- proyecto:
-  - `C:/code/mi-proyecto`
-- workspace del orquestador:
-  - `C:/code/orchestrator-mi-proyecto`
-
-Esto evita ensuciar el repo del producto con:
-
-- `QUEUE.md`
-- `logs/`
-- `openspec/`
-- `handoffs/`
-- `progress/`
-
-## Regla de instalación
-
-La instalación recomendada para usuarios finales es:
-
-```bash
-npm i -g @liriraid/orchestrator-multiagents
-```
-
-Después, por cada proyecto real:
-
-```bash
-orchestrator-multiagents init-workspace C:/code/mi-proyecto
-```
-
-La variante con `npx` sigue siendo válida:
-
-```bash
-npx @liriraid/orchestrator-multiagents init-workspace C:/code/mi-proyecto
-```
-
-No se recomienda `npm install @liriraid/orchestrator-multiagents` dentro del repo del producto, porque eso lo vuelve una dependencia local del proyecto en vez de una herramienta global del entorno.
-
-## Regla de permisos
-
-El comportamiento deseado del sistema no es `YOLO` por defecto.
-
-Meta operativa:
-
-- permitir que los agentes trabajen y propongan cambios
-- evitar autoaceptación ciega en agentes de ejecución
-- mantener a Claude como árbitro principal de calidad y consistencia
-- permitir que OpenCode explore primero, pero también implemente cuando el reparto de tareas lo necesite
-- dejar la aceptación final en manos del usuario
-
-Esto es especialmente importante cuando el agente de apoyo también modifica código y no solo lee contexto.
-
-Si el usuario quiere un modo agresivo para una sesión concreta, debe activarlo explícitamente con `--yolo`. No debe ser el modo base del sistema.
-
-## Capas del sistema
-
-### 1. Runtime
-
-- `orchestrator.js`
-- scheduler
-- parser de `QUEUE.md`
-- integración con CLIs reales
-- retries
-- fallback
-- logs
-
-### 2. UI
-
-- `src/ink/*` como TUI moderna
-- `orchestrator.js` / blessed como base histórica
-
-### 3. Routing local
-
-- `ORCHESTRATOR.md`
-- `CLAUDE.md`
-- `.atl/skill-registry.md`
-
-### 4. Skills locales
-
-Viven en:
-
-```bash
-.claude/skills/
-```
-
-Hoy incluyen:
-
-- `orchestrator-init`
-- `orchestrator-explore`
-- `orchestrator-propose`
-- `orchestrator-spec`
-- `orchestrator-design`
-- `orchestrator-tasks`
-- `orchestrator-queue-planning`
-- `orchestrator-apply`
-- `orchestrator-verify`
-- `orchestrator-archive`
-- `orchestrator-memory`
-- `orchestrator-openspec`
-
-### 5. Memoria
-
-- `ENGRAM.md`
-- Engram como memoria persistente
-
-### 6. Artefactos SDD
-
-- `openspec/`
-- `openspec/FLOW.md`
-- templates
-- scaffolder de changes
-
-### 7. Configuración por agente
-
-- `AGENT-CONFIG.md`
-- `agentProfiles` en `orchestrator.config.json`
-- `.claude/`
-- `.codex/`
-- `.opencode/`
-
-### 8. Installer / ecosystem configurator
-
-- `bin/orchestrator-multiagents.mjs`
-- instalación en workspace sibling
-- base preparada para npm
-
-### 9. Documentation layer
-
-- `docs/architecture.md`
-- `docs/components.md`
-- `docs/agents.md`
-- `docs/engram.md`
-- `docs/openspec.md`
-- `docs/usage.md`
-
-## Estado real de la arquitectura
-
-### Ya está integrado
-
-- skills locales del proyecto
-- registry local
-- routing con `CLAUDE.md`
-- Engram
-- OpenSpec
-- configuración reusable por agente
-- installer base
-- TUI Ink conectada al motor
-
-### Sigue en evolución
-
-- publicación final en npm
-- pulido del installer
-- integración más profunda entre OpenSpec y cola viva
-- posible crecimiento a más skills SDD
-
-## Regla de diseño principal
-
-Este proyecto debe:
-
-- **priorizar configuración local del repo**
-- **no depender de herramientas externas para el flujo base**
-- **no depender de skills globales del usuario**
-- **permitir trabajar con 3 agentes hoy y más mañana**
-- **mantener a Claude como orquestador principal**
-- **permitir que OpenCode y Codex implementen código, con Claude como revisor final y fallback**
-- **permitir que Claude también avance código como Claude-Worker (`Backend` / `Frontend`) cuando haya tareas paralelas o cuando otro agente falle**
-
-## Flujo operativo esperado
-
-1. Instalar o inicializar el workspace sibling del orquestador
-2. Editar `orchestrator.config.json`
-3. Levantar la TUI
-4. Abrir Claude Code en el workspace del orquestador
-5. Decir:
+The intended layout is:
 
 ```text
-Lee ORCHESTRATOR.md y arranca.
+project-workspace/
+  RealProject/
+  orchestrator-realproject/
 ```
 
-6. Claude:
-   - usa `CLAUDE.md`
-   - resuelve skills
-   - usa Engram
-   - usa OpenSpec si el cambio es grande
-   - traduce trabajo a `QUEUE.md`
-   - reparte la primera tanda entre Claude-Worker, Codex y OpenCode cuando existan tareas independientes suficientes
-7. El motor ejecuta
-8. La TUI refleja el movimiento real de los agentes
+The real project stays clean. The orchestrator workspace keeps queue, docs, skills, OpenSpec artifacts, memory conventions, logs, and handoffs.
 
-## Regla sobre git
+## Product Direction
 
-- ningún agente hace commit
-- ningún agente hace push
-- git siempre queda manualmente en manos del usuario
+The package should provide:
 
-## Regla sobre dependencias del flujo
+- a sibling orchestrator workspace per real project
+- a TUI for live queue execution
+- Claude as orchestrator and final reviewer
+- Codex and OpenCode as default support workers
+- Claude-Workers for fallback, extra capacity, and broad implementation
+- durable memory through Engram conventions
+- OpenSpec artifacts for large changes
+- local skills and agent instructions
 
-Meta:
+## Default Operating Model
 
-- dejar solo Engram y el orquestador propio como base operativa
-- seguir funcionando con skills locales y config local
-- no depender del bootstrap ni de la estructura de otra herramienta
+1. Install or initialize an orchestrator workspace next to the real project.
+2. Configure `orchestrator.config.json`.
+3. Start the TUI.
+4. Open Claude Code inside the orchestrator workspace.
+5. Tell Claude: `Read ORCHESTRATOR.md and start`.
+6. Claude-Orchestrator reads context and asks what to prioritize.
+7. User requests work.
+8. Claude-Orchestrator writes TASKs into `QUEUE.md`.
+9. The TUI launches workers.
+10. Claude-Orchestrator reviews outputs and plans the next batch.
 
-## Siguiente foco natural
+## Important Behavioral Rule
 
-Antes de cerrar esta etapa:
+Claude-Orchestrator must not implement project work directly. Even if the user asks for implementation, the orchestrator should create TASKs in `QUEUE.md` and route them to worker agents first.
 
-- revisar el checklist final de publicación npm
-- publicar el paquete
-- validar luego la experiencia completa sobre un proyecto real de ejemplo
+## Active Default Agents
+
+- `Codex`: structured implementation, tests, docs, narrow frontend support
+- `OpenCode`: exploration, audits, reports, scoped implementation
+- `Backend` / `Frontend`: Claude-Workers used for fallback, extra capacity, or broad backend/frontend work
+
+Gemini, Cursor, and Abacus can remain configured but should not be used unless the user enables them for that session.
+
+## Git Rule
+
+No agent should commit or push unless the user explicitly asks in the current session.
+
+## Future Product Work
+
+Possible next steps:
+
+- binary distribution
+- embedded templates and skills
+- `doctor` command
+- migration/version checks
+- backup and restore
+- stronger tests
+- workspace sync and upgrade flow

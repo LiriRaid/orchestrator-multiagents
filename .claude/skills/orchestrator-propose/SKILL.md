@@ -1,8 +1,7 @@
 ---
 name: orchestrator-propose
 description: >
-  Crea o actualiza la propuesta inicial de un cambio grande antes de delegar implementación.
-  Trigger: "haz proposal", "crea propuesta", "propone este cambio", "documenta el alcance"
+  Create or update the proposal for a significant change before implementation.
 license: MIT
 metadata:
   owner: orchestrator-multiagents
@@ -11,23 +10,17 @@ metadata:
 
 # Skill: orchestrator-propose
 
-## Propósito
+## Purpose
 
-Crear la propuesta base del cambio para que el orquestador tenga claro qué se quiere hacer, por qué y con qué alcance.
+Define what the change is, why it matters, what is in scope, and what is explicitly out of scope.
 
-## Reglas críticas
+## Critical Rules
 
-- Lee primero el contexto del usuario, `ORCHESTRATOR.md`, `QUEUE.md` y `openspec/FLOW.md` si existe.
-- Si el cambio aún no tiene `change-name`, propón uno en kebab-case claro y estable.
-- Crea o actualiza `openspec/changes/<change-name>/proposal.md`.
-- La propuesta debe dejar claro:
-  - objetivo
-  - alcance
-  - restricciones
-  - riesgos iniciales
-  - qué no entra en este cambio
-- Si el cambio es pequeño y directo, no fuerces una propuesta demasiado larga.
+- Read the user's request and current project context.
+- Use `openspec/changes/<change-name>/proposal.md`.
+- Keep the proposal short, actionable, and durable.
+- Do not implement code while writing the proposal.
 
-## Resultado esperado
+## Expected Result
 
-Una propuesta clara que permita pasar a spec o design sin ambigüedad.
+A proposal that can move into spec, design, tasks, and queue planning.

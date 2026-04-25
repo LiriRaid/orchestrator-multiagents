@@ -11,11 +11,11 @@ const files = [
 		[
 			'# Claude Local Config',
 			'',
-			'Esta carpeta contiene la configuración local del proyecto para Claude.',
+			'This folder contains project-local Claude configuration.',
 			'',
-			'- `skills/` guarda skills propias del repo',
-			'- `CLAUDE.md` en la raíz define el routing del proyecto',
-			'- esta capa local debe priorizarse sobre configuración global del usuario'
+			'- `skills/` stores repo-specific skills',
+			'- root `CLAUDE.md` defines project routing',
+			'- this local layer should take priority over global user config'
 		].join('\n')
 	],
 	[
@@ -23,11 +23,11 @@ const files = [
 		[
 			'# Codex Local Config',
 			'',
-			'Esta carpeta reserva la configuración local del proyecto para Codex.',
+			'This folder reserves project-local configuration for Codex.',
 			'',
-			'- hoy se usa como base reusable del proyecto',
-			'- mañana puede alojar prompts, perfiles, reglas o plugins locales',
-			'- no debe depender solo de configuración global del usuario'
+			'- today it is used as the reusable local project base',
+			'- later it can hold prompts, profiles, rules, or local plugins',
+			'- it should not depend only on global user config'
 		].join('\n')
 	],
 	[
@@ -35,11 +35,11 @@ const files = [
 		[
 			'# OpenCode Local Config',
 			'',
-			'Esta carpeta reserva la configuración local del proyecto para OpenCode.',
+			'This folder reserves project-local configuration for OpenCode.',
 			'',
-			'- hoy se usa como base reusable del proyecto',
-			'- mañana puede alojar reglas, prompts o convenciones específicas',
-			'- no debe depender solo de configuración global del usuario'
+			'- today it is used as the reusable local project base',
+			'- later it can hold rules, prompts, or specific conventions',
+			'- it should not depend only on global user config'
 		].join('\n')
 	]
 ];
@@ -52,4 +52,4 @@ for (const [relativePath, content] of files) {
 	}
 }
 
-console.log('Configuración local por agente creada o verificada.');
+console.log('Local agent configuration created or verified.');

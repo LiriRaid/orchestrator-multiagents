@@ -1,36 +1,27 @@
-# Proposal
+# Proposal: <change-name>
 
-## Change Name
+## Summary
 
-`<change-name>`
+Describe the change in one or two short paragraphs.
 
-## Why
+## Problem
 
-Explica por qué este cambio existe y qué problema resuelve.
+What user or system problem does this solve?
 
-## What Changes
+## Goals
 
-- Cambio 1
-- Cambio 2
-- Cambio 3
+- Goal 1
+- Goal 2
 
-## Scope
+## Non-Goals
 
-### In Scope
+- Out-of-scope item 1
+- Out-of-scope item 2
 
-- Ítem 1
-- Ítem 2
+## Impact
 
-### Out of Scope
+List affected users, flows, modules, or repos.
 
-- Ítem 1
-- Ítem 2
+## Open Questions
 
-## Risks
-
-- Riesgo 1
-- Riesgo 2
-
-## Rollback
-
-Cómo revertir o detener este cambio si genera problemas.
+- Question 1

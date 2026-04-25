@@ -1,7 +1,7 @@
 # Claude Local Config
 
-Esta carpeta contiene la configuración local del proyecto para Claude.
+This folder contains project-local Claude configuration.
 
-- `skills/` guarda skills propias del repo
-- `CLAUDE.md` en la raíz define el routing del proyecto
-- esta capa local debe priorizarse sobre configuración global del usuario
+- `skills/` stores local orchestrator skills.
+- Root `CLAUDE.md` defines project routing.
+- Local config should take priority over global user config for this workflow.

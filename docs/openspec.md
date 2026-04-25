@@ -1,24 +1,22 @@
 # OpenSpec
 
-OpenSpec is the persistent artifact layer for larger or multi-phase changes.
+OpenSpec is the durable planning layer for changes that are too large to keep only in chat.
 
-## Canonical flow
-
-`explore -> proposal -> spec -> design -> tasks -> queue -> apply -> verify -> archive`
-
-## Main location
+Recommended flow:
 
 ```text
-openspec/
+explore -> proposal -> spec -> design -> tasks -> queue -> apply -> verify -> archive
 ```
 
-## Typical change layout
+## Files
+
+Each change should live under:
 
 ```text
 openspec/changes/<change-name>/
 ```
 
-Artifacts typically include:
+Typical files:
 
 - `proposal.md`
 - `specs/spec.md`
@@ -27,8 +25,8 @@ Artifacts typically include:
 - `verify-report.md`
 - `archive-report.md`
 
-## Relationship to the runtime
+## Relationship With The Queue
 
-- OpenSpec defines the planning and artifact trail
-- `QUEUE.md` defines the live execution queue
-- `tasks.md` should be translated into `QUEUE.md` when execution begins
+`tasks.md` is the durable plan. `QUEUE.md` is the live execution queue.
+
+When implementation begins, translate ready items from `tasks.md` into concrete TASK entries in `QUEUE.md`.

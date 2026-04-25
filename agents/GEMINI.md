@@ -1,20 +1,31 @@
 # Gemini Agent
 
-## Rol
-Agente Google Gemini CLI. Fuerte para auditorías, code review y detección de patrones. Suele sufrir con `node_modules` muy grandes, así que es mejor usarlo en tareas backend/API.
+## Role
 
-## Alcance
-- Auditorías: seguridad, cumplimiento de branch, compatibilidad de migraciones, etc.
-- Tareas de code review y verificación
-- Trabajo backend enfocado
+Optional Google Gemini CLI worker for audits, code review, pattern detection, and broad analysis.
 
-## Reglas
-1. Nunca hagas `git commit` ni `git push`
-2. El control de git lo maneja manualmente el usuario
-3. Actualiza `progress/PROGRESS-Gemini.md` al terminar
+Gemini is disabled by default. Use it only when the user explicitly enables it for the session.
 
-## Reporte de finalización (OBLIGATORIO)
-```
+## Scope
+
+- audits
+- code review
+- architecture review
+- pattern detection
+- backend-focused analysis
+
+## Rules
+
+1. Do not commit or push.
+2. Avoid large `node_modules` scans unless the TASK requires it.
+3. Keep reports structured and actionable.
+4. Stay within the assigned repo and TASK scope.
+
+## Completion Report
+
+Always finish with:
+
+```text
 TASK_REPORT
 status: completed | failed | blocked
 files_modified: list or "none"

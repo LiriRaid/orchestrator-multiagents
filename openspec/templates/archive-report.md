@@ -1,23 +1,21 @@
-# Archive Report
-
-## Change
-
-`<change-name>`
-
-## Summary
-
-Resumen corto del cambio archivado.
+# Archive Report: <change-name>
 
 ## Final Status
 
-`completed | partial | archived-with-risks`
+Status: completed | partial | abandoned
 
-## Key Decisions
+## Summary
 
-- Decisión 1
-- Decisión 2
+Summarize what changed.
 
-## Follow-ups
+## Completed Work
 
-- Seguimiento 1
-- Seguimiento 2
+- Completed item 1
+
+## Remaining Risks
+
+- Risk 1
+
+## Follow-Ups
+
+- Follow-up 1
