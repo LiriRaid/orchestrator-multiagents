@@ -1,5 +1,6 @@
 {
   "projectName": "PROJECT_NAME_HERE",
+  "workspaceLanguage": "en",
   "maxConcurrent": 5,
   "pollIntervalSeconds": 30,
   "taskTimeoutMinutes": 30,
@@ -15,21 +16,21 @@
       "skillsDir": ".claude/skills",
       "primary": true,
       "useForOrchestration": true,
-      "notes": "Perfil principal del proyecto. Prioriza configuración local del repo."
+      "notes": "Main project profile. Prioritizes local repo configuration."
     },
     "codex": {
       "enabled": true,
       "localConfigDir": ".codex",
       "primary": false,
       "useForOrchestration": false,
-      "notes": "Perfil de apoyo para implementación estructurada y trabajo puntual."
+      "notes": "Support profile for structured implementation and focused work."
     },
     "opencode": {
       "enabled": true,
       "localConfigDir": ".opencode",
       "primary": false,
       "useForOrchestration": false,
-      "notes": "Perfil de apoyo para exploración, auditoría y contexto."
+      "notes": "Support profile for exploration, audits, context, and scoped implementation."
     },
     "gemini": {
       "enabled": false,

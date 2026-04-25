@@ -14,6 +14,13 @@ npm i -g @liriraid/orchestrator-multiagents
 orchestrator-multiagents init-workspace C:/code/mi-proyecto
 ```
 
+Si no pasas idioma, el CLI preguntará si quieres `EN` o `ES`. También puedes elegirlo directo:
+
+```bash
+orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang en
+orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang es
+```
+
 ### 3. Abrir el workspace del orquestador
 
 Usa dos terminales:

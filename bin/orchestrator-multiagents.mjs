@@ -4,16 +4,21 @@ import fs from 'fs';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import {spawn} from 'child_process';
+import {createInterface} from 'readline/promises';
+import {stdin as input, stdout as output} from 'process';
 
 const __filename = fileURLToPath(import.meta.url);
 const PACKAGE_ROOT = path.dirname(path.dirname(__filename));
 const argv = process.argv.slice(2);
 
 const TEMPLATE_PATHS = [
+	'README.md',
 	'ORCHESTRATOR.md',
 	'CLAUDE.md',
 	'ENGRAM.md',
 	'AGENT-CONFIG.md',
+	'PROJECT.md',
+	'.atl',
 	'docs',
 	'orchestrator.config.json',
 	'QUEUE.md',
@@ -25,14 +30,50 @@ const TEMPLATE_PATHS = [
 ];
 
 const RUNTIME_DIRS = ['logs', 'handoffs', 'progress', 'briefs'];
+const SUPPORTED_LANGUAGES = new Set(['en', 'es']);
+const DEFAULT_LANGUAGE = 'en';
+const TEXT = {
+	es: {
+		unsupported: value => `Idioma no soportado: ${value}. Usa "en" o "es".`,
+		missingTemplate: language => `No existe el template de idioma: ${language}`,
+		installed: target => `Orquestador instalado en ${target}`,
+		language: language => `Idioma del workspace: ${language.toUpperCase()}`,
+		next: 'Siguiente paso recomendado:',
+		step1: '1. Edita orchestrator.config.json con rutas reales',
+		step2: '2. Revisa ORCHESTRATOR.md, CLAUDE.md y docs/',
+		step3: '3. Ejecuta: orchestrator-multiagents ink --paused',
+		invalidProject: projectPath => `Ruta de proyecto inválida: ${projectPath}`,
+		realProject: projectPath => `Proyecto real: ${projectPath}`,
+		workspace: workspaceDir => `Workspace del orquestador: ${workspaceDir}`,
+		sibling:
+			'Este workspace queda fuera del repo del proyecto, como sibling, para no ensuciarlo con archivos del orquestador.',
+		unknown: command => `Comando desconocido: ${command}`
+	},
+	en: {
+		unsupported: value => `Unsupported language: ${value}. Use "en" or "es".`,
+		missingTemplate: language => `Language template not found: ${language}`,
+		installed: target => `Orchestrator installed at ${target}`,
+		language: language => `Workspace language: ${language.toUpperCase()}`,
+		next: 'Recommended next steps:',
+		step1: '1. Edit orchestrator.config.json with real paths',
+		step2: '2. Review ORCHESTRATOR.md, CLAUDE.md, and docs/',
+		step3: '3. Run: orchestrator-multiagents ink --paused',
+		invalidProject: projectPath => `Invalid project path: ${projectPath}`,
+		realProject: projectPath => `Real project: ${projectPath}`,
+		workspace: workspaceDir => `Orchestrator workspace: ${workspaceDir}`,
+		sibling:
+			'This workspace stays next to the real project as a sibling, so orchestrator files do not pollute the product repo.',
+		unknown: command => `Unknown command: ${command}`
+	}
+};
 
 function printHelp() {
 	console.log(`
 orchestrator-multiagents
 
 Uso:
-  orchestrator-multiagents init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--force]
-  orchestrator-multiagents init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--force]
+  orchestrator-multiagents init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
+  orchestrator-multiagents init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
   orchestrator-multiagents tui [--paused] [--yolo]
   orchestrator-multiagents ink [--paused] [--yolo]
   orchestrator-multiagents skills:registry
@@ -40,8 +81,8 @@ Uso:
   orchestrator-multiagents agent-config:init
 
 Ejemplos:
-  orchestrator-multiagents init . --project-name "Mi Proyecto"
-  orchestrator-multiagents init-workspace C:/code/mi-proyecto
+  orchestrator-multiagents init . --project-name "Mi Proyecto" --lang es
+  orchestrator-multiagents init-workspace C:/code/mi-proyecto --lang en
   orchestrator-multiagents tui --paused
   orchestrator-multiagents ink
 `);
@@ -72,6 +113,37 @@ function parseFlags(args) {
 	return {flags, rest};
 }
 
+function normalizeLanguage(value) {
+	if (!value || value === true) return null;
+	const normalized = String(value).trim().toLowerCase();
+	if (normalized === '1' || normalized === 'en' || normalized === 'english') return 'en';
+	if (normalized === '2' || normalized === 'es' || normalized === 'spanish' || normalized === 'espanol' || normalized === 'español') return 'es';
+	return null;
+}
+
+async function resolveLanguage(flagValue) {
+	const fromFlag = normalizeLanguage(flagValue);
+	if (fromFlag) return fromFlag;
+
+	if (flagValue && !fromFlag) {
+		console.warn(TEXT.es.unsupported(flagValue));
+	}
+
+	if (!process.stdin.isTTY || !process.stdout.isTTY) return DEFAULT_LANGUAGE;
+
+	const rl = createInterface({input, output});
+	try {
+		console.log('');
+		console.log('Selecciona el idioma del workspace / Select workspace language:');
+		console.log('  1) EN - English (recommended for AI agents)');
+		console.log('  2) ES - Español');
+		const answer = await rl.question(`Language [${DEFAULT_LANGUAGE}]: `);
+		return normalizeLanguage(answer) || DEFAULT_LANGUAGE;
+	} finally {
+		rl.close();
+	}
+}
+
 function ensureDir(dir) {
 	fs.mkdirSync(dir, {recursive: true});
 }
@@ -80,6 +152,7 @@ function copyRecursive(source, target, force = false) {
 	const stats = fs.statSync(source);
 
 	if (stats.isDirectory()) {
+		if (path.basename(source) === 'node_modules') return;
 		ensureDir(target);
 		for (const entry of fs.readdirSync(source)) {
 			copyRecursive(path.join(source, entry), path.join(target, entry), force);
@@ -92,6 +165,23 @@ function copyRecursive(source, target, force = false) {
 	fs.copyFileSync(source, target);
 }
 
+function patchGitignore(targetDir) {
+	const gitignorePath = path.join(targetDir, '.gitignore');
+	const entries = ['.atl/', 'logs/', 'handoffs/', 'progress/', 'briefs/'];
+
+	let existing = '';
+	if (fs.existsSync(gitignorePath)) {
+		existing = fs.readFileSync(gitignorePath, 'utf8');
+	}
+
+	const toAdd = entries.filter(e => !existing.includes(e));
+	if (toAdd.length === 0) return;
+
+	const trailingNewline = existing.endsWith('\n') ? '' : '\n';
+	const block = `${trailingNewline}\n### orchestrator-multiagents\n${toAdd.join('\n')}\n`;
+	fs.writeFileSync(gitignorePath, existing + block, 'utf8');
+}
+
 function patchConfig(targetDir, options) {
 	const configPath = path.join(targetDir, 'orchestrator.config.json');
 	if (!fs.existsSync(configPath)) return;
@@ -99,6 +189,7 @@ function patchConfig(targetDir, options) {
 	const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 	const projectName = options.projectName || path.basename(path.resolve(targetDir)) || config.projectName;
 	config.projectName = projectName;
+	config.workspaceLanguage = options.language;
 
 	if (options.backend) {
 		config.repos.backend = options.backend;
@@ -111,15 +202,22 @@ function patchConfig(targetDir, options) {
 	fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 }
 
-function initProject(args) {
+async function initProject(args) {
 	const {flags, rest} = parseFlags(args);
 	const targetDir = path.resolve(rest[0] || '.');
 	const force = Boolean(flags.force);
+	const language = await resolveLanguage(flags.lang);
+	const templateRoot = path.join(PACKAGE_ROOT, 'templates', language);
+
+	if (!fs.existsSync(templateRoot)) {
+		console.error(TEXT[language].missingTemplate(language));
+		process.exit(1);
+	}
 
 	ensureDir(targetDir);
 
 	for (const relativePath of TEMPLATE_PATHS) {
-		const source = path.join(PACKAGE_ROOT, relativePath);
+		const source = path.join(templateRoot, relativePath);
 		if (!fs.existsSync(source)) continue;
 		const target = path.join(targetDir, relativePath);
 		copyRecursive(source, target, force);
@@ -132,22 +230,28 @@ function initProject(args) {
 	patchConfig(targetDir, {
 		projectName: flags['project-name'],
 		backend: flags.backend,
-		frontend: flags.frontend
+		frontend: flags.frontend,
+		language
 	});
 
-	console.log(`Orquestador instalado en ${targetDir}`);
-	console.log('Siguiente paso recomendado:');
-	console.log('1. Edita orchestrator.config.json con rutas reales');
-	console.log('2. Revisa ORCHESTRATOR.md, CLAUDE.md y docs/');
-	console.log('3. Ejecuta: orchestrator-multiagents ink --paused');
+	patchGitignore(targetDir);
+
+	const text = TEXT[language];
+	console.log(text.installed(targetDir));
+	console.log(text.language(language));
+	console.log(text.next);
+	console.log(text.step1);
+	console.log(text.step2);
+	console.log(text.step3);
 }
 
-function initWorkspace(args) {
+async function initWorkspace(args) {
 	const {flags, rest} = parseFlags(args);
 	const projectPath = path.resolve(rest[0] || '.');
+	const language = await resolveLanguage(flags.lang);
 
 	if (!fs.existsSync(projectPath) || !fs.statSync(projectPath).isDirectory()) {
-		console.error(`Ruta de proyecto inválida: ${projectPath}`);
+		console.error(TEXT[language].invalidProject(projectPath));
 		process.exit(1);
 	}
 
@@ -155,10 +259,12 @@ function initWorkspace(args) {
 	const workspaceName = flags['workspace-name'] || `orchestrator-${projectName.toLowerCase().replace(/\s+/g, '-')}`;
 	const workspaceDir = path.join(path.dirname(projectPath), workspaceName);
 
-	initProject([
+	await initProject([
 		workspaceDir,
 		'--project-name',
 		projectName,
+		'--lang',
+		language,
 		'--backend',
 		flags.backend || projectPath,
 		'--frontend',
@@ -167,9 +273,9 @@ function initWorkspace(args) {
 	]);
 
 	console.log('');
-	console.log(`Proyecto real: ${projectPath}`);
-	console.log(`Workspace del orquestador: ${workspaceDir}`);
-	console.log('Este workspace queda fuera del repo del proyecto, como sibling, para no ensuciarlo con archivos del orquestador.');
+	console.log(TEXT[language].realProject(projectPath));
+	console.log(TEXT[language].workspace(workspaceDir));
+	console.log(TEXT[language].sibling);
 }
 
 function runNodeScript(relativeScript, args = []) {
@@ -199,10 +305,10 @@ switch (command) {
 		printHelp();
 		break;
 	case 'init':
-		initProject(argv.slice(1));
+		await initProject(argv.slice(1));
 		break;
 	case 'init-workspace':
-		initWorkspace(argv.slice(1));
+		await initWorkspace(argv.slice(1));
 		break;
 	case 'tui':
 		runNodeScript('orchestrator.js', argv.slice(1));
@@ -220,7 +326,7 @@ switch (command) {
 		runNodeScript(path.join('scripts', 'scaffold-agent-configs.mjs'));
 		break;
 	default:
-		console.error(`Comando desconocido: ${command}`);
+		console.error(TEXT.es.unknown(command));
 		printHelp();
 		process.exit(1);
 }

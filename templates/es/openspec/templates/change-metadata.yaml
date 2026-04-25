@@ -1,0 +1,9 @@
+name: <change-name>
+status: draft
+current_phase: proposal
+owner: claude-orchestrator
+created_at: YYYY-MM-DD
+related_queue_tasks: []
+related_specs: []
+queue_synced: false
+notes: ""

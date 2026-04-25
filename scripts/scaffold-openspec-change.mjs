@@ -5,9 +5,27 @@ import path from 'path';
 
 const ROOT = process.cwd();
 const CHANGE_NAME = process.argv[2];
+const CONFIG_FILE = path.join(ROOT, 'orchestrator.config.json');
+const CONFIG = fs.existsSync(CONFIG_FILE)
+	? JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))
+	: {};
+const LANGUAGE = CONFIG.workspaceLanguage === 'en' ? 'en' : 'es';
+const TEXT = {
+	es: {
+		usage: 'Uso: npm run openspec:new -- <change-name>',
+		readmeIntro: 'Este change fue generado desde las plantillas locales de `openspec/`.',
+		created: base => `OpenSpec change creado en ${base}`
+	},
+	en: {
+		usage: 'Usage: npm run openspec:new -- <change-name>',
+		readmeIntro: 'This change was generated from the local `openspec/` templates.',
+		created: base => `OpenSpec change created at ${base}`
+	}
+};
+const L = TEXT[LANGUAGE];
 
 if (!CHANGE_NAME) {
-	console.error('Uso: npm run openspec:new -- <change-name>');
+	console.error(L.usage);
 	process.exit(1);
 }
 
@@ -45,7 +63,7 @@ if (!fs.existsSync(specTarget)) {
 const readme = [
 	`# ${CHANGE_NAME}`,
 	'',
-	'Este change fue generado desde las plantillas locales de `openspec/`.',
+	L.readmeIntro,
 	'',
 	'## Files',
 	'',
@@ -63,4 +81,4 @@ if (!fs.existsSync(changeReadme)) {
 	fs.writeFileSync(changeReadme, `${readme}\n`, 'utf8');
 }
 
-console.log(`OpenSpec change creado en ${base}`);
+console.log(L.created(base));

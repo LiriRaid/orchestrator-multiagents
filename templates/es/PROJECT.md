@@ -53,6 +53,8 @@ Después, por cada proyecto real:
 orchestrator-multiagents init-workspace C:/code/mi-proyecto
 ```
 
+El comando puede recibir `--lang en` o `--lang es`; si no se pasa, pregunta interactivamente.
+
 La variante con `npx` sigue siendo válida:
 
 ```bash
