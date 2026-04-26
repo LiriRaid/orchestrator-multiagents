@@ -200,11 +200,10 @@ Routing preferences:
 
 ```bash
 cd <workspace-path>
-node orchestrator.js
+agentflow ink
 ```
 
-- `R`: reload `QUEUE.md`
-- `S`: start or resume
+- `S`: resume (Paused → Running)
 - `P`: pause
 - `Q`: quit and stop agents
 

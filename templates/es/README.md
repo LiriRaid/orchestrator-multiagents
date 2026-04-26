@@ -298,22 +298,7 @@ Si en una sesión concreta quieres permitir modo agresivo para entornos de confi
 agentflow ink --yolo
 ```
 
-o:
-
-```bash
-node orchestrator.js --yolo
-```
-
 Ese modo no es el default y debe usarse solo cuando realmente lo decidas.
-
-### Blessed
-
-Sigue existiendo como runtime base histórico:
-
-```bash
-node orchestrator.js
-node orchestrator.js --paused
-```
 
 ## Skills locales del proyecto
 

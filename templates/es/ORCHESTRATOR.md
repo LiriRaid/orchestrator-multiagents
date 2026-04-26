@@ -218,11 +218,10 @@ Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 
 ```bash
 cd <ruta-del-workspace>
-node orchestrator.js
+agentflow ink
 ```
 
-- **R** = recargar `QUEUE.md`
-- **S** = iniciar / reanudar
+- **S** = reanudar (Paused → Running)
 - **P** = pausar
 - **Q** = salir (mata todos los agentes)
 
