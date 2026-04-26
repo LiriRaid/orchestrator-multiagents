@@ -53,10 +53,11 @@ if (!inboxContent.trim() || currentHash === lastCheck.inboxHash) {
 
 console.log(`[${timestamp()}] Nuevo contenido en INBOX detectado — disparando Claude...`);
 
-// Guardar hash para no relanzar en el próximo ciclo de 60s
+// Guardar hash y vaciar INBOX inmediatamente para que el próximo ciclo no re-dispare
 lastCheck = { time: Date.now(), inboxHash: currentHash };
 fs.mkdirSync(path.dirname(LAST_CHECK_FILE), { recursive: true });
 fs.writeFileSync(LAST_CHECK_FILE, JSON.stringify(lastCheck), 'utf-8');
+try { fs.writeFileSync(INBOX_FILE, '', 'utf-8'); } catch {}
 
 // Prompt para Claude headless — lee INBOX y crea la task de implementación si aplica
 const prompt = lang === 'es'
@@ -89,26 +90,24 @@ If the corresponding task already exists, or the analysis is not complete, reply
 
 Rules: Do not commit or push. Do not analyze project code. Only read INBOX.md and QUEUE.md, and edit QUEUE.md if necessary.`;
 
+// Redirigir output de Claude a un log file (no esperar — proceso desacoplado)
+const logPath = path.join(WORKSPACE, 'logs', `auto-trigger-${Date.now()}.log`);
+fs.mkdirSync(path.dirname(logPath), { recursive: true });
+const logFd = fs.openSync(logPath, 'a');
+
 const claude = spawn('claude', [
   '-p', prompt,
   '--add-dir', WORKSPACE,
   '--dangerously-skip-permissions'
 ], {
   cwd: WORKSPACE,
-  stdio: ['ignore', 'pipe', 'pipe'],
-  shell: true
+  stdio: ['ignore', logFd, logFd],
+  shell: true,
+  windowsHide: true,
+  detached: true
 });
 
-let output = '';
-claude.stdout.on('data', d => { output += d.toString(); });
-claude.stderr.on('data', d => { process.stderr.write(d); });
+fs.closeSync(logFd);
+claude.unref();
 
-claude.on('close', code => {
-  const result = output.trim().slice(0, 300);
-  console.log(`[${timestamp()}] Claude completó (exit ${code}): ${result}`);
-});
-
-claude.on('error', err => {
-  console.error(`[${timestamp()}] Error al lanzar Claude: ${err.message}`);
-  process.exit(1);
-});
+console.log(`[${timestamp()}] Claude lanzado en background. Log: ${logPath}`);

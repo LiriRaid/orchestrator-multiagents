@@ -330,34 +330,34 @@ async function scheduleScripts(args) {
 		}
 		// Delete existing before recreating to avoid duplicates
 		try { execSync(`schtasks /Delete /TN "${t.name}" /F`, {stdio: 'pipe'}); } catch {}
+		const interval = t.name === 'agentflow-auto-trigger' ? 1 : 5;
+		// SYSTEM task: cmd /c to set env var (SYSTEM runs non-interactive — no visible window)
 		const cmd = [
 			'schtasks /Create',
 			`/TN "${t.name}"`,
-			`/TR "${nodeExe} \\"${t.script}\\""`,
+			`/TR "cmd /c set ORCHESTRATOR_WORKSPACE=${workspace} && \\"${nodeExe}\\" \\"${t.script}\\""`,
 			'/SC MINUTE',
-			`/MO ${t.name === 'agentflow-auto-trigger' ? 1 : 5}`,
+			`/MO ${interval}`,
 			'/RU SYSTEM',
-			`/F`,
+			'/F',
 		].join(' ');
 		try {
-			execSync(cmd, {
-				stdio: 'pipe',
-				env: {...process.env, ORCHESTRATOR_WORKSPACE: workspace},
-			});
-			console.log(`Scheduled: ${t.name} (every ${t.name === 'agentflow-auto-trigger' ? '1' : '5'} min)`);
+			execSync(cmd, {stdio: 'pipe'});
+			console.log(`Scheduled: ${t.name} (every ${interval} min)`);
 		} catch (err) {
-			// schtasks /RU SYSTEM may fail without admin — fallback to current user
+			// schtasks /RU SYSTEM may fail without admin — fallback to current user with PowerShell hidden
+			const psBody = `{$env:ORCHESTRATOR_WORKSPACE='${workspace.replace(/'/g, "''")}'; & '${nodeExe.replace(/'/g, "''")}' '${t.script.replace(/'/g, "''")}'}`;
 			const cmdUser = [
 				'schtasks /Create',
 				`/TN "${t.name}"`,
-				`/TR "cmd /c set ORCHESTRATOR_WORKSPACE=${workspace} && \\"${nodeExe}\\" \\"${t.script}\\""`,
+				`/TR "powershell -WindowStyle Hidden -NonInteractive -ExecutionPolicy Bypass -Command ${psBody}"`,
 				'/SC MINUTE',
-				`/MO ${t.name === 'agentflow-auto-trigger' ? 1 : 5}`,
+				`/MO ${interval}`,
 				'/F',
 			].join(' ');
 			try {
 				execSync(cmdUser, {stdio: 'inherit'});
-				console.log(`Scheduled (current user): ${t.name}`);
+				console.log(`Scheduled (current user, hidden): ${t.name}`);
 			} catch (err2) {
 				console.error(`Failed to schedule ${t.name}: ${err2.message}`);
 				console.error('Run as Administrator or add manually to Task Scheduler.');
