@@ -701,15 +701,15 @@ function parseQueue() {
   let section = "";
   for (const rawLine of content.split("\n")) {
     const line = rawLine.trim();
-    if (line.startsWith("## Pending")) {
+    if (line.startsWith("## Pending") || line.startsWith("## Pendientes")) {
       section = "pending";
       continue;
     }
-    if (line.startsWith("## In Progress")) {
+    if (line.startsWith("## In Progress") || line.startsWith("## En progreso")) {
       section = "inprogress";
       continue;
     }
-    if (line.startsWith("## Completed")) {
+    if (line.startsWith("## Completed") || line.startsWith("## Completadas")) {
       section = "completed";
       continue;
     }
@@ -743,15 +743,15 @@ function parseCompletedFromFile() {
   let section = "";
   for (const rawLine of content.split("\n")) {
     const line = rawLine.trim();
-    if (line.startsWith("## Pending")) {
+    if (line.startsWith("## Pending") || line.startsWith("## Pendientes")) {
       section = "pending";
       continue;
     }
-    if (line.startsWith("## In Progress")) {
+    if (line.startsWith("## In Progress") || line.startsWith("## En progreso")) {
       section = "inprogress";
       continue;
     }
-    if (line.startsWith("## Completed")) {
+    if (line.startsWith("## Completed") || line.startsWith("## Completadas")) {
       section = "completed";
       continue;
     }
@@ -1406,7 +1406,7 @@ function updateQueueFile(completedTask) {
     `^${completedTask.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$|\\|)`,
   );
   const filtered = lines.filter((l) => !idMatcher.test(l.trim()));
-  const idx = filtered.findIndex((l) => l.trim().startsWith("## Completed"));
+  const idx = filtered.findIndex((l) => l.trim().startsWith("## Completed") || l.trim().startsWith("## Completadas"));
   if (idx >= 0)
     filtered.splice(
       idx + 1,

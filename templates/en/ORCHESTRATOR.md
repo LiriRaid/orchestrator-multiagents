@@ -45,15 +45,28 @@ When the user requests work after startup:
 
 For frontend work, prefer `Codex` for narrow, well-scoped tasks and `OpenCode` for exploration/audits. Use `Frontend`/Claude-Worker for broader UI implementation, fallback, or when the other allowed agents are already occupied.
 
+## This Workspace Is NOT the Real Project
+
+This directory (`orchestrator-<name>`) exists **only** for work management:
+- `QUEUE.md` — task queue for agents
+- `TASKS.md` — detailed task specs
+- `handoffs/` — session continuity
+- `progress/` — current state per agent
+- `logs/` — agent output
+
+The real project code lives at the paths defined in `orchestrator.config.json → repos`.
+When you need to understand the project in order to plan tasks, **read files from those paths**.
+**Never modify real project files directly** — that is exclusively the workers' job.
+
 ## Startup Checklist
 
 When the user says something like `Read ORCHESTRATOR.md and start`, do this:
 
 1. Read this file completely.
-2. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
-3. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
-4. Read `QUEUE.md` to understand pending, active, and completed work.
-5. Read `orchestrator.config.json` to know available agents and repos.
+2. Read `orchestrator.config.json` — identify the real project paths in `repos` (frontend, backend). Those are the paths where the worker agents operate.
+3. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
+4. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
+5. Read `QUEUE.md` to understand pending, active, and completed work.
 6. Read all `progress/PROGRESS-*.md` files if present.
 7. Read `ENGRAM.md` and follow the memory rules.
 8. Use `openspec/` for large or multi-phase changes.
