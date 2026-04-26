@@ -149,17 +149,23 @@ Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 
 ## Cómo asignar trabajo
 
-1. Escribe TASKs en `QUEUE.md` (formato pipe; la TUI lo lee):
-   ```
-   TASK-NNN | titulo corto | Agent | P1 | repo | descripcion larga
-   ```
-   Valores válidos de `Agent`: exactamente las keys de `orchestrator.config.json.agents`.
-   Valores válidos de `repo`: exactamente las keys de `orchestrator.config.json.repos`.
-2. (Opcional) También escribe una spec larga en `TASKS.md` bajo un heading `### TASK-NNN`; se inyecta al brief.
-3. (Opcional) Para un brief muy detallado, crea `briefs/TASK-NNN-BRIEF.md`; también se inyecta.
-4. Dependencias: agrega `> after:TASK-NNN` al final de la descripción para bloquear la tarea.
-5. Dile al usuario que presione **R** en la TUI para recargar la cola, o **S** si está pausada.
-6. **Prioriza Codex y OpenCode** para toda implementación y exploración. Claude-Workers solo cuando hay saturación o fallo total de agentes de soporte.
+1. **Cuando el usuario pide un cambio o nueva tarea** → **NUNCA analices directamente**
+   - **Primero**: Crea una TASK en `QUEUE.md` asignada a **OpenCode** para que analice el contexto
+   - **Segundo**: Espera a que OpenCode termine su análisis (revisa INBOX.md o progress/)
+   - **Tercero**: Recibes el análisis → creas nueva TASK para implementar (Codex o OpenCode)
+   - **Nunca analices el código del proyecto directamente tu mismo** - eso lo hace OpenCode
+
+2. Escribe TASKs en `QUEUE.md` (formato pipe; la TUI lo lee):
+    ```
+    TASK-NNN | titulo corto | Agent | P1 | repo | descripcion larga
+    ```
+    Valores válidos de `Agent`: exactamente las keys de `orchestrator.config.json.agents`.
+    Valores válidos de `repo`: exactamente las keys de `orchestrator.config.json.repos`.
+3. (Opcional) También escribe una spec larga en `TASKS.md` bajo un heading `### TASK-NNN`; se inyecta al brief.
+4. (Opcional) Para un brief muy detallado, crea `briefs/TASK-NNN-BRIEF.md`; también se inyecta.
+5. Dependencias: agrega `> after:TASK-NNN` al final de la descripción para bloquear la tarea.
+6. **La TUI inicia automáticamente** - NO necesitas presionar R ni S. La TUI detecta nuevas tasks y las lanza.
+7. **Prioriza Codex y OpenCode** para toda implementación y exploración. Claude-Workers solo cuando hay saturación o fallo total de agentes de soporte.
 7. Distribución según cantidad de TASKs independientes:
    - **1 tarea**: OpenCode (exploración) o Codex (implementación). Nunca Claude-Worker en primera instancia.
    - **2 tareas**: OpenCode + Codex, una cada uno.

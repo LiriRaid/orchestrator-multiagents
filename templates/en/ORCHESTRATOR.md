@@ -142,7 +142,13 @@ Default agent summary:
 
 ## How To Assign Work
 
-Write TASKs in `QUEUE.md` with this format:
+1. **When the user asks for a change or new task** → **NEVER analyze directly yourself**
+   - **First**: Create a TASK in `QUEUE.md` assigned to **OpenCode** to analyze the context
+   - **Second**: Wait for OpenCode to finish its analysis (check INBOX.md or progress/)
+   - **Third**: You receive the analysis → create new TASK to implement (Codex or OpenCode)
+   - **Never analyze the project code yourself** - that's OpenCode's job
+
+2. Write TASKs in `QUEUE.md` with this format:
 
 ```text
 TASK-NNN | short title | Agent | P1 | repo | detailed description
@@ -155,7 +161,7 @@ Rules:
 3. Add `> after:TASK-NNN` at the end of the description for dependencies.
 4. Use `TASKS.md` under `### TASK-NNN` for longer task specs when needed.
 5. Use `briefs/TASK-NNN-BRIEF.md` for very detailed briefs when needed.
-6. After changing `QUEUE.md`, tell the user to press `R` in the TUI, and `S` if the TUI is paused.
+6. **The TUI starts automatically** - you don't need to press R or S. The TUI detects new tasks and launches them.
 
 Routing preferences:
 

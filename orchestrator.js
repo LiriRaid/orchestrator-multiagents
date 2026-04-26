@@ -1365,6 +1365,7 @@ function failTask(task, agentName, code) {
     ["Codex", "OpenCode"].includes(agentName) &&
     (failureFlags.exhaustedQuota ||
       failureFlags.providerUnavailable ||
+      failureFlags.noRealWork ||
       retries >= maxRetries);
 
   if (shouldFallback) {
@@ -1372,7 +1373,9 @@ function failTask(task, agentName, code) {
       ? "cuota o límite agotado"
       : failureFlags.providerUnavailable
         ? "proveedor o sesión no disponibles"
-        : "fallo persistente";
+        : failureFlags.noRealWork
+          ? "el agente no trabajó nada (sin cambios)"
+          : "fallo persistente";
     if (tryFallbackToAlternative(task, agentName, reason)) {
       writeInboxFailureNotification(task, agentName, task.agent, reason);
       setTimeout(() => {
@@ -1512,6 +1515,14 @@ function detectSupportAgentFailure(agentName) {
   }
 
   const lower = content.toLowerCase();
+
+  const hasToolUses = content.includes("Write") || content.includes("Read") || 
+    content.includes("Bash") || content.includes("Edit") || content.includes("ToolUse");
+  const hasFilesModified = content.includes("files_modified") && 
+    !content.includes("files_modified: list") && !content.includes("files_modified: none");
+  const outputTooShort = ag.output && ag.output.length < 200;
+  const noRealWork = outputTooShort && !hasToolUses && !hasFilesModified;
+
   return {
     exhaustedQuota:
       lower.includes("out of extra usage") ||
@@ -1519,7 +1530,9 @@ function detectSupportAgentFailure(agentName) {
       lower.includes("quota") ||
       lower.includes("rate_limit") ||
       lower.includes("ratelimitexceeded") ||
-      lower.includes("429"),
+      lower.includes("429") ||
+      lower.includes("insufficient credits") ||
+      lower.includes("no credits"),
     providerUnavailable:
       lower.includes("session expired") ||
       lower.includes("authentication") ||
@@ -1532,6 +1545,7 @@ function detectSupportAgentFailure(agentName) {
       lower.includes("timed out") ||
       lower.includes("timeout") ||
       lower.includes("network error"),
+    noRealWork: noRealWork || lower.includes("no files") || lower.includes("nothing to"),
   };
 }
 
