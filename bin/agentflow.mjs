@@ -84,7 +84,7 @@ Ejemplos:
   agentflow init . --project-name "Mi Proyecto" --lang es
   agentflow init-workspace C:/code/mi-proyecto --lang en
   agentflow tui --paused
-  agentflow ink
+  agentflow ink --yolo
 `);
 }
 

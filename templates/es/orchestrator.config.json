@@ -67,18 +67,18 @@
       "model": "gpt-5.5",
       "instructionsFile": "agents/CODEX.md"
     },
-    "Gemini": {
+"Gemini": {
       "cli": "gemini",
       "profile": "gemini",
       "defaultRepo": "frontend",
-      "model": "gemini-3-pro-preview",
+      "model": "auto",
       "instructionsFile": "agents/GEMINI.md"
     },
     "OpenCode": {
       "cli": "opencode",
       "profile": "opencode",
       "defaultRepo": "frontend",
-      "model": "opencode/glm-5-free",
+      "model": "auto",
       "instructionsFile": "agents/OPENCODE.md"
     },
     "Cursor": {
@@ -92,7 +92,7 @@
       "cli": "abacusai",
       "profile": "abacusai",
       "defaultRepo": "backend",
-      "model": "abacus-ai-agent",
+      "model": "auto",
       "instructionsFile": "agents/ABACUS.md"
     }
   }

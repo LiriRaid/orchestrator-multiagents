@@ -170,8 +170,7 @@ const TEXT = {
     empty: "(vacía)",
     after: "después de",
     quotaLimit: "LÍMITE DE CUOTA",
-    retryAt: (time, remaining) =>
-      `reintenta a las ${time} (${remaining} min)`,
+    retryAt: (time, remaining) => `reintenta a las ${time} (${remaining} min)`,
     log: "REGISTRO",
     controls: "Seguir  Pausa  Recargar  Quitar",
   },
@@ -221,6 +220,16 @@ const TEXT = {
 };
 const L = TEXT[WORKSPACE_LANGUAGE];
 
+let lastRenderTime = 0;
+const RENDER_DEBOUNCE_MS = 500;
+
+function safeRenderDashboard() {
+  const now = Date.now();
+  if (now - lastRenderTime < RENDER_DEBOUNCE_MS) return;
+  lastRenderTime = now;
+  renderDashboard();
+}
+
 // CLI args
 const argv = process.argv.slice(2);
 const CLI = {
@@ -258,8 +267,7 @@ ${L.keyboard}:
 const MAX_CONCURRENT = config.maxConcurrent || Object.keys(AGENTS).length;
 const POLL_INTERVAL_MS = (config.pollIntervalSeconds || 30) * 1000;
 const TASK_TIMEOUT_MS = (config.taskTimeoutMinutes || 30) * 60 * 1000;
-const SKIP_PERMISSIONS =
-  process.env.SKIP_PERMISSIONS === "true" || CLI.yolo;
+const SKIP_PERMISSIONS = process.env.SKIP_PERMISSIONS === "true" || CLI.yolo;
 const PERMISSION_FLAGS = SKIP_PERMISSIONS
   ? ["--dangerously-skip-permissions"]
   : ["--permission-mode", "default"];
@@ -401,7 +409,10 @@ const dashboard =
 
 const agentNames = Object.keys(AGENTS);
 const agentBoxes = {};
-const panelWidth = Math.max(1, Math.floor(100 / Math.max(1, agentNames.length)));
+const panelWidth = Math.max(
+  1,
+  Math.floor(100 / Math.max(1, agentNames.length)),
+);
 
 if (!CLI.headless && screen) {
   agentNames.forEach((name, i) => {
@@ -480,7 +491,11 @@ function persistState() {
       ]),
     ),
   };
-  fs.writeFileSync(STATE_FILE, JSON.stringify(snapshot, null, 2) + "\n", "utf-8");
+  fs.writeFileSync(
+    STATE_FILE,
+    JSON.stringify(snapshot, null, 2) + "\n",
+    "utf-8",
+  );
 }
 
 function consumeControlCommand() {
@@ -590,7 +605,9 @@ function renderDashboard() {
     ? `{yellow-fg}${L.paused}{/yellow-fg}`
     : `{green-fg}${L.running}{/green-fg}`;
 
-  lines.push(`  ${datestamp()} ${timestamp()}  ${WORKSPACE_LANGUAGE === "es" ? "activo" : "active"} ${up}  ${cost}  ${mode}`);
+  lines.push(
+    `  ${datestamp()} ${timestamp()}  ${WORKSPACE_LANGUAGE === "es" ? "activo" : "active"} ${up}  ${cost}  ${mode}`,
+  );
   lines.push("");
 
   for (const [name, ag] of Object.entries(state.agents)) {
@@ -668,9 +685,7 @@ function renderDashboard() {
     lines.push(`    {gray-fg}${escBl(entry)}{/gray-fg}`);
   }
   lines.push("");
-  lines.push(
-    `  {cyan-fg}S{/cyan-fg} ${L.controls}`,
-  );
+  lines.push(`  {cyan-fg}S{/cyan-fg} ${L.controls}`);
 
   dashboard.setContent(lines.join("\n"));
 
@@ -705,7 +720,10 @@ function parseQueue() {
       section = "pending";
       continue;
     }
-    if (line.startsWith("## In Progress") || line.startsWith("## En progreso")) {
+    if (
+      line.startsWith("## In Progress") ||
+      line.startsWith("## En progreso")
+    ) {
       section = "inprogress";
       continue;
     }
@@ -747,7 +765,10 @@ function parseCompletedFromFile() {
       section = "pending";
       continue;
     }
-    if (line.startsWith("## In Progress") || line.startsWith("## En progreso")) {
+    if (
+      line.startsWith("## In Progress") ||
+      line.startsWith("## En progreso")
+    ) {
       section = "inprogress";
       continue;
     }
@@ -892,7 +913,13 @@ function generateBrief(task) {
     }
   }
 
-  const repoDir = REPOS[task.repo] || REPOS[agentCfg.defaultRepo] || ".";
+  const hasBackend = REPOS.backend && fs.existsSync(REPOS.backend);
+  const hasFrontend = REPOS.frontend && fs.existsSync(REPOS.frontend);
+  const isSingleRepo = (hasBackend && hasFrontend && 
+    path.resolve(REPOS.backend) === path.resolve(REPOS.frontend)) || 
+    (!hasBackend && hasFrontend) || (hasBackend && !hasFrontend);
+  const effectiveRepo = isSingleRepo ? "frontend" : (task.repo || agentCfg.defaultRepo);
+  const repoDir = REPOS[effectiveRepo] || REPOS[task.repo] || REPOS[agentCfg.defaultRepo] || ".";
   const progressFile = path.join(
     WORKSPACE,
     "progress",
@@ -902,7 +929,7 @@ function generateBrief(task) {
   return `
 # Agent: ${task.agent}
 # Task: ${task.id} — ${task.title}
-# Repository: ${task.repo}
+# Repository: ${effectiveRepo}
 # CWD: ${repoDir}
 # Priority: ${task.priority}
 # Workspace: ${WORKSPACE}
@@ -971,25 +998,17 @@ function buildCliCommand(agentCfg, task, prompt) {
     case "codex":
       return {
         cmd: "codex",
-        args: [
-          "exec",
-          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
-          ...(CLI.yolo ? ["--dangerously-bypass-approvals-and-sandbox"] : []),
-          "--add-dir",
-          WORKSPACE,
-          "-",
-        ],
+        args: ["exec", "--yolo", "--add-dir", WORKSPACE, "-"],
       };
     case "opencode":
       return {
         cmd: "opencode",
         args: [
           "run",
-          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           "--format",
           "json",
           "--pure",
-          ...(CLI.yolo ? ["--dangerously-skip-permissions"] : []),
+          "--dangerously-skip-permissions",
         ],
       };
     case "gemini":
@@ -1023,7 +1042,7 @@ function buildCliCommand(agentCfg, task, prompt) {
           cmd: "cmd",
           args: [
             "/c",
-            `type "${promptFile}" | abacusai -p --output-format stream-json --permission-mode ${CLI.yolo ? "yolo" : "default"} ${CLI.yolo ? "--dangerously-skip-permissions --auto-accept-edits" : ""} --add-dir "${WORKSPACE}"`,
+            `type "${promptFile}" | abacusai -p --output-format stream-json --permission-mode yolo --dangerously-skip-permissions --auto-accept-edits --add-dir "${WORKSPACE}"`,
           ],
         };
       }
@@ -1031,7 +1050,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         cmd: "sh",
         args: [
           "-c",
-          `cat "${promptFile}" | abacusai -p --output-format stream-json --permission-mode ${CLI.yolo ? "yolo" : "default"} ${CLI.yolo ? "--dangerously-skip-permissions --auto-accept-edits" : ""} --add-dir "${WORKSPACE}"`,
+          `cat "${promptFile}" | abacusai -p --output-format stream-json --permission-mode yolo --dangerously-skip-permissions --auto-accept-edits --add-dir "${WORKSPACE}"`,
         ],
       };
     }
@@ -1358,9 +1377,8 @@ function failTask(task, agentName, code) {
       writeInboxFailureNotification(task, agentName, task.agent, reason);
       setTimeout(() => {
         scheduleNext();
-        renderDashboard();
+        safeRenderDashboard();
       }, 3000);
-      renderDashboard();
       return;
     }
   }
@@ -1392,7 +1410,7 @@ function failTask(task, agentName, code) {
     setTimeout(
       () => {
         scheduleNext();
-        renderDashboard();
+        safeRenderDashboard();
       },
       Math.max(
         Math.min(task._retryAfter - Date.now() + 5000, 3600_000),
@@ -1402,10 +1420,9 @@ function failTask(task, agentName, code) {
   } else {
     setTimeout(() => {
       scheduleNext();
-      renderDashboard();
+      safeRenderDashboard();
     }, 3000);
   }
-  renderDashboard();
 }
 
 // ============================================================================
@@ -1447,7 +1464,11 @@ function updateQueueFile(completedTask) {
     `^${completedTask.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$|\\|)`,
   );
   const filtered = lines.filter((l) => !idMatcher.test(l.trim()));
-  const idx = filtered.findIndex((l) => l.trim().startsWith("## Completed") || l.trim().startsWith("## Completadas"));
+  const idx = filtered.findIndex(
+    (l) =>
+      l.trim().startsWith("## Completed") ||
+      l.trim().startsWith("## Completadas"),
+  );
   if (idx >= 0)
     filtered.splice(
       idx + 1,
@@ -1515,17 +1536,24 @@ function detectSupportAgentFailure(agentName) {
 }
 
 function getClaudeFallbackAgent(task) {
-  // If both repos point to the same resolved path (frontend-only project), always prefer Frontend
-  if (
-    REPOS.backend &&
-    REPOS.frontend &&
-    path.resolve(REPOS.backend) === path.resolve(REPOS.frontend)
-  ) {
+  const hasBackend = REPOS.backend && fs.existsSync(REPOS.backend);
+  const hasFrontend = REPOS.frontend && fs.existsSync(REPOS.frontend);
+  const isSameRepo = hasBackend && hasFrontend && 
+    path.resolve(REPOS.backend) === path.resolve(REPOS.frontend);
+
+  if (isSameRepo || !hasFrontend) {
+    if (AGENTS["Frontend"]?.cli === "claude") return "Frontend";
+    if (AGENTS["Backend"]?.cli === "claude") return "Backend";
+  }
+  if (!hasBackend && hasFrontend) {
     if (AGENTS["Frontend"]?.cli === "claude") return "Frontend";
   }
+  
   const preferred = task.repo === "frontend" ? "Frontend" : "Backend";
   if (AGENTS[preferred]?.cli === "claude") return preferred;
-  return Object.keys(AGENTS).find((name) => AGENTS[name]?.cli === "claude") || null;
+  return (
+    Object.keys(AGENTS).find((name) => AGENTS[name]?.cli === "claude") || null
+  );
 }
 
 function getAlternativeSupportAgent(failedAgentName) {
@@ -1546,7 +1574,9 @@ function tryFallbackToAlternative(task, failedAgentName, reason) {
     !rateLimitedAgents.has(siblingAgent);
 
   // Step 2: if sibling is also unavailable, fall back to Claude worker (prefer Frontend)
-  const targetAgent = siblingAvailable ? siblingAgent : getClaudeFallbackAgent(task);
+  const targetAgent = siblingAvailable
+    ? siblingAgent
+    : getClaudeFallbackAgent(task);
   if (!targetAgent || targetAgent === failedAgentName) return false;
 
   const queueUpdated = updateQueueTaskAgent(task.id, targetAgent);
@@ -1556,14 +1586,20 @@ function tryFallbackToAlternative(task, failedAgentName, reason) {
   failedTasks.set(task.id, 0);
   state.queue.push(task);
 
-  log("FALLBACK", `${task.id} reasignada de ${failedAgentName} a ${targetAgent} (${reason})`);
+  log(
+    "FALLBACK",
+    `${task.id} reasignada de ${failedAgentName} a ${targetAgent} (${reason})`,
+  );
   appendToAgent(
     failedAgentName,
     `{yellow-fg}=== REASIGNADA A ${escBl(targetAgent)} (${escBl(reason)}) ==={/yellow-fg}`,
     true,
   );
   if (!queueUpdated) {
-    log("WARN", `${task.id} reasignada a ${targetAgent}, pero QUEUE.md no pudo actualizarse`);
+    log(
+      "WARN",
+      `${task.id} reasignada a ${targetAgent}, pero QUEUE.md no pudo actualizarse`,
+    );
   }
   return true;
 }
@@ -1582,17 +1618,17 @@ if (!CLI.headless && screen) {
       log("INFO", "Reanudado");
     }
     scheduleNext();
-    renderDashboard();
+    safeRenderDashboard();
   });
   screen.key("p", () => {
     state.paused = !state.paused;
     log("INFO", state.paused ? L.paused : L.resumed);
-    renderDashboard();
+    safeRenderDashboard();
   });
   screen.key("r", () => {
     reloadQueue();
     log("INFO", L.queueReloaded(state.queue.length));
-    renderDashboard();
+    safeRenderDashboard();
   });
 }
 
@@ -1601,10 +1637,7 @@ if (!CLI.headless && screen) {
 // ============================================================================
 log("INFO", L.starting(PROJECT_NAME));
 state.completed = parseCompletedFromFile();
-log(
-  "INFO",
-  L.loadedCompleted(state.completed.length),
-);
+log("INFO", L.loadedCompleted(state.completed.length));
 reloadQueue();
 log("INFO", `${L.queue}: ${state.queue.length} ${L.tasks}`);
 renderDashboard();

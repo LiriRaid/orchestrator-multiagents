@@ -20,6 +20,7 @@ const CONTROL_FILE = path.join(ROOT, 'logs', 'orchestrator-control.json');
 
 const argv = process.argv.slice(2);
 const startPaused = argv.includes('--paused');
+const startYolo = argv.includes('--yolo');
 const TEXT = {
 	es: {
 		configMissing: root =>
@@ -266,6 +267,7 @@ function ensureEngine() {
 
 	const childArgs = [ENGINE_FILE, '--headless'];
 	if (startPaused) childArgs.push('--paused');
+	if (startYolo) childArgs.push('--yolo');
 
 	pushLocalEvent(
 		startPaused ? text.startPaused : text.startRunning
