@@ -71,20 +71,23 @@ function printHelp() {
 	console.log(`
 agentflow
 
-Uso:
+Uso / Usage:
   agentflow init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
   agentflow init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
   agentflow tui [--paused] [--yolo]
   agentflow ink [--paused] [--yolo]
+  agentflow schedule [--uninstall]
   agentflow skills:registry
   agentflow openspec:new <change-name>
   agentflow agent-config:init
 
-Ejemplos:
+Ejemplos / Examples:
   agentflow init . --project-name "Mi Proyecto" --lang es
   agentflow init-workspace C:/code/mi-proyecto --lang en
   agentflow tui --paused
   agentflow ink --yolo
+  agentflow schedule
+  agentflow schedule --uninstall
 `);
 }
 
@@ -278,6 +281,100 @@ async function initWorkspace(args) {
 	console.log(TEXT[language].sibling);
 }
 
+async function scheduleScripts(args) {
+	const {flags} = parseFlags(args);
+	const uninstall = Boolean(flags.uninstall);
+	const workspace = process.cwd();
+	const scriptRoot = PACKAGE_ROOT;
+	const autoTrigger = path.join(scriptRoot, 'scripts', 'auto-trigger.js');
+	const monitorCheck = path.join(scriptRoot, 'scripts', 'monitor-check.js');
+	const nodeExe = process.execPath;
+
+	if (process.platform !== 'win32') {
+		console.log('agentflow schedule only supports Windows Task Scheduler.');
+		console.log('For macOS/Linux, add these to crontab manually:');
+		console.log(`  * * * * * ORCHESTRATOR_WORKSPACE="${workspace}" "${nodeExe}" "${autoTrigger}"`);
+		console.log(`  */5 * * * * ORCHESTRATOR_WORKSPACE="${workspace}" "${nodeExe}" "${monitorCheck}"`);
+		return;
+	}
+
+	const {execSync} = await import('child_process');
+	const env = `ORCHESTRATOR_WORKSPACE=${workspace}`;
+
+	const tasks = [
+		{
+			name: 'agentflow-auto-trigger',
+			script: autoTrigger,
+			description: 'agentflow: check INBOX every 60s and trigger Claude',
+			repetition: 'PT1M',
+			duration: 'PT1M',
+		},
+		{
+			name: 'agentflow-monitor-check',
+			script: monitorCheck,
+			description: 'agentflow: Away Mode monitor every 5 minutes',
+			repetition: 'PT5M',
+			duration: 'PT5M',
+		},
+	];
+
+	for (const t of tasks) {
+		if (uninstall) {
+			try {
+				execSync(`schtasks /Delete /TN "${t.name}" /F`, {stdio: 'pipe'});
+				console.log(`Removed: ${t.name}`);
+			} catch {
+				console.log(`Not found (already removed): ${t.name}`);
+			}
+			continue;
+		}
+		// Delete existing before recreating to avoid duplicates
+		try { execSync(`schtasks /Delete /TN "${t.name}" /F`, {stdio: 'pipe'}); } catch {}
+		const cmd = [
+			'schtasks /Create',
+			`/TN "${t.name}"`,
+			`/TR "${nodeExe} \\"${t.script}\\""`,
+			'/SC MINUTE',
+			`/MO ${t.name === 'agentflow-auto-trigger' ? 1 : 5}`,
+			'/RU SYSTEM',
+			`/F`,
+		].join(' ');
+		try {
+			execSync(cmd, {
+				stdio: 'pipe',
+				env: {...process.env, ORCHESTRATOR_WORKSPACE: workspace},
+			});
+			console.log(`Scheduled: ${t.name} (every ${t.name === 'agentflow-auto-trigger' ? '1' : '5'} min)`);
+		} catch (err) {
+			// schtasks /RU SYSTEM may fail without admin — fallback to current user
+			const cmdUser = [
+				'schtasks /Create',
+				`/TN "${t.name}"`,
+				`/TR "cmd /c set ORCHESTRATOR_WORKSPACE=${workspace} && \\"${nodeExe}\\" \\"${t.script}\\""`,
+				'/SC MINUTE',
+				`/MO ${t.name === 'agentflow-auto-trigger' ? 1 : 5}`,
+				'/F',
+			].join(' ');
+			try {
+				execSync(cmdUser, {stdio: 'inherit'});
+				console.log(`Scheduled (current user): ${t.name}`);
+			} catch (err2) {
+				console.error(`Failed to schedule ${t.name}: ${err2.message}`);
+				console.error('Run as Administrator or add manually to Task Scheduler.');
+			}
+		}
+	}
+
+	if (!uninstall) {
+		console.log('');
+		console.log(`Workspace: ${workspace}`);
+		console.log('auto-trigger.js → every 1 min  (checks INBOX, triggers Claude)');
+		console.log('monitor-check.js → every 5 min (Away Mode monitor)');
+		console.log('');
+		console.log('To remove: agentflow schedule --uninstall');
+	}
+}
+
 function runNodeScript(relativeScript, args = []) {
 	const scriptPath = path.join(PACKAGE_ROOT, relativeScript);
 	const child = spawn(process.execPath, [scriptPath, ...args], {
@@ -324,6 +421,9 @@ switch (command) {
 		break;
 	case 'agent-config:init':
 		runNodeScript(path.join('scripts', 'scaffold-agent-configs.mjs'));
+		break;
+	case 'schedule':
+		await scheduleScripts(argv.slice(1));
 		break;
 	default:
 		console.error(TEXT.es.unknown(command));

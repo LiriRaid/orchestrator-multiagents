@@ -129,6 +129,36 @@ const PROJECT_NAME = config.projectName || "Orchestrator Multi-Agents";
 const WORKSPACE_LANGUAGE = ["en", "es"].includes(config.workspaceLanguage)
   ? config.workspaceLanguage
   : "es";
+
+// OpenAI model pricing ($ per 1M tokens) — update when prices change
+const OPENAI_MODEL_PRICING = {
+  "gpt-4.1":           { input: 2.0,  output: 8.0  },
+  "gpt-4.1-mini":      { input: 0.4,  output: 1.6  },
+  "gpt-4.1-nano":      { input: 0.1,  output: 0.4  },
+  "gpt-4o":            { input: 2.5,  output: 10.0 },
+  "gpt-4o-mini":       { input: 0.15, output: 0.6  },
+  "o4-mini":           { input: 1.1,  output: 4.4  },
+  "o3":                { input: 10.0, output: 40.0 },
+  "o3-mini":           { input: 1.1,  output: 4.4  },
+  "o1":                { input: 15.0, output: 60.0 },
+  "o1-mini":           { input: 3.0,  output: 12.0 },
+  "gpt-5":             { input: 5.0,  output: 20.0 },
+  "gpt-5.5":           { input: 5.0,  output: 20.0 },
+  "codex-mini-latest": { input: 1.5,  output: 6.0  },
+};
+
+function calcOpenAICost(model, usage) {
+  if (!model || !usage) return null;
+  const modelLower = String(model).toLowerCase();
+  const key = Object.keys(OPENAI_MODEL_PRICING).find(k =>
+    modelLower === k || modelLower.startsWith(k) || modelLower.includes(k)
+  );
+  if (!key) return null;
+  const price = OPENAI_MODEL_PRICING[key];
+  const inputTokens  = usage.input_tokens  || usage.prompt_tokens     || 0;
+  const outputTokens = usage.output_tokens || usage.completion_tokens  || 0;
+  return (inputTokens * price.input + outputTokens * price.output) / 1_000_000;
+}
 const TEXT = {
   es: {
     configExists:
@@ -160,6 +190,8 @@ const TEXT = {
     running: "EJECUTANDO",
     busy: "OCUPADO",
     idle: "EN ESPERA",
+    failed: "FALLÓ",
+    retrying: "REINTENTANDO",
     queueReloaded: (count) => `Cola recargada: ${count} tareas`,
     quitRequested: "Cierre solicitado desde Ink",
     starting: (name) => `${name} iniciando`,
@@ -173,6 +205,65 @@ const TEXT = {
     retryAt: (time, remaining) => `reintenta a las ${time} (${remaining} min)`,
     log: "REGISTRO",
     controls: "Seguir  Pausa  Recargar  Quitar",
+    // QUEUE.md section headers
+    sectionPending: "## Pendientes",
+    sectionInProgress: "## En progreso",
+    sectionCompleted: "## Completadas",
+    // appendToAgent messages
+    agentTaskHeader: (id, title) => `=== ${id}: ${title} ===`,
+    agentCwd: (dir) => `CWD: ${dir}`,
+    agentCompleted: (elapsed, cost) => `=== COMPLETADA en ${elapsed}${cost} ===`,
+    agentFailed: (code, attempt) => `=== FALLÓ (salida ${code}, intento ${attempt}) ===`,
+    agentRateLimit: (resetStr) => `=== LÍMITE DE CUOTA (${resetStr}) ===`,
+    agentTimeout: "=== TIMEOUT ===",
+    agentDied: "=== PROCESS DIED ===",
+    agentReassigned: (agent, reason) => `=== REASIGNADA A ${agent} (${reason}) ===`,
+    // ag.lastLine state machine prefixes (used for status detection)
+    lastCompleted: (id) => `Última: ${id} completada`,
+    lastRetry: (id) => `REINTENTO: ${id}`,
+    lastLimit: (id, time) => `LÍMITE: ${id} (reintento a las ${time})`,
+    lastFailed: (id) => `FALLÓ: ${id}`,
+    // Fallback reasons
+    reasonQuota: "cuota o límite agotado",
+    reasonProvider: "proveedor o sesión no disponibles",
+    reasonNoWork: "el agente no trabajó nada (sin cambios)",
+    reasonPersistent: "fallo persistente",
+    // Log messages
+    logRateLimit: (agent, id, resetStr) => `${agent} alcanzó el límite en ${id} (${resetStr})`,
+    logFail: (agent, id, code, retries, max) => `${agent} falló ${id} (salida ${code}, ${retries}/${max})`,
+    logDone: (agent, id, elapsed, cost) => `${agent} completó ${id} en ${elapsed}${cost}`,
+    logFallback: (id, from, to, reason) => `${id} reasignada de ${from} a ${to} (${reason})`,
+    logReassignWarn: (id, agent) => `${id} reasignada a ${agent}, pero QUEUE.md no pudo actualizarse`,
+    logTimeout: (agent, id) => `${agent} timed out on ${id}`,
+    logUnknownAgent: (id, agent) => `${id} skipped — agente "${agent}" no definido en orchestrator.config.json`,
+    logPermanentFail: (id, retries) => `${id} falló definitivamente tras ${retries} intentos`,
+    logDied: (agent, id) => `${agent} terminó silenciosamente en ${id}`,
+    // STATUS.md
+    statusTitle: (ts) => `# Estado del Orquestador - ${ts}`,
+    statusProject: "**Proyecto:**",
+    statusState: "**Estado:**",
+    statusRunning: "EJECUTANDO",
+    statusPausedLabel: "PAUSADO",
+    statusActiveTime: "**Activo:**",
+    statusSectionAgents: "## Agentes",
+    statusSectionQueue: "## Cola",
+    statusPendingLabel: "Pendientes:",
+    statusCompletedLabel: "Completadas:",
+    statusInProgressLabel: "En progreso:",
+    statusInProgressHeader: "### En progreso",
+    statusAgentBusy: "🟡 OCUPADO",
+    statusAgentIdle: "⚪ EN ESPERA",
+    statusNoTask: "Sin tarea",
+    // INBOX.md
+    inboxDone: (ts, id, agent) => `## [${ts}] ${id} completada — ${agent}`,
+    inboxTaskLabel: "- **Tarea:**",
+    inboxDurationLabel: "- **Duración:**",
+    inboxReportLabel: "- **Reporte:**",
+    inboxActionLabel: (file) => `- **Acción:** Lee \`${file}\` y crea las siguientes TASKs si corresponde.`,
+    inboxFailed: (ts, id, from, to) => `## [${ts}] ${id} falló — ${from} → reasignada a ${to}`,
+    inboxReasonLabel: "- **Motivo:**",
+    inboxNewAgentLabel: "- **Nuevo agente:**",
+    inboxFailAction: "- **Acción:** La TUI reasignó automáticamente. Verifica en QUEUE.md o espera la siguiente notificación de completada.",
   },
   en: {
     configExists:
@@ -204,6 +295,8 @@ const TEXT = {
     running: "RUNNING",
     busy: "BUSY",
     idle: "IDLE",
+    failed: "FAILED",
+    retrying: "RETRYING",
     queueReloaded: (count) => `Queue reloaded: ${count} tasks`,
     quitRequested: "Quit requested from Ink",
     starting: (name) => `${name} starting`,
@@ -216,6 +309,65 @@ const TEXT = {
     retryAt: (time, remaining) => `retry at ${time} (${remaining} min)`,
     log: "LOG",
     controls: "Start  Pause  Reload  Quit",
+    // QUEUE.md section headers
+    sectionPending: "## Pending",
+    sectionInProgress: "## In Progress",
+    sectionCompleted: "## Completed",
+    // appendToAgent messages
+    agentTaskHeader: (id, title) => `=== ${id}: ${title} ===`,
+    agentCwd: (dir) => `CWD: ${dir}`,
+    agentCompleted: (elapsed, cost) => `=== COMPLETED in ${elapsed}${cost} ===`,
+    agentFailed: (code, attempt) => `=== FAILED (exit ${code}, attempt ${attempt}) ===`,
+    agentRateLimit: (resetStr) => `=== QUOTA LIMIT (${resetStr}) ===`,
+    agentTimeout: "=== TIMEOUT ===",
+    agentDied: "=== PROCESS DIED ===",
+    agentReassigned: (agent, reason) => `=== REASSIGNED TO ${agent} (${reason}) ===`,
+    // ag.lastLine state machine prefixes
+    lastCompleted: (id) => `Last: ${id} completed`,
+    lastRetry: (id) => `RETRY: ${id}`,
+    lastLimit: (id, time) => `LIMIT: ${id} (retry at ${time})`,
+    lastFailed: (id) => `FAILED: ${id}`,
+    // Fallback reasons
+    reasonQuota: "quota or rate limit exhausted",
+    reasonProvider: "provider or session unavailable",
+    reasonNoWork: "agent did no real work (no changes)",
+    reasonPersistent: "persistent failure",
+    // Log messages
+    logRateLimit: (agent, id, resetStr) => `${agent} hit rate limit on ${id} (${resetStr})`,
+    logFail: (agent, id, code, retries, max) => `${agent} failed ${id} (exit ${code}, ${retries}/${max})`,
+    logDone: (agent, id, elapsed, cost) => `${agent} completed ${id} in ${elapsed}${cost}`,
+    logFallback: (id, from, to, reason) => `${id} reassigned from ${from} to ${to} (${reason})`,
+    logReassignWarn: (id, agent) => `${id} reassigned to ${agent}, but QUEUE.md could not be updated`,
+    logTimeout: (agent, id) => `${agent} timed out on ${id}`,
+    logUnknownAgent: (id, agent) => `${id} skipped — agent "${agent}" not in orchestrator.config.json`,
+    logPermanentFail: (id, retries) => `${id} permanently failed after ${retries} attempts`,
+    logDied: (agent, id) => `${agent} died silently on ${id}`,
+    // STATUS.md
+    statusTitle: (ts) => `# Orchestrator Status - ${ts}`,
+    statusProject: "**Project:**",
+    statusState: "**State:**",
+    statusRunning: "RUNNING",
+    statusPausedLabel: "PAUSED",
+    statusActiveTime: "**Active:**",
+    statusSectionAgents: "## Agents",
+    statusSectionQueue: "## Queue",
+    statusPendingLabel: "Pending:",
+    statusCompletedLabel: "Completed:",
+    statusInProgressLabel: "In progress:",
+    statusInProgressHeader: "### In progress",
+    statusAgentBusy: "🟡 BUSY",
+    statusAgentIdle: "⚪ IDLE",
+    statusNoTask: "No task",
+    // INBOX.md
+    inboxDone: (ts, id, agent) => `## [${ts}] ${id} completed — ${agent}`,
+    inboxTaskLabel: "- **Task:**",
+    inboxDurationLabel: "- **Duration:**",
+    inboxReportLabel: "- **Report:**",
+    inboxActionLabel: (file) => `- **Action:** Read \`${file}\` and create next TASKs if applicable.`,
+    inboxFailed: (ts, id, from, to) => `## [${ts}] ${id} failed — ${from} → reassigned to ${to}`,
+    inboxReasonLabel: "- **Reason:**",
+    inboxNewAgentLabel: "- **New agent:**",
+    inboxFailAction: "- **Action:** TUI reassigned automatically. Check QUEUE.md or wait for the next completion notification.",
   },
 };
 const L = TEXT[WORKSPACE_LANGUAGE];
@@ -279,6 +431,38 @@ if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 const LOCK_FILE = path.join(LOG_DIR, "orchestrator.lock");
 const STATE_FILE = path.join(LOG_DIR, "orchestrator-state.json");
 const CONTROL_FILE = path.join(LOG_DIR, "orchestrator-control.json");
+const STATUS_FILE = path.join(WORKSPACE, "STATUS.md");
+
+function updateStatusFile() {
+  const statusLines = [
+    L.statusTitle(timestamp()),
+    ``,
+    `${L.statusProject} ${PROJECT_NAME}`,
+    `${L.statusState} ${state.paused ? L.statusPausedLabel : L.statusRunning}`,
+    `${L.statusActiveTime} ${formatDuration(Math.round((Date.now() - state.startTime) / 1000))}`,
+    ``,
+    L.statusSectionAgents,
+    ``,
+  ];
+  for (const [name, ag] of Object.entries(state.agents)) {
+    const status = ag.status === "busy" ? L.statusAgentBusy : L.statusAgentIdle;
+    const task = ag.task ? `${ag.task.id}: ${ag.task.title}` : L.statusNoTask;
+    statusLines.push(`- **${name}**: ${status} - ${task}`);
+  }
+  statusLines.push("", L.statusSectionQueue);
+  statusLines.push("", `${L.statusPendingLabel} ${state.queue.length}`);
+  statusLines.push("", `${L.statusCompletedLabel} ${state.completed.length}`);
+  statusLines.push("", `${L.statusInProgressLabel} ${state.inProgress.length}`);
+  if (state.inProgress.length > 0) {
+    statusLines.push("", L.statusInProgressHeader);
+    for (const t of state.inProgress) {
+      statusLines.push(`- ${t.id}: ${t.title} (${t.agent})`);
+    }
+  }
+  try {
+    fs.writeFileSync(STATUS_FILE, statusLines.join("\n"), "utf-8");
+  } catch {}
+}
 
 // Limpiar control.json orphan al iniciar (si el proceso anterior fechou mal)
 if (fs.existsSync(CONTROL_FILE)) {
@@ -373,6 +557,7 @@ for (const name of Object.keys(AGENTS)) {
     lastLine: "",
     exitCode: null,
     cost: null,
+    totalCost: 0,
     turns: 0,
   };
 }
@@ -486,6 +671,7 @@ function persistState() {
           lastLine: ag.lastLine,
           exitCode: ag.exitCode,
           cost: ag.cost,
+          totalCost: ag.totalCost || 0,
           turns: ag.turns,
         },
       ]),
@@ -611,18 +797,28 @@ function renderDashboard() {
   lines.push("");
 
   for (const [name, ag] of Object.entries(state.agents)) {
-    const cfg = AGENTS[name];
-    let status, detail;
+    const lastLine = ag.lastLine || "";
+    const isFailed = lastLine.startsWith("FALLÓ:") || lastLine.startsWith("FAILED:");
+    const isRetrying = lastLine.startsWith("REINTENTO:") || lastLine.startsWith("LÍMITE:") || lastLine.startsWith("RETRY:") || lastLine.startsWith("LIMIT:");
+    let status, detail, dot;
     if (ag.status === "busy") {
       status = `{yellow-fg}${L.busy}{/yellow-fg}`;
       detail = `${ag.task?.id || "?"} ${(ag.task?.title || "").slice(0, 35)} (${elapsedSince(ag.startTime)})`;
+      dot = "{green-fg}●{/green-fg}";
+    } else if (isFailed) {
+      status = `{red-fg}${L.failed}{/red-fg}`;
+      detail = lastLine;
+      dot = "{red-fg}✕{/red-fg}";
+    } else if (isRetrying) {
+      status = `{yellow-fg}${L.retrying}{/yellow-fg}`;
+      detail = lastLine;
+      dot = "{yellow-fg}⟳{/yellow-fg}";
     } else {
       status = `{gray-fg}${L.idle}{/gray-fg}`;
-      detail = ag.lastLine || "";
+      detail = lastLine;
+      dot = "{gray-fg}○{/gray-fg}";
     }
-    const dot =
-      ag.status === "busy" ? "{green-fg}●{/green-fg}" : "{gray-fg}○{/gray-fg}";
-    lines.push(`  ${dot} {bold}${name}{/bold}  ${status}  ${detail}`);
+    lines.push(`  ${dot} {bold}${name}{/bold}  ${status}  ${escBl(detail)}`);
   }
   lines.push("");
 
@@ -691,15 +887,25 @@ function renderDashboard() {
 
   for (const [name, ag] of Object.entries(state.agents)) {
     const box = agentBoxes[name];
+    const lastLine = ag.lastLine || "";
+    const isFailed = lastLine.startsWith("FALLÓ:") || lastLine.startsWith("FAILED:");
+    const isRetrying = lastLine.startsWith("REINTENTO:") || lastLine.startsWith("LÍMITE:") || lastLine.startsWith("RETRY:") || lastLine.startsWith("LIMIT:");
     if (ag.status === "busy") {
       box.style.border.fg = "yellow";
       box.setLabel(
-        ` {bold}${escBl(name)}{/bold} {yellow-fg}OCUPADO{/yellow-fg} ${escBl(ag.task?.id || "")} `,
+        ` {bold}${escBl(name)}{/bold} {yellow-fg}${L.busy}{/yellow-fg} ${escBl(ag.task?.id || "")} `,
       );
+    } else if (isFailed) {
+      box.style.border.fg = "red";
+      box.setLabel(` {bold}${escBl(name)}{/bold} {red-fg}${L.failed}{/red-fg} `);
+    } else if (isRetrying) {
+      box.style.border.fg = "yellow";
+      box.setLabel(` {bold}${escBl(name)}{/bold} {yellow-fg}${L.retrying}{/yellow-fg} `);
     } else {
       box.style.border.fg = "gray";
+      const agCostLabel = ag.totalCost > 0 ? ` {gray-fg}$${ag.totalCost.toFixed(2)}{/gray-fg}` : "";
       box.setLabel(
-        ` {bold}${escBl(name)}{/bold} {gray-fg}EN ESPERA{/gray-fg} `,
+        ` {bold}${escBl(name)}{/bold} {gray-fg}${L.idle}{/gray-fg}${agCostLabel} `,
       );
     }
   }
@@ -828,12 +1034,12 @@ function writeInboxNotification(task, agentName, elapsed) {
   const progressFile = `progress/PROGRESS-${agentName}.md`;
   const entry = [
     ``,
-    `## [${timestamp()}] ${task.id} completada — ${agentName}`,
+    L.inboxDone(timestamp(), task.id, agentName),
     ``,
-    `- **Tarea:** ${task.title}`,
-    `- **Duración:** ${formatDuration(elapsed)}`,
-    `- **Reporte:** ${progressFile}`,
-    `- **Acción:** Lee \`${progressFile}\` y crea las siguientes TASKs si corresponde.`,
+    `${L.inboxTaskLabel} ${task.title}`,
+    `${L.inboxDurationLabel} ${formatDuration(elapsed)}`,
+    `${L.inboxReportLabel} ${progressFile}`,
+    L.inboxActionLabel(progressFile),
     ``,
   ].join("\n");
   try {
@@ -845,16 +1051,45 @@ function writeInboxFailureNotification(task, failedAgent, newAgent, reason) {
   const inboxFile = path.join(WORKSPACE, "INBOX.md");
   const entry = [
     ``,
-    `## [${timestamp()}] ${task.id} falló — ${failedAgent} → reasignada a ${newAgent}`,
+    L.inboxFailed(timestamp(), task.id, failedAgent, newAgent),
     ``,
-    `- **Tarea:** ${task.title}`,
-    `- **Motivo:** ${reason}`,
-    `- **Nuevo agente:** ${newAgent}`,
-    `- **Acción:** La TUI reasignó automáticamente. Verifica en QUEUE.md o espera la siguiente notificación de completada.`,
+    `${L.inboxTaskLabel} ${task.title}`,
+    `${L.inboxReasonLabel} ${reason}`,
+    `${L.inboxNewAgentLabel} ${newAgent}`,
+    L.inboxFailAction,
     ``,
   ].join("\n");
   try {
     fs.appendFileSync(inboxFile, entry, "utf-8");
+  } catch {}
+}
+
+// GAP 2 — Move a task line from ## Pending to ## In Progress when it starts
+function moveTaskToInProgress(task) {
+  if (!fs.existsSync(QUEUE_FILE)) return;
+  try {
+    const lines = fs.readFileSync(QUEUE_FILE, "utf-8").split("\n");
+    const idMatcher = new RegExp(
+      `^${task.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$|\\|)`,
+    );
+    // Remove from Pending (wherever it is) — keep line for insertion
+    let taskLine = null;
+    const without = lines.filter((l) => {
+      if (idMatcher.test(l.trim())) {
+        taskLine = l;
+        return false;
+      }
+      return true;
+    });
+    if (!taskLine) return; // already moved or not found
+    // Find In Progress section and insert after its header
+    const idx = without.findIndex(
+      (l) =>
+        l.trim().startsWith("## In Progress") ||
+        l.trim().startsWith("## En progreso"),
+    );
+    if (idx >= 0) without.splice(idx + 1, 0, taskLine);
+    fs.writeFileSync(QUEUE_FILE, without.join("\n"), "utf-8");
   } catch {}
 }
 
@@ -1069,10 +1304,7 @@ function launchAgent(task) {
   const agentCfg = AGENTS[agentName];
 
   if (!ag || !agentCfg) {
-    log(
-      "ERROR",
-      `Agente desconocido en QUEUE: "${agentName}" — no está definido en orchestrator.config.json`,
-    );
+    log("ERROR", L.logUnknownAgent(task.id, agentName));
     failedTasks.set(task.id, MAX_RETRIES); // don't retry — config bug, not transient
     return false;
   }
@@ -1094,10 +1326,10 @@ function launchAgent(task) {
   log("START", `${agentName} (${cliCmd}) → ${task.id}: ${task.title}`);
   appendToAgent(
     agentName,
-    `{cyan-fg}=== ${escBl(task.id)}: ${escBl(task.title)} ==={/cyan-fg}`,
+    `{cyan-fg}${escBl(L.agentTaskHeader(task.id, task.title))}{/cyan-fg}`,
     true,
   );
-  appendToAgent(agentName, `{gray-fg}CWD: ${escBl(repoDir)}{/gray-fg}`, true);
+  appendToAgent(agentName, `{gray-fg}${escBl(L.agentCwd(repoDir))}{/gray-fg}`, true);
   appendToAgent(agentName, "", true);
 
   try {
@@ -1112,8 +1344,8 @@ function launchAgent(task) {
     proc.stdin.end();
 
     const timeout = setTimeout(() => {
-      log("WARN", `${agentName} timed out on ${task.id}`);
-      appendToAgent(agentName, "{red-fg}=== TIMEOUT ==={/red-fg}", true);
+      log("WARN", L.logTimeout(agentName, task.id));
+      appendToAgent(agentName, `{red-fg}${escBl(L.agentTimeout)}{/red-fg}`, true);
       try {
         proc.kill("SIGTERM");
       } catch {}
@@ -1159,8 +1391,22 @@ function launchAgent(task) {
               }
             }
           }
+          // Claude: result event with total_cost_usd
           if (event.type === "result" && event.total_cost_usd)
             ag.cost = event.total_cost_usd;
+          // Codex: direct cost_usd field (any event)
+          if (event.cost_usd != null && ag.cost == null)
+            ag.cost = event.cost_usd;
+          if (event.usage?.cost_usd != null && ag.cost == null)
+            ag.cost = event.usage.cost_usd;
+          // Codex: token-based cost calculation from usage event
+          if (ag.cost == null && event.usage &&
+              (event.type === "usage" || event.type === "result" || event.type === "response.completed")) {
+            const usageObj = event.usage.usage || event.usage;
+            const model = agentCfg.model || "";
+            const calc = calcOpenAICost(model, usageObj);
+            if (calc != null) ag.cost = calc;
+          }
           // OpenCode events
           if (event.type === "text" && event.part?.text)
             appendToAgent(agentName, event.part.text.slice(0, 120));
@@ -1230,6 +1476,7 @@ function launchAgent(task) {
     ag.turns = 0;
     task.status = "running";
     state.inProgress.push(task);
+    moveTaskToInProgress(task); // GAP 2: reflect in QUEUE.md
     renderDashboard();
     return true;
   } catch (err) {
@@ -1251,7 +1498,10 @@ function completeTask(task, agentName) {
   const elapsed = ag.startTime
     ? Math.round((Date.now() - ag.startTime) / 1000)
     : 0;
-  if (ag.cost) state.totalCost += ag.cost;
+  if (ag.cost) {
+    state.totalCost += ag.cost;
+    ag.totalCost = (ag.totalCost || 0) + ag.cost;
+  }
   task.status = "completed";
   task.completedAt = timestamp();
   task.elapsed = elapsed;
@@ -1259,21 +1509,18 @@ function completeTask(task, agentName) {
   state.inProgress = state.inProgress.filter((t) => t.id !== task.id);
   state.completed.push(task);
   const costStr = ag.cost ? ` ($${ag.cost.toFixed(2)})` : "";
-  log(
-    "DONE",
-    `${agentName} completó ${task.id} en ${formatDuration(elapsed)}${costStr}`,
-  );
+  log("DONE", L.logDone(agentName, task.id, formatDuration(elapsed), costStr));
   appendToAgent(agentName, "", true);
   appendToAgent(
     agentName,
-    `{green-fg}=== COMPLETADA en ${formatDuration(elapsed)}${escBl(costStr)} ==={/green-fg}`,
+    `{green-fg}${escBl(L.agentCompleted(formatDuration(elapsed), costStr))}{/green-fg}`,
     true,
   );
   ag.status = "idle";
   ag.task = null;
   ag.process = null;
   ag.startTime = null;
-  ag.lastLine = `Última: ${task.id} completada`;
+  ag.lastLine = L.lastCompleted(task.id);
   updateQueueFile(task);
   writeInboxNotification(task, agentName, elapsed);
   scheduleNext();
@@ -1337,21 +1584,18 @@ function failTask(task, agentName, code) {
   if (rl.isRateLimit) {
     const resetStr = rl.resetsAt
       ? `resets ${rl.resetsAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}`
-      : "reintento en 10 min";
-    log("RATE", `${agentName} alcanzó el límite en ${task.id} (${resetStr})`);
+      : "retry in 10 min";
+    log("RATE", L.logRateLimit(agentName, task.id, resetStr));
     appendToAgent(
       agentName,
-      `{yellow-fg}=== LÍMITE DE CUOTA (${escBl(resetStr)}) ==={/yellow-fg}`,
+      `{yellow-fg}${escBl(L.agentRateLimit(resetStr))}{/yellow-fg}`,
       true,
     );
   } else {
-    log(
-      "FAIL",
-      `${agentName} falló ${task.id} (salida ${code}, ${retries}/${maxRetries})`,
-    );
+    log("FAIL", L.logFail(agentName, task.id, code, retries, maxRetries));
     appendToAgent(
       agentName,
-      `{red-fg}=== FALLÓ (salida ${code}, intento ${retries}) ==={/red-fg}`,
+      `{red-fg}${escBl(L.agentFailed(code, retries))}{/red-fg}`,
       true,
     );
   }
@@ -1370,12 +1614,12 @@ function failTask(task, agentName, code) {
 
   if (shouldFallback) {
     const reason = failureFlags.exhaustedQuota
-      ? "cuota o límite agotado"
+      ? L.reasonQuota
       : failureFlags.providerUnavailable
-        ? "proveedor o sesión no disponibles"
+        ? L.reasonProvider
         : failureFlags.noRealWork
-          ? "el agente no trabajó nada (sin cambios)"
-          : "fallo persistente";
+          ? L.reasonNoWork
+          : L.reasonPersistent;
     if (tryFallbackToAlternative(task, agentName, reason)) {
       writeInboxFailureNotification(task, agentName, task.agent, reason);
       setTimeout(() => {
@@ -1388,8 +1632,8 @@ function failTask(task, agentName, code) {
 
   if (retries >= maxRetries) {
     task.status = "failed";
-    ag.lastLine = `FALLÓ: ${task.id}`;
-    log("ERROR", `${task.id} falló definitivamente tras ${retries} intentos`);
+    ag.lastLine = L.lastFailed(task.id);
+    log("ERROR", L.logPermanentFail(task.id, retries));
   } else {
     task.status = "pending";
     let retryDelay = rl.isRateLimit
@@ -1405,8 +1649,8 @@ function failTask(task, agentName, code) {
       hour12: true,
     });
     ag.lastLine = rl.isRateLimit
-      ? `LÍMITE: ${task.id} (reintento a las ${retryTime})`
-      : `REINTENTO: ${task.id}`;
+      ? L.lastLimit(task.id, retryTime)
+      : L.lastRetry(task.id);
     if (rl.isRateLimit) rateLimitedAgents.set(agentName, task._retryAfter);
   }
   if (rl.isRateLimit && task._retryAfter) {
@@ -1462,11 +1706,13 @@ function scheduleNext() {
 function updateQueueFile(completedTask) {
   if (!fs.existsSync(QUEUE_FILE)) return;
   const lines = fs.readFileSync(QUEUE_FILE, "utf-8").split("\n");
-  // Use a word-boundary match so TASK-1 does NOT also remove TASK-10, TASK-11, etc.
+  // Word-boundary match so TASK-1 does NOT also remove TASK-10, TASK-11, etc.
   const idMatcher = new RegExp(
     `^${completedTask.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$|\\|)`,
   );
+  // Remove task from both Pending and In Progress sections
   const filtered = lines.filter((l) => !idMatcher.test(l.trim()));
+  // Find Completed section and insert entry
   const idx = filtered.findIndex(
     (l) =>
       l.trim().startsWith("## Completed") ||
@@ -1600,20 +1846,14 @@ function tryFallbackToAlternative(task, failedAgentName, reason) {
   failedTasks.set(task.id, 0);
   state.queue.push(task);
 
-  log(
-    "FALLBACK",
-    `${task.id} reasignada de ${failedAgentName} a ${targetAgent} (${reason})`,
-  );
+  log("FALLBACK", L.logFallback(task.id, failedAgentName, targetAgent, reason));
   appendToAgent(
     failedAgentName,
-    `{yellow-fg}=== REASIGNADA A ${escBl(targetAgent)} (${escBl(reason)}) ==={/yellow-fg}`,
+    `{yellow-fg}${escBl(L.agentReassigned(targetAgent, reason))}{/yellow-fg}`,
     true,
   );
   if (!queueUpdated) {
-    log(
-      "WARN",
-      `${task.id} reasignada a ${targetAgent}, pero QUEUE.md no pudo actualizarse`,
-    );
+    log("WARN", L.logReassignWarn(task.id, targetAgent));
   }
   return true;
 }
@@ -1626,23 +1866,11 @@ if (!CLI.headless && screen) {
     exitWithSummary();
   });
 
-  screen.key("s", () => {
-    if (state.paused) {
-      state.paused = false;
-      log("INFO", "Reanudado");
-    }
-    scheduleNext();
-    safeRenderDashboard();
-  });
   screen.key("p", () => {
     state.paused = !state.paused;
     log("INFO", state.paused ? L.paused : L.resumed);
     safeRenderDashboard();
-  });
-  screen.key("r", () => {
-    reloadQueue();
-    log("INFO", L.queueReloaded(state.queue.length));
-    safeRenderDashboard();
+    updateStatusFile();
   });
 }
 
@@ -1655,6 +1883,7 @@ log("INFO", L.loadedCompleted(state.completed.length));
 reloadQueue();
 log("INFO", `${L.queue}: ${state.queue.length} ${L.tasks}`);
 renderDashboard();
+updateStatusFile();
 if (!state.paused) {
   scheduleNext();
   renderDashboard();
@@ -1670,14 +1899,18 @@ setInterval(() => {
   if (!state.paused) scheduleNext();
   renderDashboard();
 }, POLL_INTERVAL_MS);
+
+setInterval(() => {
+  updateStatusFile();
+}, 60000); // Update STATUS.md cada 60 segundos
 setInterval(() => {
   for (const [name, ag] of Object.entries(state.agents)) {
     if (ag.status !== "busy" || !ag.process) continue;
     try {
       process.kill(ag.process.pid, 0);
     } catch {
-      log("WARN", `${name} died silently on ${ag.task?.id}`);
-      appendToAgent(name, "{red-fg}=== PROCESS DIED ==={/red-fg}", true);
+      log("WARN", L.logDied(name, ag.task?.id));
+      appendToAgent(name, `{red-fg}${escBl(L.agentDied)}{/red-fg}`, true);
       ag.process = null;
       failTask(ag.task, name, -1);
     }

@@ -19,6 +19,8 @@ const TEXT = {
 	es: {
 		busy: 'Ocupado',
 		idle: 'En espera',
+		failed: 'Falló',
+		retrying: 'Reintentando',
 		noTask: 'Sin tarea activa',
 		ready: 'Listo para trabajar',
 		project: 'Proyecto',
@@ -31,9 +33,7 @@ const TEXT = {
 		paused: 'Pausado',
 		preview: 'Explorando Ink',
 		shortcuts: 'Atajos',
-		start: 'iniciar/reanudar',
 		pause: 'pausar',
-		reload: 'recargar QUEUE.md',
 		quit: 'salir y matar agentes',
 		summary: 'Resumen',
 		activeQueue: 'Cola activa',
@@ -43,6 +43,8 @@ const TEXT = {
 	en: {
 		busy: 'Busy',
 		idle: 'Idle',
+		failed: 'Failed',
+		retrying: 'Retrying',
 		noTask: 'No active task',
 		ready: 'Ready to work',
 		project: 'Project',
@@ -55,9 +57,7 @@ const TEXT = {
 		paused: 'Paused',
 		preview: 'Exploring Ink',
 		shortcuts: 'Shortcuts',
-		start: 'start/resume',
 		pause: 'pause',
-		reload: 'reload QUEUE.md',
 		quit: 'quit and stop agents',
 		summary: 'Summary',
 		activeQueue: 'Active Queue',
@@ -82,7 +82,20 @@ const Panel = ({title, width, children}) =>
 	);
 
 const AgentCard = ({agent, text}) => {
-	const statusColor = agent.status === 'busy' ? COLORS.success : COLORS.muted;
+	const statusColor =
+		agent.status === 'busy' ? COLORS.success :
+		agent.status === 'failed' ? 'red' :
+		agent.status === 'retrying' ? COLORS.warning :
+		COLORS.muted;
+
+	const statusLabel =
+		agent.status === 'busy' ? text.busy :
+		agent.status === 'failed' ? text.failed :
+		agent.status === 'retrying' ? text.retrying :
+		text.idle;
+
+	const costLine = agent.totalCost > 0 ? `${text.cost}: $${agent.totalCost.toFixed(2)}` : null;
+
 	return h(
 		Box,
 		{
@@ -94,13 +107,14 @@ const AgentCard = ({agent, text}) => {
 			flexDirection: 'column'
 		},
 		h(Text, {bold: true, wrap: 'wrap'}, agent.name),
-		h(Text, {color: statusColor}, agent.status === 'busy' ? text.busy : text.idle),
+		h(Text, {color: statusColor, bold: agent.status === 'failed' || agent.status === 'retrying'}, statusLabel),
 		h(
 			Text,
 			{color: COLORS.muted, wrap: 'wrap'},
 			agent.task || text.noTask
 		),
-		h(Text, {color: COLORS.muted, wrap: 'wrap'}, agent.detail || text.ready)
+		h(Text, {color: COLORS.muted, wrap: 'wrap'}, agent.detail || text.ready),
+		...(costLine ? [h(Text, {color: COLORS.success, wrap: 'wrap'}, costLine)] : [])
 	);
 };
 
@@ -123,8 +137,6 @@ export function App({snapshot, paused = false, onAction}) {
 		}
 
 		const normalized = input.toLowerCase();
-		if (normalized === 'r') onAction?.('reload');
-		if (normalized === 's') onAction?.('start');
 		if (normalized === 'p') onAction?.('pause');
 		if (normalized === 'q') onAction?.('quit');
 	});
@@ -173,14 +185,10 @@ export function App({snapshot, paused = false, onAction}) {
 			Box,
 			{marginBottom: 1},
 			h(Text, {color: COLORS.warning}, `${text.shortcuts}: `),
-			h(Text, {bold: true}, 'S'),
-			h(Text, {color: COLORS.muted}, truncate(` ${text.start}  `, Math.max(0, shortcutWidth - 40))),
 			h(Text, {bold: true}, 'P'),
 			h(Text, {color: COLORS.muted}, truncate(` ${text.pause}  `, Math.max(0, shortcutWidth - 55))),
-			h(Text, {bold: true}, 'R'),
-			h(Text, {color: COLORS.muted}, truncate(` ${text.reload}  `, Math.max(0, shortcutWidth - 70))),
 			h(Text, {bold: true}, 'Q'),
-			h(Text, {color: COLORS.muted}, truncate(` ${text.quit}`, Math.max(0, shortcutWidth - 90)))
+			h(Text, {color: COLORS.muted}, truncate(` ${text.quit}`, Math.max(0, shortcutWidth - 70)))
 		),
 		h(
 			Box,

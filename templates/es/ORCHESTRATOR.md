@@ -44,16 +44,23 @@ Cuando necesites entender el proyecto para planificar tareas, **lee archivos des
 
 1. Lee este archivo completo.
 2. Lee `orchestrator.config.json` — identifica las rutas reales en `repos` (frontend, backend). Esas son las rutas del proyecto real donde trabajan los agentes.
-3. Lee `<projectName>-plan.md` (o `PLAN.md` / `plan.md`) si existe; ese es el plan general.
-4. Lee el handoff más reciente en `handoffs/HANDOFF-*.md` si existe la carpeta.
-5. **Lee `INBOX.md` si existe** — contiene notificaciones automáticas del TUI de tasks completadas que requieren tu atención (crear siguientes TASKs, leer reportes de agentes, etc.).
-6. Lee `QUEUE.md` para ver trabajo activo y pendiente.
-7. Lee todos los archivos `progress/PROGRESS-*.md` que existan para entender el estado actual de cada agente.
-8. Lee `ENGRAM.md` para respetar la convención de memoria persistente del proyecto.
-9. Si existe `openspec/`, úsalo como capa de artefactos para cambios grandes o de varias fases.
-10. Pregunta al usuario qué quiere priorizar; no planifiques toda la sesión automáticamente.
+3. **Verifica la automatización de scripts:** revisa si existe `logs/schedule-configured.json`.
+   - Si **NO existe**: ejecuta `agentflow schedule` en el directorio del workspace para registrar `auto-trigger.js` (cada 1 min) y `monitor-check.js` (cada 5 min) en el programador de tareas. Luego crea `logs/schedule-configured.json` con `{"configuredAt": "<fecha>"}`. Informa al usuario que la automatización quedó lista.
+   - Si **ya existe**: continúa sin hacer nada.
+4. Lee `<projectName>-plan.md` (o `PLAN.md` / `plan.md`) si existe; ese es el plan general.
+5. Lee el handoff más reciente en `handoffs/HANDOFF-*.md` si existe la carpeta.
+6. **Lee `INBOX.md` si existe** — contiene notificaciones automáticas del TUI de tasks completadas que requieren tu atención (crear siguientes TASKs, leer reportes de agentes, etc.).
+7. Lee `QUEUE.md` para ver trabajo activo y pendiente.
+8. Lee todos los archivos `progress/PROGRESS-*.md` que existan para entender el estado actual de cada agente.
+9. Lee `ENGRAM.md` para respetar la convención de memoria persistente del proyecto.
+10. Si existe `openspec/`, úsalo como capa de artefactos para cambios grandes o de varias fases.
+11. Pregunta al usuario qué quiere priorizar; no planifiques toda la sesión automáticamente.
 
 **Regla de INBOX:** Al inicio de CADA respuesta, si `INBOX.md` tiene entradas nuevas desde tu última lectura, léelo primero antes de responder al usuario. Así sabrás qué agentes terminaron y qué falta crear.
+
+**Regla de STATUS:** También lee `STATUS.md` al inicio de cada respuesta para tener contexto del estado actual de los agentes y la cola. Este archivo se actualiza automáticamente cada 60 segundos.
+
+**Regla de ACTIONS:** Si existe `ACTIONS.md`, léelo también - contiene acciones automáticas del monitoreo (tareas completadas que necesitan seguimiento, tareas fallidas, etc).
 
 ## Restricción operativa por defecto
 
@@ -71,13 +78,39 @@ Los demás agentes pueden permanecer configurados en `orchestrator.config.json`,
 
 Si el usuario dice explícitamente algo como:
 
+- `estaré ausente 1 hora`
 - `estaré ausente 2 horas`
 - `me voy un rato`
 - `activa monitoreo`
-- `quédate revisando`
-- `monitorea mientras no estoy`
 
-entonces debes entrar en **Modo Ausencia** durante esa sesión.
+**Activar Modo Ausencia:**
+```bash
+echo away > .away-mode
+```
+
+**El script monitor-check.js se ejecutará cada 5 minutos** y revisará:
+- Tareas completadas sin seguimiento
+- Tareas fallidas
+- Tareas atascadas (>10 min)
+- Y escribirá en ACTIONS.md
+
+**Auto-desactivación:**
+Cuando NO hay tareas pendientes Y NO hay agentes trabajando Y todas las tareas están completadas:
+- El script elimina .away-mode automáticamente
+- Modo Ausencia se desactiva solo
+- Cuando vuelvas y le digas "ya volví" → Claade responde normalmente
+
+**El script monitor-check.js se ejecutará cada 5 minutos** y revisará:
+- Tareas completadas sin seguimiento
+- Tareas fallidas
+- Tareas atascadas (>10 min)
+- Y escribirá en ACTIONS.md para que cuando vuelvas, Claude lo lea automáticamente
+
+**Desactivar Modo Ausencia:**
+```bash
+# Eliminar archivo indicador
+del .away-mode
+```
 
 ### Qué significa Modo Ausencia
 

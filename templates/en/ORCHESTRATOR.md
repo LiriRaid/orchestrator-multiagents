@@ -64,16 +64,23 @@ When the user says something like `Read ORCHESTRATOR.md and start`, do this:
 
 1. Read this file completely.
 2. Read `orchestrator.config.json` — identify the real project paths in `repos` (frontend, backend). Those are the paths where the worker agents operate.
-3. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
-4. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
-5. **Read `INBOX.md` if it exists** — it contains automatic TUI notifications of completed tasks that require your attention (creating next TASKs, reading agent reports, etc.).
-6. Read `QUEUE.md` to understand pending, active, and completed work.
-7. Read all `progress/PROGRESS-*.md` files if present.
-8. Read `ENGRAM.md` and follow the memory rules.
-9. Use `openspec/` for large or multi-phase changes.
-10. Tell the user the orchestrator is ready and ask what to prioritize.
+3. **Verify script automation:** check if `logs/schedule-configured.json` exists.
+   - If it does **NOT exist**: run `agentflow schedule` in the workspace directory to register `auto-trigger.js` (every 1 min) and `monitor-check.js` (every 5 min) in the task scheduler. Then create `logs/schedule-configured.json` with `{"configuredAt": "<date>"}`. Inform the user that automation is ready.
+   - If it **already exists**: continue without doing anything.
+4. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
+5. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
+6. **Read `INBOX.md` if it exists** — it contains automatic TUI notifications of completed tasks that require your attention (creating next TASKs, reading agent reports, etc.).
+7. Read `QUEUE.md` to understand pending, active, and completed work.
+8. Read all `progress/PROGRESS-*.md` files if present.
+9. Read `ENGRAM.md` and follow the memory rules.
+10. Use `openspec/` for large or multi-phase changes.
+11. Tell the user the orchestrator is ready and ask what to prioritize.
 
 **INBOX rule:** At the start of EACH response, if `INBOX.md` has new entries since your last read, check it first. This is how you know when an agent finished and what to create next — without Away Mode active.
+
+**STATUS rule:** Also read `STATUS.md` at the start of each response to get current context of agents and queue. This file updates automatically every 60 seconds.
+
+**ACTIONS rule:** If `ACTIONS.md` exists, read it too — it contains automatic monitoring actions (completed tasks needing follow-up, failed tasks, stuck tasks, etc).
 
 Startup is context loading only. Do not create project code changes during startup.
 
@@ -81,27 +88,39 @@ Startup is context loading only. Do not create project code changes during start
 
 If the user says something like:
 
+- `I will be away for 1 hour`
 - `I will be away for 2 hours`
-- `monitor while I am gone`
-- `keep checking`
-- `continue while I am away`
+- `going out for a while`
+- `activate monitoring`
 
-enter **Away Mode** for that session.
+**Activate Away Mode:**
+```bash
+echo away > .away-mode
+```
 
-In Away Mode:
+**The monitor-check.js script will run every 5 minutes** and check:
+- Completed tasks without follow-up
+- Failed tasks
+- Stuck tasks (>10 min)
+- And write to ACTIONS.md
 
-1. Check work state every 5 minutes.
-2. Read `QUEUE.md`, completed tasks, active tasks, idle agents, progress files, and blocked tasks.
-3. Assign new useful TASKs when agents become idle, as long as the work stays within the user's stated goal.
-4. Update `QUEUE.md` and `TASKS.md` when work needs splitting, dependency cleanup, or a next batch.
-5. Keep progress moving without inventing new product scope.
+**Auto-deactivate:**
+When there are NO pending tasks AND NO agents working AND all tasks are completed:
+- The script removes .away-mode automatically
+- Away Mode deactivates by itself
+- When you return and say "I'm back" → Clayde responds normally
 
-Away Mode limits:
+**The monitor-check.js script will run every 5 minutes** and check:
+- Completed tasks without follow-up
+- Failed tasks
+- Stuck tasks (>10 min)
+- And write to ACTIONS.md so when you return, Claude reads it automatically
 
-- Do not change the user's objective.
-- Do not open unrelated work streams.
-- Do not use Gemini, Cursor, or Abacus without explicit permission.
-- If a decision is risky or ambiguous, leave a note in `QUEUE.md` or a handoff instead of guessing.
+**Deactivate Away Mode:**
+```bash
+# Delete indicator file
+del .away-mode
+```
 
 ## Fallback Policy
 

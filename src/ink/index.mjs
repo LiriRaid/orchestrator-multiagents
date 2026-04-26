@@ -219,14 +219,33 @@ function buildSnapshot() {
 
 	const agents = Object.entries(config.agents || {}).map(([name]) => {
 		const agent = engineState.agents?.[name];
+		const lastLine = agent?.lastLine || '';
+
+		let status;
+		if (agent?.status === 'busy') {
+			status = 'busy';
+		} else if (lastLine.startsWith('FALLÓ:') || lastLine.startsWith('FAILED:')) {
+			status = 'failed';
+		} else if (
+			lastLine.startsWith('REINTENTO:') ||
+			lastLine.startsWith('LÍMITE:') ||
+			lastLine.startsWith('RETRY:') ||
+			lastLine.startsWith('LIMIT:')
+		) {
+			status = 'retrying';
+		} else {
+			status = 'idle';
+		}
+
 		return {
 			name,
-			status: agent?.status === 'busy' ? 'busy' : 'idle',
+			status,
 			task: agent?.task ? `${agent.task.id} · ${agent.task.title}` : null,
 			detail:
 				agent?.status === 'busy'
 					? `${agent.task?.priority || 'P?'} · ${agent.task?.repo || 'repo'}`
-					: agent?.lastLine || text.ready
+					: lastLine || text.ready,
+			totalCost: agent?.totalCost || 0
 		};
 	});
 
