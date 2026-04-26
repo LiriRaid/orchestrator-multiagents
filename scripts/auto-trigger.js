@@ -12,6 +12,20 @@ const WORKSPACE = process.env.ORCHESTRATOR_WORKSPACE || process.cwd();
 const INBOX_FILE = path.join(WORKSPACE, 'INBOX.md');
 const QUEUE_FILE = path.join(WORKSPACE, 'QUEUE.md');
 const LAST_CHECK_FILE = path.join(WORKSPACE, 'logs', 'last-auto-check.json');
+const LOCK_FILE = path.join(WORKSPACE, 'logs', 'orchestrator.lock');
+const AWAY_MODE_FILE = path.join(WORKSPACE, '.away-mode');
+
+// Salir silenciosamente si el TUI no está corriendo y no hay Away Mode activo
+function isTuiRunning() {
+  if (!fs.existsSync(LOCK_FILE)) return false;
+  const pid = parseInt(fs.readFileSync(LOCK_FILE, 'utf-8').trim(), 10);
+  if (isNaN(pid)) return false;
+  try { process.kill(pid, 0); return true; } catch { return false; }
+}
+
+if (!isTuiRunning() && !fs.existsSync(AWAY_MODE_FILE)) {
+  process.exit(0);
+}
 
 function timestamp() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19);

@@ -58,17 +58,23 @@ function readState() {
 }
 
 function launchClaude(prompt) {
+  const logPath = path.join(WORKSPACE, 'logs', `monitor-${Date.now()}.log`);
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const logFd = fs.openSync(logPath, 'a');
   const claude = spawn('claude', [
     '-p', prompt,
     '--add-dir', WORKSPACE,
     '--dangerously-skip-permissions'
   ], {
     cwd: WORKSPACE,
-    stdio: 'inherit',
-    shell: true
+    stdio: ['ignore', logFd, logFd],
+    shell: true,
+    windowsHide: true,
+    detached: true
   });
-  claude.on('error', err => console.error(`[${timestamp()}] Error lanzando Claude: ${err.message}`));
-  return claude;
+  fs.closeSync(logFd);
+  claude.unref();
+  console.log(`[${timestamp()}] Claude lanzado en background. Log: ${logPath}`);
 }
 
 // ============================================================================

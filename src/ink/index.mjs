@@ -369,7 +369,7 @@ function requestAction(action) {
 }
 
 function shutdown() {
-	if (refreshTimer) clearInterval(refreshTimer);
+	if (refreshTimer) clearTimeout(refreshTimer);
 	if (resizeTimer) clearTimeout(resizeTimer);
 	if (spawnedEngine && !spawnedEngine.killed && quitRequested) {
 		try {
@@ -383,10 +383,21 @@ function shutdown() {
 	try { fs.unlinkSync(STATE_FILE); } catch {}
 }
 
+function scheduleRefresh() {
+	const engineState = readEngineState();
+	const busy = engineState && Object.values(engineState.agents || {}).some(a => a.status === 'busy');
+	const hasWork = engineState && ((engineState.queue || []).length > 0 || (engineState.inProgress || []).length > 0);
+	const ms = (busy || hasWork) ? 1000 : 4000;
+	refreshTimer = setTimeout(() => {
+		refresh();
+		scheduleRefresh();
+	}, ms);
+}
+
 function mount() {
 	ensureEngine();
 	refresh();
-	refreshTimer = setInterval(refresh, 1000);
+	scheduleRefresh();
 
 	if (process.stdout.isTTY) {
 		process.stdout.on('resize', () => {

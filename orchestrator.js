@@ -121,6 +121,8 @@ if (!fs.existsSync(CONFIG_FILE)) {
 const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
 
 const QUEUE_FILE = path.join(WORKSPACE, "QUEUE.md");
+const INBOX_FILE = path.join(WORKSPACE, "INBOX.md");
+const AWAY_MODE_FILE = path.join(WORKSPACE, ".away-mode");
 const LOG_DIR = path.join(WORKSPACE, "logs");
 
 const REPOS = config.repos || {};
@@ -1030,7 +1032,6 @@ function reloadQueue() {
 // session can detect it on next interaction without Modo Ausencia active.
 // ============================================================================
 function writeInboxNotification(task, agentName, elapsed) {
-  const inboxFile = path.join(WORKSPACE, "INBOX.md");
   const progressFile = `progress/PROGRESS-${agentName}.md`;
   const entry = [
     ``,
@@ -1043,12 +1044,11 @@ function writeInboxNotification(task, agentName, elapsed) {
     ``,
   ].join("\n");
   try {
-    fs.appendFileSync(inboxFile, entry, "utf-8");
+    fs.appendFileSync(INBOX_FILE, entry, "utf-8");
   } catch {}
 }
 
 function writeInboxFailureNotification(task, failedAgent, newAgent, reason) {
-  const inboxFile = path.join(WORKSPACE, "INBOX.md");
   const entry = [
     ``,
     L.inboxFailed(timestamp(), task.id, failedAgent, newAgent),
@@ -1060,7 +1060,7 @@ function writeInboxFailureNotification(task, failedAgent, newAgent, reason) {
     ``,
   ].join("\n");
   try {
-    fs.appendFileSync(inboxFile, entry, "utf-8");
+    fs.appendFileSync(INBOX_FILE, entry, "utf-8");
   } catch {}
 }
 
@@ -1894,11 +1894,237 @@ setInterval(() => {
   if (command) applyControlCommand(command);
 }, 1000);
 
+// Real-time queue detection via fs.watch — fires immediately when QUEUE.md changes
+// (e.g. Claude writes a new task). No more 30s delay.
+let _queueWatchDebounce = null;
+function startQueueWatcher() {
+  if (!fs.existsSync(QUEUE_FILE)) return;
+  try {
+    const watcher = fs.watch(QUEUE_FILE, {persistent: false}, (eventType) => {
+      if (eventType !== 'change') return;
+      if (_queueWatchDebounce) clearTimeout(_queueWatchDebounce);
+      _queueWatchDebounce = setTimeout(() => {
+        const prevCount = state.queue.length;
+        reloadQueue();
+        if (!state.paused) scheduleNext();
+        renderDashboard();
+        if (state.queue.length > prevCount)
+          log("INFO", WORKSPACE_LANGUAGE === "es"
+            ? `Nueva tarea detectada en QUEUE.md`
+            : `New task detected in QUEUE.md`);
+      }, 400);
+    });
+    watcher.on('error', () => {});
+  } catch {}
+}
+startQueueWatcher();
+
+// Slow fallback (5 min) — only runs if there is actually pending work or busy agents
+// fs.watch handles real-time; this is just a safety net
 setInterval(() => {
+  const busy = Object.values(state.agents).some(a => a.status === 'busy');
+  if (state.paused || (state.queue.length === 0 && !busy)) return;
   reloadQueue();
-  if (!state.paused) scheduleNext();
+  scheduleNext();
   renderDashboard();
-}, POLL_INTERVAL_MS);
+}, 5 * 60 * 1000);
+
+// ============================================================================
+// INBOX WATCHER — reacts immediately when a task completion is written to INBOX.md
+// Spawns headless Claude to check if a new implementation task needs to be created
+// ============================================================================
+let _inboxDebounce = null;
+let _lastInboxContent = '';
+let _inboxDispatching = false;
+
+function dispatchInboxClaude() {
+  if (_inboxDispatching) return;
+  let content = '';
+  try { content = fs.existsSync(INBOX_FILE) ? fs.readFileSync(INBOX_FILE, 'utf-8') : ''; } catch {}
+  if (!content.trim() || content === _lastInboxContent) return;
+
+  _lastInboxContent = content;
+  _inboxDispatching = true;
+
+  const lang = WORKSPACE_LANGUAGE;
+  const prompt = lang === 'es'
+    ? `Eres el orquestador de este workspace. Tu única misión ahora es procesar el INBOX.
+
+Pasos:
+1. Lee INBOX.md en ${WORKSPACE}
+2. Lee QUEUE.md en ${WORKSPACE} para ver las tareas existentes (secciones Pendientes, En progreso, Completadas)
+
+Si en INBOX.md hay análisis completados de un agente (especialmente OpenCode) que aún NO tienen su tarea de implementación en la sección ## Pendientes de QUEUE.md:
+- Determina el siguiente TASK ID disponible leyendo QUEUE.md
+- Crea la nueva TASK en QUEUE.md con el formato exacto:
+  TASK-NNN | título corto | Codex | P1 | repo | descripción basada en el análisis
+
+Si ya existe la tarea correspondiente, o el análisis no está completo, responde solo: "Sin acción necesaria."
+
+Reglas: No hagas commit ni push. No analices código del proyecto. Solo lee INBOX.md y QUEUE.md, y edita QUEUE.md si hace falta.`
+    : `You are the orchestrator for this workspace. Your only mission now is to process the INBOX.
+
+Steps:
+1. Read INBOX.md in ${WORKSPACE}
+2. Read QUEUE.md in ${WORKSPACE} to see existing tasks (sections Pending, In Progress, Completed)
+
+If INBOX.md contains completed analyses from an agent (especially OpenCode) that do NOT yet have a corresponding implementation task in the ## Pending section of QUEUE.md:
+- Determine the next available TASK ID by reading QUEUE.md
+- Create the new TASK in QUEUE.md with the exact format:
+  TASK-NNN | short title | Codex | P1 | repo | description based on the analysis
+
+If the corresponding task already exists, or the analysis is not complete, reply only: "No action needed."
+
+Rules: Do not commit or push. Do not analyze project code. Only read INBOX.md and QUEUE.md, and edit QUEUE.md if necessary.`;
+
+  const logPath = path.join(LOG_DIR, `inbox-trigger-${Date.now()}.log`);
+  try {
+    const logFd = fs.openSync(logPath, 'a');
+    const child = spawn('claude', [
+      '-p', prompt,
+      '--add-dir', WORKSPACE,
+      '--dangerously-skip-permissions'
+    ], {
+      cwd: WORKSPACE,
+      stdio: ['ignore', logFd, logFd],
+      shell: true,
+      windowsHide: true,
+      detached: true
+    });
+    fs.closeSync(logFd);
+    child.unref();
+    log('INFO', lang === 'es'
+      ? 'INBOX: Claude despachado para procesar notificación'
+      : 'INBOX: Claude dispatched to process notification');
+  } catch {}
+  setTimeout(() => { _inboxDispatching = false; }, 3 * 60 * 1000);
+}
+
+function startInboxWatcher() {
+  if (!fs.existsSync(INBOX_FILE)) {
+    try { fs.writeFileSync(INBOX_FILE, '', 'utf-8'); } catch {}
+  }
+  try {
+    const watcher = fs.watch(INBOX_FILE, {persistent: false}, (eventType) => {
+      if (eventType !== 'change') return;
+      if (_inboxDebounce) clearTimeout(_inboxDebounce);
+      _inboxDebounce = setTimeout(dispatchInboxClaude, 600);
+    });
+    watcher.on('error', () => {});
+  } catch {}
+}
+startInboxWatcher();
+
+// ============================================================================
+// AWAY MODE WATCHER — monitors .away-mode file; when active runs periodic
+// health checks via headless Claude; auto-deactivates when all tasks are done
+// ============================================================================
+let _awayModeTimer = null;
+let _awayModeActive = false;
+
+function runAwayModeCheck() {
+  if (!fs.existsSync(AWAY_MODE_FILE)) {
+    deactivateAwayMode();
+    return;
+  }
+
+  const lang = WORKSPACE_LANGUAGE;
+  const pendingTasks = state.queue.filter(t => !t.status || t.status === 'pending');
+  const inProgressTasks = state.inProgress || [];
+  const busy = Object.values(state.agents).some(a => a.status === 'busy');
+  const completedCount = (state.completed || []).length;
+  const hasWork = pendingTasks.length > 0 || inProgressTasks.length > 0 || busy;
+
+  if (!hasWork && completedCount > 0) {
+    try { fs.unlinkSync(AWAY_MODE_FILE); } catch {}
+    deactivateAwayMode();
+
+    const donePrompt = lang === 'es'
+      ? `Modo Ausencia terminado. Todas las tareas se completaron mientras estabas ausente.\n\nLee QUEUE.md en ${WORKSPACE} y dame un resumen de todo lo que se logró durante la sesión.\nLuego dime si hay algo que podamos continuar o integrar a partir de lo que ya se hizo, o pregúntame qué quiero priorizar a continuación.`
+      : `Away Mode ended. All tasks were completed while you were away.\n\nRead QUEUE.md in ${WORKSPACE} and give me a summary of everything accomplished during the session.\nThen tell me if there is anything we can continue or integrate from what was done, or ask me what I want to prioritize next.`;
+
+    const logPath = path.join(LOG_DIR, `away-done-${Date.now()}.log`);
+    try {
+      const logFd = fs.openSync(logPath, 'a');
+      const child = spawn('claude', ['-p', donePrompt, '--add-dir', WORKSPACE, '--dangerously-skip-permissions'], {
+        cwd: WORKSPACE, stdio: ['ignore', logFd, logFd], shell: true, windowsHide: true, detached: true
+      });
+      fs.closeSync(logFd);
+      child.unref();
+      log('INFO', lang === 'es' ? 'Modo Ausencia: todo completado — resumen final enviado.' : 'Away Mode: all done — final summary dispatched.');
+    } catch {}
+    return;
+  }
+
+  if (!hasWork) return;
+
+  const lines = [];
+  if (pendingTasks.length > 0) {
+    lines.push(lang === 'es' ? `Tareas pendientes: ${pendingTasks.length}` : `Pending tasks: ${pendingTasks.length}`);
+    pendingTasks.slice(0, 5).forEach(t => lines.push(`  - ${t.id}: ${t.title}`));
+  }
+  if (inProgressTasks.length > 0) {
+    lines.push(lang === 'es'
+      ? `En progreso: ${inProgressTasks.map(t => `${t.id} (${t.agent})`).join(', ')}`
+      : `In progress: ${inProgressTasks.map(t => `${t.id} (${t.agent})`).join(', ')}`);
+  }
+  const failedAgents = Object.entries(state.agents)
+    .filter(([, a]) => /^(FALLÓ|FAILED):/.test(a.lastLine || ''))
+    .map(([n, a]) => `${n}: ${a.lastLine}`);
+  if (failedAgents.length > 0) {
+    lines.push(lang === 'es' ? `Agentes con fallo: ${failedAgents.join(' | ')}` : `Failed agents: ${failedAgents.join(' | ')}`);
+  }
+  if (completedCount > 0) {
+    lines.push(lang === 'es' ? `Completadas: ${completedCount}` : `Completed: ${completedCount}`);
+  }
+
+  const stateCtx = lines.join('\n');
+  const monitorPrompt = lang === 'es'
+    ? `Modo Ausencia activo — revisión automática.\n\nEstado del orquestador:\n${stateCtx}\n\nInstrucciones:\n1. Lee INBOX.md en ${WORKSPACE} — si hay análisis completados sin tarea de implementación en QUEUE.md, créala\n2. Lee QUEUE.md — si hay tareas fallidas no reasignadas, reasígnalas al siguiente agente disponible\n3. Si hay agentes idle y tareas pendientes sin procesar, revisa bloqueos y resuélvelos\n4. Si el trabajo avanza normalmente, no hagas nada\n\nNo hagas commit ni push. No inventes tareas nuevas.`
+    : `Away Mode active — automatic check.\n\nOrchestrator state:\n${stateCtx}\n\nInstructions:\n1. Read INBOX.md in ${WORKSPACE} — if there are completed analyses without implementation tasks in QUEUE.md, create them\n2. Read QUEUE.md — if there are failed tasks not reassigned, reassign to the next available agent\n3. If there are idle agents and pending tasks not being processed, check for blocking issues\n4. If work is progressing normally, do nothing\n\nDo not commit or push. Do not invent new tasks.`;
+
+  const logPath = path.join(LOG_DIR, `away-check-${Date.now()}.log`);
+  try {
+    const logFd = fs.openSync(logPath, 'a');
+    const child = spawn('claude', ['-p', monitorPrompt, '--add-dir', WORKSPACE, '--dangerously-skip-permissions'], {
+      cwd: WORKSPACE, stdio: ['ignore', logFd, logFd], shell: true, windowsHide: true, detached: true
+    });
+    fs.closeSync(logFd);
+    child.unref();
+    log('INFO', lang === 'es' ? 'Modo Ausencia: revisión automática disparada.' : 'Away Mode: automatic check dispatched.');
+  } catch {}
+}
+
+function activateAwayMode() {
+  if (_awayModeActive) return;
+  _awayModeActive = true;
+  log('INFO', WORKSPACE_LANGUAGE === 'es' ? 'Modo Ausencia activado.' : 'Away Mode activated.');
+  runAwayModeCheck();
+  _awayModeTimer = setInterval(runAwayModeCheck, 10 * 60 * 1000);
+}
+
+function deactivateAwayMode() {
+  if (!_awayModeActive) return;
+  _awayModeActive = false;
+  if (_awayModeTimer) { clearInterval(_awayModeTimer); _awayModeTimer = null; }
+  log('INFO', WORKSPACE_LANGUAGE === 'es' ? 'Modo Ausencia desactivado.' : 'Away Mode deactivated.');
+}
+
+function startAwayModeWatcher() {
+  if (fs.existsSync(AWAY_MODE_FILE)) activateAwayMode();
+  try {
+    const watcher = fs.watch(WORKSPACE, {persistent: false}, (eventType, filename) => {
+      if (filename !== '.away-mode') return;
+      if (fs.existsSync(AWAY_MODE_FILE)) {
+        activateAwayMode();
+      } else {
+        deactivateAwayMode();
+      }
+    });
+    watcher.on('error', () => {});
+  } catch {}
+}
+startAwayModeWatcher();
 
 setInterval(() => {
   updateStatusFile();
