@@ -64,9 +64,7 @@ When the user says something like `Read ORCHESTRATOR.md and start`, do this:
 
 1. Read this file completely.
 2. Read `orchestrator.config.json` — identify the real project paths in `repos` (frontend, backend). Those are the paths where the worker agents operate.
-3. **Verify script automation:** check if `logs/schedule-configured.json` exists.
-   - If it does **NOT exist**: run `agentflow schedule` in the workspace directory to register `auto-trigger.js` (every 1 min) and `monitor-check.js` (every 5 min) in the task scheduler. Then create `logs/schedule-configured.json` with `{"configuredAt": "<date>"}`. Inform the user that automation is ready.
-   - If it **already exists**: continue without doing anything.
+3. **Verify automation:** The orchestrator uses `fs.watch` (Node.js real-time watching). No Task Scheduler needed. The TUI stays running in a terminal and detects changes immediately.
 4. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
 5. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
 6. **Read `INBOX.md` if it exists** — it contains automatic TUI notifications of completed tasks that require your attention (creating next TASKs, reading agent reports, etc.).
@@ -98,23 +96,18 @@ If the user says something like:
 echo away > .away-mode
 ```
 
-**The monitor-check.js script will run every 5 minutes** and check:
+**Away Mode checks every 5 minutes** and will:
 - Completed tasks without follow-up
 - Failed tasks
 - Stuck tasks (>10 min)
-- And write to ACTIONS.md
+- Pending tasks with no agent assigned → assign them automatically
+- Write to ACTIONS.md
 
 **Auto-deactivate:**
 When there are NO pending tasks AND NO agents working AND all tasks are completed:
-- The script removes .away-mode automatically
+- Away Mode removes .away-mode automatically
 - Away Mode deactivates by itself
-- When you return and say "I'm back" → Clayde responds normally
-
-**The monitor-check.js script will run every 5 minutes** and check:
-- Completed tasks without follow-up
-- Failed tasks
-- Stuck tasks (>10 min)
-- And write to ACTIONS.md so when you return, Claude reads it automatically
+- When you return and say "I'm back" → Claude responds normally
 
 **Deactivate Away Mode:**
 ```bash

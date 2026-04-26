@@ -1855,7 +1855,44 @@ function tryFallbackToAlternative(task, failedAgentName, reason) {
   if (!queueUpdated) {
     log("WARN", L.logReassignWarn(task.id, targetAgent));
   }
+
+  // Notificar a Claude (sesión principal) cuando hay fallback
+  notifyClaudeOfFallback(task, failedAgentName, targetAgent, reason);
   return true;
+}
+
+// ============================================================================
+// CLAUDE FALLBACK NOTIFIER — avisa a Claude principal cuando hay reasignación
+// ============================================================================
+function notifyClaudeOfFallback(task, fromAgent, toAgent, reason) {
+  const lang = WORKSPACE_LANGUAGE;
+  const prompt = lang === 'es'
+    ? `⚠️ FALLBACK: La tarea "${task.id}: ${task.title}" falló en ${fromAgent} (${reason}) y fue reasignada a ${toAgent}.
+
+Estado actual:
+- QUEUE.md tiene ahora la tarea asignada a ${toAgent}
+- El agente ${toAgent} está procediendo automáticamente
+
+ Acción: No necesitas hacer nada — solo toma nota del cambio. El orquestador将继续 automáticamente.
+Si quieres revisar el progreso, lee INBOX.md o STATUS.md.`
+    : `⚠️ FALLBACK: Task "${task.id}: ${task.title}" failed on ${fromAgent} (${reason}) and was reassigned to ${toAgent}.
+
+Current state:
+- QUEUE.md now has the task assigned to ${toAgent}
+- Agent ${toAgent} is proceeding automatically
+
+Action: You don't need to do anything — just take note of the change. The orchestrator will continue automatically.
+If you want to check progress, read INBOX.md or STATUS.md.`;
+
+  const logPath = path.join(LOG_DIR, `fallback-notify-${Date.now()}.log`);
+  try {
+    const logFd = fs.openSync(logPath, 'a');
+    const child = spawn('claude', ['-p', prompt, '--add-dir', WORKSPACE, '--dangerously-skip-permissions'], {
+      cwd: WORKSPACE, stdio: ['ignore', logFd, logFd], shell: true, windowsHide: true, detached: true
+    });
+    fs.closeSync(logFd);
+    child.unref();
+  } catch {}
 }
 
 // ============================================================================
@@ -2079,9 +2116,9 @@ function runAwayModeCheck() {
   }
 
   const stateCtx = lines.join('\n');
-  const monitorPrompt = lang === 'es'
-    ? `Modo Ausencia activo — revisión automática.\n\nEstado del orquestador:\n${stateCtx}\n\nInstrucciones:\n1. Lee INBOX.md en ${WORKSPACE} — si hay análisis completados sin tarea de implementación en QUEUE.md, créala\n2. Lee QUEUE.md — si hay tareas fallidas no reasignadas, reasígnalas al siguiente agente disponible\n3. Si hay agentes idle y tareas pendientes sin procesar, revisa bloqueos y resuélvelos\n4. Si el trabajo avanza normalmente, no hagas nada\n\nNo hagas commit ni push. No inventes tareas nuevas.`
-    : `Away Mode active — automatic check.\n\nOrchestrator state:\n${stateCtx}\n\nInstructions:\n1. Read INBOX.md in ${WORKSPACE} — if there are completed analyses without implementation tasks in QUEUE.md, create them\n2. Read QUEUE.md — if there are failed tasks not reassigned, reassign to the next available agent\n3. If there are idle agents and pending tasks not being processed, check for blocking issues\n4. If work is progressing normally, do nothing\n\nDo not commit or push. Do not invent new tasks.`;
+const monitorPrompt = lang === 'es'
+    ? `Modo Ausencia activo — revisión automática cada 5 minutos.\n\nEstado del orquestador:\n${stateCtx}\n\nInstrucciones:\n1. Lee INBOX.md — si hay análisis completados sin tarea de implementación en QUEUE.md, créala\n2. Lee QUEUE.md — si hay tareas fallidas no reasignadas, reasígnalas al siguiente agente\n3. Si hay tareas pendientes sin asignar a ningún agente (agent = >0 o vacío), asígnalas a un agente idle (Codex u OpenCode)\n4. Si hay agentes idle y tareas pendientes sin procesar, revisa bloqueos y resuélvelos\n5. Si todo avanza, no hagas nada y responde brevemente "TodoOK"\n\nNo hagas commit ni push. No inventes tareas nuevas.`
+    : `Away Mode active — automatic check every 5 minutes.\n\nOrchestrator state:\n${stateCtx}\n\nInstructions:\n1. Read INBOX.md — if there are completed analyses without implementation tasks in QUEUE.md, create them\n2. Read QUEUE.md — if there are failed tasks not reassigned, reassign to next available agent\n3. If there are pending tasks with no agent assigned (agent = >0 or empty), assign them to an idle agent (Codex or OpenCode)\n4. If there are idle agents and pending tasks not being processed, check for blocking issues\n5. If everything is progressing, do nothing and respond briefly "AllGood"\n\nDo not commit or push. Do not invent new tasks.`;
 
   const logPath = path.join(LOG_DIR, `away-check-${Date.now()}.log`);
   try {
@@ -2100,7 +2137,7 @@ function activateAwayMode() {
   _awayModeActive = true;
   log('INFO', WORKSPACE_LANGUAGE === 'es' ? 'Modo Ausencia activado.' : 'Away Mode activated.');
   runAwayModeCheck();
-  _awayModeTimer = setInterval(runAwayModeCheck, 10 * 60 * 1000);
+  _awayModeTimer = setInterval(runAwayModeCheck, 5 * 60 * 1000); // 5 minutos
 }
 
 function deactivateAwayMode() {

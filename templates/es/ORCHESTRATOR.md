@@ -43,10 +43,8 @@ Cuando necesites entender el proyecto para planificar tareas, **lee archivos des
 ## Al iniciar la sesión — OBLIGATORIO
 
 1. Lee este archivo completo.
-2. Lee `orchestrator.config.json` — identifica las rutas reales en `repos` (frontend, backend). Esas son las rutas del proyecto real donde trabajan los agentes.
-3. **Verifica la automatización de scripts:** revisa si existe `logs/schedule-configured.json`.
-   - Si **NO existe**: ejecuta `agentflow schedule` en el directorio del workspace para registrar `auto-trigger.js` (cada 1 min) y `monitor-check.js` (cada 5 min) en el programador de tareas. Luego crea `logs/schedule-configured.json` con `{"configuredAt": "<fecha>"}`. Informa al usuario que la automatización quedó lista.
-   - Si **ya existe**: continúa sin hacer nada.
+2. Lee `orchestrator.config.json` — identifica las rutas reales en `repos` (frontend, backend). Esas son las rutas del proyecto real donde trabajan los agentees.
+3. **Verifica la automatización:** El orquestador usa `fs.watch` (realtime de Node.js). No necesita Task Scheduler. La TUI corre en una terminal y detecta cambios inmediatamente.
 4. Lee `<projectName>-plan.md` (o `PLAN.md` / `plan.md`) si existe; ese es el plan general.
 5. Lee el handoff más reciente en `handoffs/HANDOFF-*.md` si existe la carpeta.
 6. **Lee `INBOX.md` si existe** — contiene notificaciones automáticas del TUI de tasks completadas que requieren tu atención (crear siguientes TASKs, leer reportes de agentes, etc.).
@@ -88,23 +86,18 @@ Si el usuario dice explícitamente algo como:
 echo away > .away-mode
 ```
 
-**El script monitor-check.js se ejecutará cada 5 minutos** y revisará:
+**El modo ausente hace revisión cada 5 minutos** y revisará:
 - Tareas completadas sin seguimiento
 - Tareas fallidas
 - Tareas atascadas (>10 min)
+- Tareas pendientes sin agente asignado → las asignará automáticamente
 - Y escribirá en ACTIONS.md
 
 **Auto-desactivación:**
 Cuando NO hay tareas pendientes Y NO hay agentes trabajando Y todas las tareas están completadas:
-- El script elimina .away-mode automáticamente
+- El modo elimina .away-mode automáticamente
 - Modo Ausencia se desactiva solo
-- Cuando vuelvas y le digas "ya volví" → Claade responde normalmente
-
-**El script monitor-check.js se ejecutará cada 5 minutos** y revisará:
-- Tareas completadas sin seguimiento
-- Tareas fallidas
-- Tareas atascadas (>10 min)
-- Y escribirá en ACTIONS.md para que cuando vuelvas, Claude lo lea automáticamente
+- Cuando vuelvas y le digas "ya volví" → Claude responde normalmente
 
 **Desactivar Modo Ausencia:**
 ```bash
