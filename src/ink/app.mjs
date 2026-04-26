@@ -89,18 +89,18 @@ const AgentCard = ({agent, text}) => {
 			borderStyle: 'round',
 			borderColor: statusColor,
 			width: '24%',
-			minHeight: 6,
+			minHeight: 9,
 			paddingX: 1,
 			flexDirection: 'column'
 		},
-		h(Text, {bold: true}, agent.name),
+		h(Text, {bold: true, wrap: 'wrap'}, agent.name),
 		h(Text, {color: statusColor}, agent.status === 'busy' ? text.busy : text.idle),
 		h(
 			Text,
-			{color: COLORS.muted},
-			agent.task ? truncate(agent.task, 26) : text.noTask
+			{color: COLORS.muted, wrap: 'wrap'},
+			agent.task || text.noTask
 		),
-		h(Text, {color: COLORS.muted}, agent.detail || text.ready)
+		h(Text, {color: COLORS.muted, wrap: 'wrap'}, agent.detail || text.ready)
 	);
 };
 
@@ -229,9 +229,7 @@ export function App({snapshot, paused = false, onAction}) {
 					key: agent.name,
 					agent: {
 						...agent,
-						name: truncate(agent.name, agentWidth),
-						task: agent.task ? truncate(agent.task, agentWidth) : null,
-						detail: truncate(agent.detail || text.ready, agentWidth)
+						detail: agent.detail || text.ready
 					}
 				})
 			)

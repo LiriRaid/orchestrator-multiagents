@@ -18,13 +18,26 @@ Hay dos roles distintos que no deben confundirse:
 
 Claude no debe quedarse solo esperando respuestas de otros agentes. Cuando haya tareas independientes suficientes, el orquestador debe incluir al menos una TASK para un Claude-Worker en la primera tanda, además de tareas para Codex y OpenCode cuando aplique.
 
+## El workspace NO es el proyecto real
+
+Este directorio (`orchestrator-<nombre>`) existe **únicamente** para gestión de trabajo:
+- `QUEUE.md` — cola de tareas para los agentes
+- `TASKS.md` — specs detalladas de tareas
+- `handoffs/` — continuidad entre sesiones
+- `progress/` — estado actual de cada agente
+- `logs/` — salida de los agentes
+
+El código real del proyecto vive en las rutas definidas en `orchestrator.config.json → repos`.
+Cuando necesites entender el proyecto para planificar tareas, **lee archivos desde esas rutas**.
+**Nunca modifiques archivos del proyecto real directamente** — eso es trabajo exclusivo de los agentes workers.
+
 ## Al iniciar la sesión — OBLIGATORIO
 
 1. Lee este archivo completo.
-2. Lee `<projectName>-plan.md` (o `PLAN.md` / `plan.md`) si existe; ese es el plan general.
-3. Lee el handoff más reciente en `handoffs/HANDOFF-*.md` si existe la carpeta.
-4. Lee `QUEUE.md` para ver trabajo activo y pendiente.
-5. Lee `orchestrator.config.json` para saber qué agentes y repos están disponibles.
+2. Lee `orchestrator.config.json` — identifica las rutas reales en `repos` (frontend, backend). Esas son las rutas del proyecto real donde trabajan los agentes.
+3. Lee `<projectName>-plan.md` (o `PLAN.md` / `plan.md`) si existe; ese es el plan general.
+4. Lee el handoff más reciente en `handoffs/HANDOFF-*.md` si existe la carpeta.
+5. Lee `QUEUE.md` para ver trabajo activo y pendiente.
 6. Lee todos los archivos `progress/PROGRESS-*.md` que existan para entender el estado actual de cada agente.
 7. Lee `ENGRAM.md` para respetar la convención de memoria persistente del proyecto.
 8. Si existe `openspec/`, úsalo como capa de artefactos para cambios grandes o de varias fases.
