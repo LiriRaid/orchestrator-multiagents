@@ -1949,7 +1949,7 @@ function startQueueWatcher() {
           log("INFO", WORKSPACE_LANGUAGE === "es"
             ? `Nueva tarea detectada en QUEUE.md`
             : `New task detected in QUEUE.md`);
-      }, 400);
+      }, 50);
     });
     watcher.on('error', () => {});
   } catch {}
@@ -2045,7 +2045,7 @@ function startInboxWatcher() {
     const watcher = fs.watch(INBOX_FILE, {persistent: false}, (eventType) => {
       if (eventType !== 'change') return;
       if (_inboxDebounce) clearTimeout(_inboxDebounce);
-      _inboxDebounce = setTimeout(dispatchInboxClaude, 600);
+      _inboxDebounce = setTimeout(dispatchInboxClaude, 100);
     });
     watcher.on('error', () => {});
   } catch {}

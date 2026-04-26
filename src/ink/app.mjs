@@ -33,6 +33,7 @@ const TEXT = {
 		paused: 'Pausado',
 		preview: 'Explorando Ink',
 		shortcuts: 'Atajos',
+		start: 'reanudar',
 		pause: 'pausar',
 		quit: 'salir y matar agentes',
 		summary: 'Resumen',
@@ -57,6 +58,7 @@ const TEXT = {
 		paused: 'Paused',
 		preview: 'Exploring Ink',
 		shortcuts: 'Shortcuts',
+		start: 'resume',
 		pause: 'pause',
 		quit: 'quit and stop agents',
 		summary: 'Summary',
@@ -137,6 +139,7 @@ export function App({snapshot, paused = false, onAction}) {
 		}
 
 		const normalized = input.toLowerCase();
+		if (normalized === 's') onAction?.('start');
 		if (normalized === 'p') onAction?.('pause');
 		if (normalized === 'q') onAction?.('quit');
 	});
@@ -160,11 +163,6 @@ export function App({snapshot, paused = false, onAction}) {
 		`${snapshot.timestamp}  |  ${snapshot.stateLabel || (paused ? text.paused : text.preview)}  |  ${text.active.toLowerCase()} ${liveActiveLabel}`,
 		heroWidth
 	);
-	const shortcutRest = truncate(
-		`S ${text.start}  P ${text.pause}  R ${text.reload}  Q ${text.quit}`,
-		Math.max(0, shortcutWidth - 8)
-	);
-
 	return h(
 		Box,
 		{flexDirection: 'column', paddingX: 1, paddingY: 0},
@@ -185,10 +183,12 @@ export function App({snapshot, paused = false, onAction}) {
 			Box,
 			{marginBottom: 1},
 			h(Text, {color: COLORS.warning}, `${text.shortcuts}: `),
+			h(Text, {bold: true}, 'S'),
+			h(Text, {color: COLORS.muted}, ` ${text.start}  `),
 			h(Text, {bold: true}, 'P'),
-			h(Text, {color: COLORS.muted}, truncate(` ${text.pause}  `, Math.max(0, shortcutWidth - 55))),
+			h(Text, {color: COLORS.muted}, ` ${text.pause}  `),
 			h(Text, {bold: true}, 'Q'),
-			h(Text, {color: COLORS.muted}, truncate(` ${text.quit}`, Math.max(0, shortcutWidth - 70)))
+			h(Text, {color: COLORS.muted}, ` ${text.quit}`)
 		),
 		h(
 			Box,
