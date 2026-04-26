@@ -799,6 +799,45 @@ function reloadQueue() {
 }
 
 // ============================================================================
+// INBOX NOTIFICATIONS — written when a task completes so the Orchestrator
+// session can detect it on next interaction without Modo Ausencia active.
+// ============================================================================
+function writeInboxNotification(task, agentName, elapsed) {
+  const inboxFile = path.join(WORKSPACE, "INBOX.md");
+  const progressFile = `progress/PROGRESS-${agentName}.md`;
+  const entry = [
+    ``,
+    `## [${timestamp()}] ${task.id} completada — ${agentName}`,
+    ``,
+    `- **Tarea:** ${task.title}`,
+    `- **Duración:** ${formatDuration(elapsed)}`,
+    `- **Reporte:** ${progressFile}`,
+    `- **Acción:** Lee \`${progressFile}\` y crea las siguientes TASKs si corresponde.`,
+    ``,
+  ].join("\n");
+  try {
+    fs.appendFileSync(inboxFile, entry, "utf-8");
+  } catch {}
+}
+
+function writeInboxFailureNotification(task, failedAgent, newAgent, reason) {
+  const inboxFile = path.join(WORKSPACE, "INBOX.md");
+  const entry = [
+    ``,
+    `## [${timestamp()}] ${task.id} falló — ${failedAgent} → reasignada a ${newAgent}`,
+    ``,
+    `- **Tarea:** ${task.title}`,
+    `- **Motivo:** ${reason}`,
+    `- **Nuevo agente:** ${newAgent}`,
+    `- **Acción:** La TUI reasignó automáticamente. Verifica en QUEUE.md o espera la siguiente notificación de completada.`,
+    ``,
+  ].join("\n");
+  try {
+    fs.appendFileSync(inboxFile, entry, "utf-8");
+  } catch {}
+}
+
+// ============================================================================
 // BRIEF GENERATOR
 // ============================================================================
 function generateBrief(task) {
@@ -1217,6 +1256,7 @@ function completeTask(task, agentName) {
   ag.startTime = null;
   ag.lastLine = `Última: ${task.id} completada`;
   updateQueueFile(task);
+  writeInboxNotification(task, agentName, elapsed);
   scheduleNext();
   renderDashboard();
 }
@@ -1302,19 +1342,20 @@ function failTask(task, agentName, code) {
   ag.process = null;
   ag.startTime = null;
 
-  const shouldFallbackToClaude =
+  const shouldFallback =
     ["Codex", "OpenCode"].includes(agentName) &&
     (failureFlags.exhaustedQuota ||
       failureFlags.providerUnavailable ||
       retries >= maxRetries);
 
-  if (shouldFallbackToClaude) {
+  if (shouldFallback) {
     const reason = failureFlags.exhaustedQuota
       ? "cuota o límite agotado"
       : failureFlags.providerUnavailable
         ? "proveedor o sesión no disponibles"
         : "fallo persistente";
-    if (tryFallbackToClaude(task, agentName, reason)) {
+    if (tryFallbackToAlternative(task, agentName, reason)) {
+      writeInboxFailureNotification(task, agentName, task.agent, reason);
       setTimeout(() => {
         scheduleNext();
         renderDashboard();
@@ -1474,39 +1515,55 @@ function detectSupportAgentFailure(agentName) {
 }
 
 function getClaudeFallbackAgent(task) {
+  // If both repos point to the same resolved path (frontend-only project), always prefer Frontend
+  if (
+    REPOS.backend &&
+    REPOS.frontend &&
+    path.resolve(REPOS.backend) === path.resolve(REPOS.frontend)
+  ) {
+    if (AGENTS["Frontend"]?.cli === "claude") return "Frontend";
+  }
   const preferred = task.repo === "frontend" ? "Frontend" : "Backend";
   if (AGENTS[preferred]?.cli === "claude") return preferred;
-  return (
-    Object.keys(AGENTS).find((name) => AGENTS[name]?.cli === "claude") || null
-  );
+  return Object.keys(AGENTS).find((name) => AGENTS[name]?.cli === "claude") || null;
 }
 
-function tryFallbackToClaude(task, failedAgentName, reason) {
-  if (!["Codex", "OpenCode"].includes(failedAgentName)) return false;
-  const fallbackAgent = getClaudeFallbackAgent(task);
-  if (!fallbackAgent || fallbackAgent === failedAgentName) return false;
+function getAlternativeSupportAgent(failedAgentName) {
+  if (failedAgentName === "Codex") return "OpenCode";
+  if (failedAgentName === "OpenCode") return "Codex";
+  return null;
+}
 
-  const queueUpdated = updateQueueTaskAgent(task.id, fallbackAgent);
-  task.agent = fallbackAgent;
+function tryFallbackToAlternative(task, failedAgentName, reason) {
+  if (!["Codex", "OpenCode"].includes(failedAgentName)) return false;
+
+  // Step 1: try sibling support agent (Codex → OpenCode, OpenCode → Codex)
+  const siblingAgent = getAlternativeSupportAgent(failedAgentName);
+  const siblingAvailable =
+    siblingAgent &&
+    AGENTS[siblingAgent] &&
+    state.agents[siblingAgent]?.status === "idle" &&
+    !rateLimitedAgents.has(siblingAgent);
+
+  // Step 2: if sibling is also unavailable, fall back to Claude worker (prefer Frontend)
+  const targetAgent = siblingAvailable ? siblingAgent : getClaudeFallbackAgent(task);
+  if (!targetAgent || targetAgent === failedAgentName) return false;
+
+  const queueUpdated = updateQueueTaskAgent(task.id, targetAgent);
+  task.agent = targetAgent;
   task.status = "pending";
   task._retryAfter = Date.now() + 3000;
   failedTasks.set(task.id, 0);
   state.queue.push(task);
 
-  log(
-    "FALLBACK",
-    `${task.id} fue reasignada de ${failedAgentName} a ${fallbackAgent} (${reason})`,
-  );
+  log("FALLBACK", `${task.id} reasignada de ${failedAgentName} a ${targetAgent} (${reason})`);
   appendToAgent(
     failedAgentName,
-    `{yellow-fg}=== REASIGNADA A ${escBl(fallbackAgent)} (${escBl(reason)}) ==={/yellow-fg}`,
+    `{yellow-fg}=== REASIGNADA A ${escBl(targetAgent)} (${escBl(reason)}) ==={/yellow-fg}`,
     true,
   );
   if (!queueUpdated) {
-    log(
-      "WARN",
-      `${task.id} fue reasignada a ${fallbackAgent}, pero QUEUE.md no pudo actualizarse automáticamente`,
-    );
+    log("WARN", `${task.id} reasignada a ${targetAgent}, pero QUEUE.md no pudo actualizarse`);
   }
   return true;
 }

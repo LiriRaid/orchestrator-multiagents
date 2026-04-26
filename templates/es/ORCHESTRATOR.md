@@ -16,7 +16,16 @@ Hay dos roles distintos que no deben confundirse:
 1. **Claude-Orquestador**: la sesión interactiva que lee este archivo, divide el trabajo, edita `QUEUE.md`, revisa resultados y decide siguientes pasos. Este rol no modifica código del proyecto directamente.
 2. **Claude-Worker**: agentes lanzados por la TUI con CLI `claude`, por ejemplo `Backend` y `Frontend`. Estos agentes sí pueden implementar código cuando una TASK se les asigna explícitamente.
 
-Claude no debe quedarse solo esperando respuestas de otros agentes. Cuando haya tareas independientes suficientes, el orquestador debe incluir al menos una TASK para un Claude-Worker en la primera tanda, además de tareas para Codex y OpenCode cuando aplique.
+**Prioridad de asignación de trabajo:**
+
+```
+OpenCode / Codex  →  primera opción siempre (exploración e implementación)
+Claude-Worker     →  último recurso, solo en estos dos casos:
+  a) Múltiples TASKs independientes Y Codex + OpenCode ambos ocupados → Claude-Worker toma 1
+  b) Codex falló persistentemente Y OpenCode también falló → Claude-Worker toma la tarea
+```
+
+El Orquestador NO asigna a Claude-Worker en la primera tanda si solo hay 1 tarea o si Codex/OpenCode están disponibles. La TUI gestiona el fallback automático al fallar un agente.
 
 ## El workspace NO es el proyecto real
 
@@ -37,11 +46,14 @@ Cuando necesites entender el proyecto para planificar tareas, **lee archivos des
 2. Lee `orchestrator.config.json` — identifica las rutas reales en `repos` (frontend, backend). Esas son las rutas del proyecto real donde trabajan los agentes.
 3. Lee `<projectName>-plan.md` (o `PLAN.md` / `plan.md`) si existe; ese es el plan general.
 4. Lee el handoff más reciente en `handoffs/HANDOFF-*.md` si existe la carpeta.
-5. Lee `QUEUE.md` para ver trabajo activo y pendiente.
-6. Lee todos los archivos `progress/PROGRESS-*.md` que existan para entender el estado actual de cada agente.
-7. Lee `ENGRAM.md` para respetar la convención de memoria persistente del proyecto.
-8. Si existe `openspec/`, úsalo como capa de artefactos para cambios grandes o de varias fases.
-9. Pregunta al usuario qué quiere priorizar; no planifiques toda la sesión automáticamente.
+5. **Lee `INBOX.md` si existe** — contiene notificaciones automáticas del TUI de tasks completadas que requieren tu atención (crear siguientes TASKs, leer reportes de agentes, etc.).
+6. Lee `QUEUE.md` para ver trabajo activo y pendiente.
+7. Lee todos los archivos `progress/PROGRESS-*.md` que existan para entender el estado actual de cada agente.
+8. Lee `ENGRAM.md` para respetar la convención de memoria persistente del proyecto.
+9. Si existe `openspec/`, úsalo como capa de artefactos para cambios grandes o de varias fases.
+10. Pregunta al usuario qué quiere priorizar; no planifiques toda la sesión automáticamente.
+
+**Regla de INBOX:** Al inicio de CADA respuesta, si `INBOX.md` tiene entradas nuevas desde tu última lectura, léelo primero antes de responder al usuario. Así sabrás qué agentes terminaron y qué falta crear.
 
 ## Restricción operativa por defecto
 
@@ -93,25 +105,19 @@ entonces debes entrar en **Modo Ausencia** durante esa sesión.
 
 ### Fallback por cuota o indisponibilidad
 
-Si una IA permitida en este proyecto, especialmente **Codex** u **OpenCode**, falla de forma persistente por motivos como:
+La TUI gestiona el fallback automáticamente siguiendo esta cadena:
 
-- rate limit prolongado
-- cuota agotada
-- falta de tokens o de plan disponible
-- sesión expirada
-- error repetido del proveedor
-- indisponibilidad temporal del CLI
+```
+Codex falla  →  intenta OpenCode (si está libre y sin rate limit)
+                    ↓ (si OpenCode también falla o está bloqueado)
+             →  Frontend (repo FE) o Backend (repo BE) como último recurso
+```
 
-entonces no debes dejar la tarea en bucle indefinidamente.
+Como Orquestador, **no necesitas reasignar manualmente** cuando hay un fallo — la TUI lo hace sola. Tu rol en este caso es:
 
-Debes hacer esto:
-
-1. Detectar que el problema ya no es transitorio.
-2. Dejar nota clara del motivo en `QUEUE.md`, `TASKS.md` o handoff si hace falta.
-3. Reasignar la TASK a un **Claude-Worker** (`Backend` o `Frontend`, según el repo) como fallback.
-4. Hacer que Claude-Worker continúe la ejecución con el contexto ya disponible, en vez de abandonar la tarea.
-
-La prioridad es mantener continuidad del trabajo aunque una IA de apoyo se quede sin cuota o deje de responder.
+1. Verificar en `INBOX.md` o `QUEUE.md` que el fallback se ejecutó correctamente.
+2. Si la TUI no pudo resolver el fallback (tarea marcada `failed`), entonces sí debes intervenir: asigna explícitamente a `Frontend` o `Backend` según el repo.
+3. Deja nota en `QUEUE.md` o `TASKS.md` del motivo si es relevante para la sesión.
 
 ### Fin de Modo Ausencia
 
@@ -153,13 +159,13 @@ Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 3. (Opcional) Para un brief muy detallado, crea `briefs/TASK-NNN-BRIEF.md`; también se inyecta.
 4. Dependencias: agrega `> after:TASK-NNN` al final de la descripción para bloquear la tarea.
 5. Dile al usuario que presione **R** en la TUI para recargar la cola, o **S** si está pausada.
-6. **Intenta mantener a cada agente permitido con al menos 1 tarea en vuelo**; si uno está idle, busca algo útil para asignarle.
-7. Si existen 3 o más TASKs independientes, reparte la primera tanda entre:
-   - un Claude-Worker (`Backend` o `Frontend`, según el repo)
-   - `Codex` para implementación estructurada, docs, migraciones o cambios con spec clara
-   - `OpenCode` para exploración, auditoría o implementación acotada cuando la tarea ya esté clara
-8. Si hay más TASKs que agentes permitidos disponibles, deja el resto en cola con dependencias claras o prioridad menor; no uses Gemini, Cursor ni Abacus salvo permiso explícito.
-9. Para frontend, prefiere `Frontend`/Claude como dueño principal. Usa `Codex` en `repo=frontend` solo para apoyo acotado: tests, documentación, fixes puntuales, refactors mecánicos o cambios con archivos bien delimitados.
+6. **Prioriza Codex y OpenCode** para toda implementación y exploración. Claude-Workers solo cuando hay saturación o fallo total de agentes de soporte.
+7. Distribución según cantidad de TASKs independientes:
+   - **1 tarea**: OpenCode (exploración) o Codex (implementación). Nunca Claude-Worker en primera instancia.
+   - **2 tareas**: OpenCode + Codex, una cada uno.
+   - **3+ tareas** y Codex+OpenCode ambos ocupados: el excedente puede ir a `Frontend` (repo FE) o `Backend` (repo BE) según corresponda.
+8. Si hay más TASKs que agentes disponibles, deja el resto en cola con dependencias claras o prioridad menor; no uses Gemini, Cursor ni Abacus salvo permiso explícito.
+9. El campo `repo` determina en qué directorio trabaja el agente. Usa siempre el valor correcto: `frontend` para trabajo de UI/cliente, `backend` para trabajo de API/servidor. Codex y OpenCode pueden trabajar en ambos repos según lo que indique la task.
 
 ## Reglas
 
@@ -171,7 +177,7 @@ Revisa `orchestrator.config.json` → `agents`. Cada entrada tiene:
 6. Al terminar la sesión, escribe un `handoffs/HANDOFF-<fecha>.md` resumiendo qué se hizo y qué sigue.
 7. **Por defecto solo usa Claude, Codex y OpenCode**. No uses Gemini, Cursor ni Abacus salvo instrucción explícita del usuario.
 8. Si el usuario activa **Modo Ausencia**, revisa progreso cada 5 minutos y reasigna nuevas TASKs razonables dentro del alcance actual sin esperar confirmación intermedia.
-9. Si Codex u OpenCode fallan de forma persistente por cuota, rate limit o indisponibilidad, deja de insistir y pasa la tarea a un Claude-Worker como fallback.
+9. La TUI gestiona el fallback automáticamente: Codex falla → OpenCode → Claude-Worker (Frontend/Backend según repo). Solo intervén manualmente si la tarea queda marcada `failed`.
 10. Usa Engram para guardar decisiones, hallazgos, bugs y resúmenes de sesión; no dependas solo del contexto corto de la conversación.
 11. Para cambios grandes, usa `openspec/changes/<change-name>/` para proposal, spec, design, tasks y verify; no dejes todo solo en la conversación.
 12. No asumas bypass total o autoaceptación de cambios en los agentes. Claude debe seguir siendo la autoridad final para validar el resultado esperado antes de que el usuario dé la aprobación definitiva.
@@ -202,6 +208,7 @@ Actualiza esta sección al inicio y al final de cada sesión:
 ## Archivos de referencia
 
 - **Plan del proyecto:** `<projectName>-plan.md`
+- **Notificaciones de tasks completadas:** `INBOX.md` — el TUI escribe aquí al terminar cada task; léelo al inicio de cada respuesta
 - **Protocolo de agentes:** `AGENT-PROTOCOL.md` (reglas compartidas opcionales)
 - **Instrucciones por agente:** `agents/*.md`
 - **Memoria persistente:** `ENGRAM.md`

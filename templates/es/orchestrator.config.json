@@ -63,21 +63,21 @@
     "Codex": {
       "cli": "codex",
       "profile": "codex",
-      "defaultRepo": "backend",
+      "defaultRepo": "frontend",
       "model": "gpt-5.5",
       "instructionsFile": "agents/CODEX.md"
     },
     "Gemini": {
       "cli": "gemini",
       "profile": "gemini",
-      "defaultRepo": "backend",
+      "defaultRepo": "frontend",
       "model": "gemini-3-pro-preview",
       "instructionsFile": "agents/GEMINI.md"
     },
     "OpenCode": {
       "cli": "opencode",
       "profile": "opencode",
-      "defaultRepo": "backend",
+      "defaultRepo": "frontend",
       "model": "opencode/glm-5-free",
       "instructionsFile": "agents/OPENCODE.md"
     },

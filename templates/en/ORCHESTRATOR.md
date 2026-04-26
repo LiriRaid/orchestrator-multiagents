@@ -36,14 +36,14 @@ When the user requests work after startup:
 
 1. Do not implement the work in the interactive Claude session.
 2. Convert the request into one or more TASKs in `QUEUE.md`.
-3. Prefer assigning the first executable work to `Codex` or `OpenCode`.
-4. Assign a Claude-Worker only when:
-   - Codex and/or OpenCode already have useful work in flight,
-   - a task is blocked by Codex/OpenCode quota, rate limit, token limits, or repeated failure,
-   - the task is highly sensitive and needs Claude as the worker,
-   - the user explicitly asks Claude to take the worker task.
+3. Always assign first to `OpenCode` (exploration) and `Codex` (implementation).
+4. Assign a Claude-Worker (`Frontend` or `Backend`) **only** when:
+   - **Multiple independent tasks exist** AND Codex + OpenCode are both already occupied, OR
+   - A task has **permanently failed** in Codex AND OpenCode — then Claude-Worker takes it as last resort.
 
-For frontend work, prefer `Codex` for narrow, well-scoped tasks and `OpenCode` for exploration/audits. Use `Frontend`/Claude-Worker for broader UI implementation, fallback, or when the other allowed agents are already occupied.
+The TUI handles automatic fallback: Codex fails → tries OpenCode → tries Claude-Worker. You only need to manually assign Claude-Workers for load balancing (case a) or when the TUI marks a task as permanently `failed` (case b).
+
+The `repo` field determines the working directory: `frontend` for UI/client work, `backend` for API/server work. Codex and OpenCode can work in either repo depending on the task.
 
 ## This Workspace Is NOT the Real Project
 
@@ -66,11 +66,14 @@ When the user says something like `Read ORCHESTRATOR.md and start`, do this:
 2. Read `orchestrator.config.json` — identify the real project paths in `repos` (frontend, backend). Those are the paths where the worker agents operate.
 3. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
 4. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
-5. Read `QUEUE.md` to understand pending, active, and completed work.
-6. Read all `progress/PROGRESS-*.md` files if present.
-7. Read `ENGRAM.md` and follow the memory rules.
-8. Use `openspec/` for large or multi-phase changes.
-9. Tell the user the orchestrator is ready and ask what to prioritize.
+5. **Read `INBOX.md` if it exists** — it contains automatic TUI notifications of completed tasks that require your attention (creating next TASKs, reading agent reports, etc.).
+6. Read `QUEUE.md` to understand pending, active, and completed work.
+7. Read all `progress/PROGRESS-*.md` files if present.
+8. Read `ENGRAM.md` and follow the memory rules.
+9. Use `openspec/` for large or multi-phase changes.
+10. Tell the user the orchestrator is ready and ask what to prioritize.
+
+**INBOX rule:** At the start of EACH response, if `INBOX.md` has new entries since your last read, check it first. This is how you know when an agent finished and what to create next — without Away Mode active.
 
 Startup is context loading only. Do not create project code changes during startup.
 
@@ -102,14 +105,19 @@ Away Mode limits:
 
 ## Fallback Policy
 
-If Codex or OpenCode fail persistently because of quota, rate limits, token limits, expired sessions, repeated provider errors, or CLI downtime:
+The TUI handles fallback automatically following this chain:
 
-1. Detect that the issue is no longer transient.
-2. Add a clear note in `QUEUE.md`, `TASKS.md`, or a handoff.
-3. Reassign the TASK to a Claude-Worker (`Backend` or `Frontend`, based on the repo).
-4. Include the available context so the Claude-Worker can continue instead of restarting from zero.
+```
+Codex fails  →  tries OpenCode (if idle and not rate-limited)
+                    ↓ (if OpenCode also fails or is blocked)
+             →  Frontend (frontend repo) or Backend (backend repo) as last resort
+```
 
-The priority is continuity. Do not leave tasks looping forever.
+As Orchestrator you do **not** need to manually reassign on failure — the TUI does it. Your role is:
+
+1. Check `INBOX.md` or `QUEUE.md` to confirm the fallback ran correctly.
+2. If the TUI could not resolve it (task marked `failed`), then manually assign to `Frontend` or `Backend` based on the repo.
+3. Leave a note in `QUEUE.md` or `TASKS.md` if the reason is relevant for the session.
 
 ## Agents
 
