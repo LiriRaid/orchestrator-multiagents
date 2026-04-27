@@ -36,12 +36,14 @@ When the user requests work after startup:
 
 1. Do not implement the work in the interactive Claude session.
 2. Convert the request into one or more TASKs in `QUEUE.md`.
-3. Always assign first to `OpenCode` (exploration) and `Codex` (implementation).
+3. Assign by role:
+   - `OpenCode` → **analysis only** (exploration, audits, reports — does NOT modify code)
+   - `Codex` → **primary implementation** (code changes, tests, docs)
 4. Assign a Claude-Worker (`Frontend` or `Backend`) **only** when:
-   - **Multiple independent tasks exist** AND Codex + OpenCode are both already occupied, OR
-   - A task has **permanently failed** in Codex AND OpenCode — then Claude-Worker takes it as last resort.
+   - **Multiple independent tasks exist** AND Codex is already occupied, OR
+   - A task has **permanently failed** in Codex — then Claude-Worker takes it as last resort.
 
-The TUI handles automatic fallback: Codex fails → tries OpenCode → tries Claude-Worker. You only need to manually assign Claude-Workers for load balancing (case a) or when the TUI marks a task as permanently `failed` (case b).
+The TUI handles automatic fallback: Codex fails → Claude-Worker directly. You only need to manually assign Claude-Workers for load balancing (case a) or when the TUI marks a task as permanently `failed` (case b).
 
 The `repo` field determines the working directory: `frontend` for UI/client work, `backend` for API/server work. Codex and OpenCode can work in either repo depending on the task.
 
@@ -120,9 +122,7 @@ del .away-mode
 The TUI handles fallback automatically following this chain:
 
 ```
-Codex fails  →  tries OpenCode (if idle and not rate-limited)
-                    ↓ (if OpenCode also fails or is blocked)
-             →  Frontend (frontend repo) or Backend (backend repo) as last resort
+Codex fails  →  Frontend (frontend repo) or Backend (backend repo) directly
 ```
 
 As Orchestrator you do **not** need to manually reassign on failure — the TUI does it. Your role is:
@@ -147,7 +147,7 @@ Default agent summary:
 | Backend | claude | Backend code through Claude-Worker |
 | Frontend | claude | Broad frontend work through Claude-Worker |
 | Codex | codex | Structured implementation, tests, docs, narrow frontend support |
-| OpenCode | opencode | Exploration, audits, structured reports, scoped implementation |
+| OpenCode | opencode | Exploration, audits, structured reports — analysis only, does not implement code |
 | Gemini | gemini | Optional audits and reviews only when explicitly enabled |
 | Cursor | cursor | Optional mechanical bulk edits only when explicitly enabled |
 | Abacus | abacusai | Optional small focused tasks only when explicitly enabled |
@@ -155,10 +155,11 @@ Default agent summary:
 ## How To Assign Work
 
 1. **When the user asks for a change or new task** → **NEVER analyze directly yourself**
-   - **First**: Create a TASK in `QUEUE.md` assigned to **OpenCode** to analyze the context
-   - **Second**: Wait for OpenCode to finish its analysis (check INBOX.md or progress/)
-   - **Third**: You receive the analysis → create new TASK to implement (Codex or OpenCode)
-   - **Never analyze the project code yourself** - that's OpenCode's job
+   - **If prior analysis is needed**: Create a TASK in `QUEUE.md` assigned to **OpenCode** to explore the context
+   - **Wait for the report**: OpenCode writes findings in INBOX.md or progress/
+   - **Then implement**: Create a new TASK assigned to **Codex** (or Claude-Worker if Codex is unavailable)
+   - **OpenCode does not implement** — its TASKs are always analysis; implementation goes to Codex or Claude-Worker
+   - **Never analyze the project code yourself** — that is OpenCode's job
 
 2. Write TASKs in `QUEUE.md` with this format:
 
@@ -177,10 +178,10 @@ Rules:
 
 Routing preferences:
 
-1. Start with Codex/OpenCode when a task is clear enough for them.
-2. Keep Claude-Worker available as fallback or extra capacity.
-3. For frontend, use Codex for narrow tasks and Frontend/Claude-Worker for broad UI or complex interaction work.
-4. Use OpenCode for exploration, audits, and scoped implementation.
+1. Use OpenCode for exploration, audits, and analysis. Never for implementation.
+2. Use Codex as the primary implementation agent when the spec is clear.
+3. Keep Claude-Worker available as automatic fallback for Codex and for overflow tasks.
+4. For frontend, use Codex for narrow tasks and Frontend/Claude-Worker for broad UI work.
 5. Do not assign all tasks to Claude just because Claude is the orchestrator.
 
 ## Hard Rules
