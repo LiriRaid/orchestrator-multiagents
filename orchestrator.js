@@ -271,6 +271,7 @@ const TEXT = {
     notifyComplete: (ts, id, agent, dur) => `🔔 [${ts}] ${id} completada por ${agent} (${dur}).\nRevisa INBOX.md y crea la siguiente tarea de implementación en QUEUE.md si aún no existe.`,
     notifyFailed: (ts, id, from, to, reason) => `⚠️ [${ts}] ${id} falló en ${from} → reasignada a ${to}.\nMotivo: ${reason}\nRevisa INBOX.md para el contexto.`,
     notifyPermanentFail: (ts, id, agent) => `🚨 [${ts}] ${id} falló permanentemente en ${agent} (sin más reintentos).\nDecide si eliminar, reasignar o escalar la tarea en QUEUE.md.`,
+    notifyRateLimit: (ts, id, agent, resetStr, retries, max) => `⏳ [${ts}] ${id} — ${agent} alcanzó el límite de tokens (reintento ${retries}/${max}, ${resetStr}).\nSi quieres reasignar ahora: prioridad → OpenCode → Claude-Worker. Si esperas, reintentará automáticamente.`,
   },
   en: {
     configExists:
@@ -379,6 +380,7 @@ const TEXT = {
     notifyComplete: (ts, id, agent, dur) => `🔔 [${ts}] ${id} completed by ${agent} (${dur}).\nCheck INBOX.md and create the next implementation task in QUEUE.md if it does not exist yet.`,
     notifyFailed: (ts, id, from, to, reason) => `⚠️ [${ts}] ${id} failed on ${from} → reassigned to ${to}.\nReason: ${reason}\nCheck INBOX.md for context.`,
     notifyPermanentFail: (ts, id, agent) => `🚨 [${ts}] ${id} permanently failed on ${agent} (no more retries).\nDecide whether to remove, reassign, or escalate the task in QUEUE.md.`,
+    notifyRateLimit: (ts, id, agent, resetStr, retries, max) => `⏳ [${ts}] ${id} — ${agent} hit token/rate limit (retry ${retries}/${max}, ${resetStr}).\nTo reassign now: priority → OpenCode → Claude-Worker. Otherwise it will retry automatically.`,
   },
 };
 const L = TEXT[WORKSPACE_LANGUAGE];
@@ -1610,6 +1612,7 @@ function failTask(task, agentName, code) {
       `{yellow-fg}${escBl(L.agentRateLimit(resetStr))}{/yellow-fg}`,
       true,
     );
+    writeNotifyFile(L.notifyRateLimit(timestamp(), task.id, agentName, resetStr, retries, maxRetries));
   } else {
     log("FAIL", L.logFail(agentName, task.id, code, retries, maxRetries));
     appendToAgent(
