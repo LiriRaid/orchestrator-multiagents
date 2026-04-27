@@ -393,11 +393,16 @@ function shutdown() {
 }
 
 // Reactivo: dispara un refresh inmediato cuando el engine escribe el STATE_FILE.
-// Esto elimina el lag de polling para cambios de cola y estado de agentes.
+// Vigila el directorio logs/ (no el archivo directamente) porque en Windows
+// fs.watch sobre un archivo es poco confiable — el patrón estable es vigilar
+// el directorio padre y filtrar por nombre de archivo.
 function ensureStateWatcher() {
-	if (stateWatcher || !fs.existsSync(STATE_FILE)) return;
+	const logsDir = path.dirname(STATE_FILE);
+	const stateFileName = path.basename(STATE_FILE);
+	if (stateWatcher || !fs.existsSync(logsDir)) return;
 	try {
-		stateWatcher = fs.watch(STATE_FILE, {persistent: false}, () => {
+		stateWatcher = fs.watch(logsDir, {persistent: false}, (eventType, filename) => {
+			if (filename !== stateFileName) return;
 			if (stateWatchDebounce) clearTimeout(stateWatchDebounce);
 			stateWatchDebounce = setTimeout(() => {
 				if (quitRequested) return;

@@ -1931,16 +1931,18 @@ setInterval(() => {
   if (command) applyControlCommand(command);
 }, 1000);
 
-// Real-time queue detection via fs.watch — fires immediately when QUEUE.md changes
-// (e.g. Claude writes a new task). No more 30s delay.
+// Real-time queue detection — watches WORKSPACE directory (not the file directly)
+// because on Windows fs.watch on a file is unreliable; watching the parent dir
+// and filtering by filename is the stable pattern (same as AWAY MODE watcher).
 let _queueWatchDebounce = null;
 function startQueueWatcher() {
-  if (!fs.existsSync(QUEUE_FILE)) return;
   try {
-    const watcher = fs.watch(QUEUE_FILE, {persistent: false}, (eventType) => {
-      if (eventType !== 'change') return;
+    const watchName = path.basename(QUEUE_FILE);
+    const watcher = fs.watch(WORKSPACE, {persistent: false}, (eventType, filename) => {
+      if (filename !== watchName) return;
       if (_queueWatchDebounce) clearTimeout(_queueWatchDebounce);
       _queueWatchDebounce = setTimeout(() => {
+        if (!fs.existsSync(QUEUE_FILE)) return;
         const prevCount = state.queue.length;
         reloadQueue();
         if (!state.paused) scheduleNext();
@@ -2042,8 +2044,9 @@ function startInboxWatcher() {
     try { fs.writeFileSync(INBOX_FILE, '', 'utf-8'); } catch {}
   }
   try {
-    const watcher = fs.watch(INBOX_FILE, {persistent: false}, (eventType) => {
-      if (eventType !== 'change') return;
+    const watchName = path.basename(INBOX_FILE);
+    const watcher = fs.watch(WORKSPACE, {persistent: false}, (eventType, filename) => {
+      if (filename !== watchName) return;
       if (_inboxDebounce) clearTimeout(_inboxDebounce);
       _inboxDebounce = setTimeout(dispatchInboxClaude, 100);
     });
