@@ -122,6 +122,7 @@ const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
 
 const QUEUE_FILE = path.join(WORKSPACE, "QUEUE.md");
 const INBOX_FILE = path.join(WORKSPACE, "INBOX.md");
+const NOTIFY_FILE = path.join(WORKSPACE, "NOTIFY.md");
 const AWAY_MODE_FILE = path.join(WORKSPACE, ".away-mode");
 const LOG_DIR = path.join(WORKSPACE, "logs");
 
@@ -266,6 +267,10 @@ const TEXT = {
     inboxReasonLabel: "- **Motivo:**",
     inboxNewAgentLabel: "- **Nuevo agente:**",
     inboxFailAction: "- **Acción:** La TUI reasignó automáticamente. Verifica en QUEUE.md o espera la siguiente notificación de completada.",
+    // NOTIFY.md — notificación concisa a la sesión interactiva de Claude
+    notifyComplete: (ts, id, agent, dur) => `🔔 [${ts}] ${id} completada por ${agent} (${dur}).\nRevisa INBOX.md y crea la siguiente tarea de implementación en QUEUE.md si aún no existe.`,
+    notifyFailed: (ts, id, from, to, reason) => `⚠️ [${ts}] ${id} falló en ${from} → reasignada a ${to}.\nMotivo: ${reason}\nRevisa INBOX.md para el contexto.`,
+    notifyPermanentFail: (ts, id, agent) => `🚨 [${ts}] ${id} falló permanentemente en ${agent} (sin más reintentos).\nDecide si eliminar, reasignar o escalar la tarea en QUEUE.md.`,
   },
   en: {
     configExists:
@@ -370,6 +375,10 @@ const TEXT = {
     inboxReasonLabel: "- **Reason:**",
     inboxNewAgentLabel: "- **New agent:**",
     inboxFailAction: "- **Action:** TUI reassigned automatically. Check QUEUE.md or wait for the next completion notification.",
+    // NOTIFY.md — concise notification to the interactive Claude session
+    notifyComplete: (ts, id, agent, dur) => `🔔 [${ts}] ${id} completed by ${agent} (${dur}).\nCheck INBOX.md and create the next implementation task in QUEUE.md if it does not exist yet.`,
+    notifyFailed: (ts, id, from, to, reason) => `⚠️ [${ts}] ${id} failed on ${from} → reassigned to ${to}.\nReason: ${reason}\nCheck INBOX.md for context.`,
+    notifyPermanentFail: (ts, id, agent) => `🚨 [${ts}] ${id} permanently failed on ${agent} (no more retries).\nDecide whether to remove, reassign, or escalate the task in QUEUE.md.`,
   },
 };
 const L = TEXT[WORKSPACE_LANGUAGE];
@@ -1064,6 +1073,15 @@ function writeInboxFailureNotification(task, failedAgent, newAgent, reason) {
   } catch {}
 }
 
+// Escribe una notificación concisa en NOTIFY.md para la sesión interactiva de Claude.
+// Los hooks de .claude/settings.json leen y limpian este archivo automáticamente.
+function writeNotifyFile(message) {
+  try {
+    const sep = fs.existsSync(NOTIFY_FILE) ? '\n---\n' : '';
+    fs.appendFileSync(NOTIFY_FILE, sep + message + '\n', 'utf-8');
+  } catch {}
+}
+
 // GAP 2 — Move a task line from ## Pending to ## In Progress when it starts
 function moveTaskToInProgress(task) {
   if (!fs.existsSync(QUEUE_FILE)) return;
@@ -1523,6 +1541,7 @@ function completeTask(task, agentName) {
   ag.lastLine = L.lastCompleted(task.id);
   updateQueueFile(task);
   writeInboxNotification(task, agentName, elapsed);
+  writeNotifyFile(L.notifyComplete(timestamp(), task.id, agentName, formatDuration(elapsed)));
   scheduleNext();
   renderDashboard();
 }
@@ -1622,6 +1641,7 @@ function failTask(task, agentName, code) {
           : L.reasonPersistent;
     if (tryFallbackToAlternative(task, agentName, reason)) {
       writeInboxFailureNotification(task, agentName, task.agent, reason);
+      writeNotifyFile(L.notifyFailed(timestamp(), task.id, agentName, task.agent, reason));
       setTimeout(() => {
         scheduleNext();
         safeRenderDashboard();
@@ -1634,6 +1654,7 @@ function failTask(task, agentName, code) {
     task.status = "failed";
     ag.lastLine = L.lastFailed(task.id);
     log("ERROR", L.logPermanentFail(task.id, retries));
+    writeNotifyFile(L.notifyPermanentFail(timestamp(), task.id, agentName));
   } else {
     task.status = "pending";
     let retryDelay = rl.isRateLimit

@@ -1,6 +1,6 @@
 {
   "name": "@liriraid/agentflow-ai",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Multi-agent workspace orchestrator with TUI. Coordinates AI coding agents over your real frontend and backend projects.",
   "author": "LiriRaid",
   "homepage": "https://github.com/LiriRaid/agentflow-ai#readme",
