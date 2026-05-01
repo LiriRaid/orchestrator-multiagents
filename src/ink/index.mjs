@@ -20,6 +20,7 @@ const CONTROL_FILE = path.join(ROOT, 'logs', 'orchestrator-control.json');
 
 const argv = process.argv.slice(2);
 const startPaused = argv.includes('--paused');
+const startYolo = argv.includes('--yolo');
 const TEXT = {
 	es: {
 		configMissing: root =>
@@ -89,6 +90,10 @@ if (fs.existsSync(CONTROL_FILE)) {
 
 let inkApp = null;
 let refreshTimer = null;
+let clockInterval = null;
+let stateWatcher = null;
+let stateWatchDebounce = null;
+let lastRenderedSnapshot = null;
 let spawnedEngine = null;
 let localEvents = [];
 let quitRequested = false;
@@ -218,14 +223,33 @@ function buildSnapshot() {
 
 	const agents = Object.entries(config.agents || {}).map(([name]) => {
 		const agent = engineState.agents?.[name];
+		const lastLine = agent?.lastLine || '';
+
+		let status;
+		if (agent?.status === 'busy') {
+			status = 'busy';
+		} else if (lastLine.startsWith('FALLÓ:') || lastLine.startsWith('FAILED:')) {
+			status = 'failed';
+		} else if (
+			lastLine.startsWith('REINTENTO:') ||
+			lastLine.startsWith('LÍMITE:') ||
+			lastLine.startsWith('RETRY:') ||
+			lastLine.startsWith('LIMIT:')
+		) {
+			status = 'retrying';
+		} else {
+			status = 'idle';
+		}
+
 		return {
 			name,
-			status: agent?.status === 'busy' ? 'busy' : 'idle',
+			status,
 			task: agent?.task ? `${agent.task.id} · ${agent.task.title}` : null,
 			detail:
 				agent?.status === 'busy'
 					? `${agent.task?.priority || 'P?'} · ${agent.task?.repo || 'repo'}`
-					: agent?.lastLine || text.ready
+					: lastLine || text.ready,
+			totalCost: agent?.totalCost || 0
 		};
 	});
 
@@ -266,6 +290,7 @@ function ensureEngine() {
 
 	const childArgs = [ENGINE_FILE, '--headless'];
 	if (startPaused) childArgs.push('--paused');
+	if (startYolo) childArgs.push('--yolo');
 
 	pushLocalEvent(
 		startPaused ? text.startPaused : text.startRunning
@@ -302,6 +327,8 @@ function refresh() {
 	if (isResizing) return;
 
 	const snapshot = buildSnapshot();
+	lastRenderedSnapshot = snapshot;
+	ensureStateWatcher();
 	if (!inkApp) {
 		inkApp = render(React.createElement(App, {snapshot, onAction: requestAction}), {
 			exitOnCtrlC: false,
@@ -348,8 +375,11 @@ function requestAction(action) {
 }
 
 function shutdown() {
-	if (refreshTimer) clearInterval(refreshTimer);
+	if (refreshTimer) clearTimeout(refreshTimer);
 	if (resizeTimer) clearTimeout(resizeTimer);
+	if (clockInterval) clearInterval(clockInterval);
+	if (stateWatchDebounce) clearTimeout(stateWatchDebounce);
+	if (stateWatcher) { try { stateWatcher.close(); } catch {} stateWatcher = null; }
 	if (spawnedEngine && !spawnedEngine.killed && quitRequested) {
 		try {
 			spawnedEngine.kill('SIGTERM');
@@ -362,10 +392,61 @@ function shutdown() {
 	try { fs.unlinkSync(STATE_FILE); } catch {}
 }
 
+// Reactivo: dispara un refresh inmediato cuando el engine escribe el STATE_FILE.
+// Vigila el directorio logs/ (no el archivo directamente) porque en Windows
+// fs.watch sobre un archivo es poco confiable — el patrón estable es vigilar
+// el directorio padre y filtrar por nombre de archivo.
+function ensureStateWatcher() {
+	const logsDir = path.dirname(STATE_FILE);
+	const stateFileName = path.basename(STATE_FILE);
+	if (stateWatcher || !fs.existsSync(logsDir)) return;
+	try {
+		stateWatcher = fs.watch(logsDir, {persistent: false}, (eventType, filename) => {
+			if (filename !== stateFileName) return;
+			if (stateWatchDebounce) clearTimeout(stateWatchDebounce);
+			stateWatchDebounce = setTimeout(() => {
+				if (quitRequested) return;
+				if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
+				refresh();
+				scheduleRefresh();
+			}, 50);
+		});
+		stateWatcher.on('error', () => { stateWatcher = null; });
+	} catch { stateWatcher = null; }
+}
+
+// Tick independiente del reloj: actualiza activeLabel y timestamp cada 1s
+// sin leer el STATE_FILE, usando la última snapshot cacheada.
+function startClockTick() {
+	clockInterval = setInterval(() => {
+		if (!inkApp || !lastRenderedSnapshot?.startedAt) return;
+		const activeSeconds = Math.max(0, Math.round((Date.now() - lastRenderedSnapshot.startedAt) / 1000));
+		const updated = {
+			...lastRenderedSnapshot,
+			activeLabel: formatDuration(activeSeconds),
+			timestamp: new Date().toLocaleString(getLocale(), {hour12: false})
+		};
+		lastRenderedSnapshot = updated;
+		inkApp.rerender(React.createElement(App, {snapshot: updated, onAction: requestAction}));
+	}, 1000);
+}
+
+function scheduleRefresh() {
+	const engineState = readEngineState();
+	const busy = engineState && Object.values(engineState.agents || {}).some(a => a.status === 'busy');
+	const hasWork = engineState && ((engineState.queue || []).length > 0 || (engineState.inProgress || []).length > 0);
+	const ms = (busy || hasWork) ? 1000 : 4000;
+	refreshTimer = setTimeout(() => {
+		refresh();
+		scheduleRefresh();
+	}, ms);
+}
+
 function mount() {
 	ensureEngine();
 	refresh();
-	refreshTimer = setInterval(refresh, 1000);
+	scheduleRefresh();
+	startClockTick();
 
 	if (process.stdout.isTTY) {
 		process.stdout.on('resize', () => {

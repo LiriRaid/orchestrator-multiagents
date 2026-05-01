@@ -121,6 +121,9 @@ if (!fs.existsSync(CONFIG_FILE)) {
 const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
 
 const QUEUE_FILE = path.join(WORKSPACE, "QUEUE.md");
+const INBOX_FILE = path.join(WORKSPACE, "INBOX.md");
+const NOTIFY_FILE = path.join(WORKSPACE, "NOTIFY.md");
+const AWAY_MODE_FILE = path.join(WORKSPACE, ".away-mode");
 const LOG_DIR = path.join(WORKSPACE, "logs");
 
 const REPOS = config.repos || {};
@@ -129,6 +132,36 @@ const PROJECT_NAME = config.projectName || "Orchestrator Multi-Agents";
 const WORKSPACE_LANGUAGE = ["en", "es"].includes(config.workspaceLanguage)
   ? config.workspaceLanguage
   : "es";
+
+// OpenAI model pricing ($ per 1M tokens) — update when prices change
+const OPENAI_MODEL_PRICING = {
+  "gpt-4.1":           { input: 2.0,  output: 8.0  },
+  "gpt-4.1-mini":      { input: 0.4,  output: 1.6  },
+  "gpt-4.1-nano":      { input: 0.1,  output: 0.4  },
+  "gpt-4o":            { input: 2.5,  output: 10.0 },
+  "gpt-4o-mini":       { input: 0.15, output: 0.6  },
+  "o4-mini":           { input: 1.1,  output: 4.4  },
+  "o3":                { input: 10.0, output: 40.0 },
+  "o3-mini":           { input: 1.1,  output: 4.4  },
+  "o1":                { input: 15.0, output: 60.0 },
+  "o1-mini":           { input: 3.0,  output: 12.0 },
+  "gpt-5":             { input: 5.0,  output: 20.0 },
+  "gpt-5.5":           { input: 5.0,  output: 20.0 },
+  "codex-mini-latest": { input: 1.5,  output: 6.0  },
+};
+
+function calcOpenAICost(model, usage) {
+  if (!model || !usage) return null;
+  const modelLower = String(model).toLowerCase();
+  const key = Object.keys(OPENAI_MODEL_PRICING).find(k =>
+    modelLower === k || modelLower.startsWith(k) || modelLower.includes(k)
+  );
+  if (!key) return null;
+  const price = OPENAI_MODEL_PRICING[key];
+  const inputTokens  = usage.input_tokens  || usage.prompt_tokens     || 0;
+  const outputTokens = usage.output_tokens || usage.completion_tokens  || 0;
+  return (inputTokens * price.input + outputTokens * price.output) / 1_000_000;
+}
 const TEXT = {
   es: {
     configExists:
@@ -160,6 +193,8 @@ const TEXT = {
     running: "EJECUTANDO",
     busy: "OCUPADO",
     idle: "EN ESPERA",
+    failed: "FALLÓ",
+    retrying: "REINTENTANDO",
     queueReloaded: (count) => `Cola recargada: ${count} tareas`,
     quitRequested: "Cierre solicitado desde Ink",
     starting: (name) => `${name} iniciando`,
@@ -170,10 +205,73 @@ const TEXT = {
     empty: "(vacía)",
     after: "después de",
     quotaLimit: "LÍMITE DE CUOTA",
-    retryAt: (time, remaining) =>
-      `reintenta a las ${time} (${remaining} min)`,
+    retryAt: (time, remaining) => `reintenta a las ${time} (${remaining} min)`,
     log: "REGISTRO",
     controls: "Seguir  Pausa  Recargar  Quitar",
+    // QUEUE.md section headers
+    sectionPending: "## Pendientes",
+    sectionInProgress: "## En progreso",
+    sectionCompleted: "## Completadas",
+    // appendToAgent messages
+    agentTaskHeader: (id, title) => `=== ${id}: ${title} ===`,
+    agentCwd: (dir) => `CWD: ${dir}`,
+    agentCompleted: (elapsed, cost) => `=== COMPLETADA en ${elapsed}${cost} ===`,
+    agentFailed: (code, attempt) => `=== FALLÓ (salida ${code}, intento ${attempt}) ===`,
+    agentRateLimit: (resetStr) => `=== LÍMITE DE CUOTA (${resetStr}) ===`,
+    agentTimeout: "=== TIMEOUT ===",
+    agentDied: "=== PROCESS DIED ===",
+    agentReassigned: (agent, reason) => `=== REASIGNADA A ${agent} (${reason}) ===`,
+    // ag.lastLine state machine prefixes (used for status detection)
+    lastCompleted: (id) => `Última: ${id} completada`,
+    lastRetry: (id) => `REINTENTO: ${id}`,
+    lastLimit: (id, time) => `LÍMITE: ${id} (reintento a las ${time})`,
+    lastFailed: (id) => `FALLÓ: ${id}`,
+    // Fallback reasons
+    reasonQuota: "cuota o límite agotado",
+    reasonProvider: "proveedor o sesión no disponibles",
+    reasonNoWork: "el agente no trabajó nada (sin cambios)",
+    reasonPersistent: "fallo persistente",
+    // Log messages
+    logRateLimit: (agent, id, resetStr) => `${agent} alcanzó el límite en ${id} (${resetStr})`,
+    logFail: (agent, id, code, retries, max) => `${agent} falló ${id} (salida ${code}, ${retries}/${max})`,
+    logDone: (agent, id, elapsed, cost) => `${agent} completó ${id} en ${elapsed}${cost}`,
+    logFallback: (id, from, to, reason) => `${id} reasignada de ${from} a ${to} (${reason})`,
+    logReassignWarn: (id, agent) => `${id} reasignada a ${agent}, pero QUEUE.md no pudo actualizarse`,
+    logTimeout: (agent, id) => `${agent} timed out on ${id}`,
+    logUnknownAgent: (id, agent) => `${id} skipped — agente "${agent}" no definido en orchestrator.config.json`,
+    logPermanentFail: (id, retries) => `${id} falló definitivamente tras ${retries} intentos`,
+    logDied: (agent, id) => `${agent} terminó silenciosamente en ${id}`,
+    // STATUS.md
+    statusTitle: (ts) => `# Estado del Orquestador - ${ts}`,
+    statusProject: "**Proyecto:**",
+    statusState: "**Estado:**",
+    statusRunning: "EJECUTANDO",
+    statusPausedLabel: "PAUSADO",
+    statusActiveTime: "**Activo:**",
+    statusSectionAgents: "## Agentes",
+    statusSectionQueue: "## Cola",
+    statusPendingLabel: "Pendientes:",
+    statusCompletedLabel: "Completadas:",
+    statusInProgressLabel: "En progreso:",
+    statusInProgressHeader: "### En progreso",
+    statusAgentBusy: "🟡 OCUPADO",
+    statusAgentIdle: "⚪ EN ESPERA",
+    statusNoTask: "Sin tarea",
+    // INBOX.md
+    inboxDone: (ts, id, agent) => `## [${ts}] ${id} completada — ${agent}`,
+    inboxTaskLabel: "- **Tarea:**",
+    inboxDurationLabel: "- **Duración:**",
+    inboxReportLabel: "- **Reporte:**",
+    inboxActionLabel: (file) => `- **Acción:** Lee \`${file}\` y crea las siguientes TASKs si corresponde.`,
+    inboxFailed: (ts, id, from, to) => `## [${ts}] ${id} falló — ${from} → reasignada a ${to}`,
+    inboxReasonLabel: "- **Motivo:**",
+    inboxNewAgentLabel: "- **Nuevo agente:**",
+    inboxFailAction: "- **Acción:** La TUI reasignó automáticamente. Verifica en QUEUE.md o espera la siguiente notificación de completada.",
+    // NOTIFY.md — notificación concisa a la sesión interactiva de Claude
+    notifyComplete: (ts, id, agent, dur) => `🔔 [${ts}] ${id} completada por ${agent} (${dur}).\nRevisa INBOX.md y crea la siguiente tarea de implementación en QUEUE.md si aún no existe.`,
+    notifyFailed: (ts, id, from, to, reason) => `⚠️ [${ts}] ${id} falló en ${from} → reasignada a ${to}.\nMotivo: ${reason}\nRevisa INBOX.md para el contexto.`,
+    notifyPermanentFail: (ts, id, agent) => `🚨 [${ts}] ${id} falló permanentemente en ${agent} (sin más reintentos).\nDecide si eliminar, reasignar o escalar la tarea en QUEUE.md.`,
+    notifyRateLimit: (ts, id, agent, resetStr, retries, max) => `⏳ [${ts}] ${id} — ${agent} alcanzó el límite de tokens (reintento ${retries}/${max}, ${resetStr}).\nSi quieres reasignar ahora: asigna a Claude-Worker (Frontend). Si esperas, reintentará automáticamente.`,
   },
   en: {
     configExists:
@@ -205,6 +303,8 @@ const TEXT = {
     running: "RUNNING",
     busy: "BUSY",
     idle: "IDLE",
+    failed: "FAILED",
+    retrying: "RETRYING",
     queueReloaded: (count) => `Queue reloaded: ${count} tasks`,
     quitRequested: "Quit requested from Ink",
     starting: (name) => `${name} starting`,
@@ -217,9 +317,83 @@ const TEXT = {
     retryAt: (time, remaining) => `retry at ${time} (${remaining} min)`,
     log: "LOG",
     controls: "Start  Pause  Reload  Quit",
+    // QUEUE.md section headers
+    sectionPending: "## Pending",
+    sectionInProgress: "## In Progress",
+    sectionCompleted: "## Completed",
+    // appendToAgent messages
+    agentTaskHeader: (id, title) => `=== ${id}: ${title} ===`,
+    agentCwd: (dir) => `CWD: ${dir}`,
+    agentCompleted: (elapsed, cost) => `=== COMPLETED in ${elapsed}${cost} ===`,
+    agentFailed: (code, attempt) => `=== FAILED (exit ${code}, attempt ${attempt}) ===`,
+    agentRateLimit: (resetStr) => `=== QUOTA LIMIT (${resetStr}) ===`,
+    agentTimeout: "=== TIMEOUT ===",
+    agentDied: "=== PROCESS DIED ===",
+    agentReassigned: (agent, reason) => `=== REASSIGNED TO ${agent} (${reason}) ===`,
+    // ag.lastLine state machine prefixes
+    lastCompleted: (id) => `Last: ${id} completed`,
+    lastRetry: (id) => `RETRY: ${id}`,
+    lastLimit: (id, time) => `LIMIT: ${id} (retry at ${time})`,
+    lastFailed: (id) => `FAILED: ${id}`,
+    // Fallback reasons
+    reasonQuota: "quota or rate limit exhausted",
+    reasonProvider: "provider or session unavailable",
+    reasonNoWork: "agent did no real work (no changes)",
+    reasonPersistent: "persistent failure",
+    // Log messages
+    logRateLimit: (agent, id, resetStr) => `${agent} hit rate limit on ${id} (${resetStr})`,
+    logFail: (agent, id, code, retries, max) => `${agent} failed ${id} (exit ${code}, ${retries}/${max})`,
+    logDone: (agent, id, elapsed, cost) => `${agent} completed ${id} in ${elapsed}${cost}`,
+    logFallback: (id, from, to, reason) => `${id} reassigned from ${from} to ${to} (${reason})`,
+    logReassignWarn: (id, agent) => `${id} reassigned to ${agent}, but QUEUE.md could not be updated`,
+    logTimeout: (agent, id) => `${agent} timed out on ${id}`,
+    logUnknownAgent: (id, agent) => `${id} skipped — agent "${agent}" not in orchestrator.config.json`,
+    logPermanentFail: (id, retries) => `${id} permanently failed after ${retries} attempts`,
+    logDied: (agent, id) => `${agent} died silently on ${id}`,
+    // STATUS.md
+    statusTitle: (ts) => `# Orchestrator Status - ${ts}`,
+    statusProject: "**Project:**",
+    statusState: "**State:**",
+    statusRunning: "RUNNING",
+    statusPausedLabel: "PAUSED",
+    statusActiveTime: "**Active:**",
+    statusSectionAgents: "## Agents",
+    statusSectionQueue: "## Queue",
+    statusPendingLabel: "Pending:",
+    statusCompletedLabel: "Completed:",
+    statusInProgressLabel: "In progress:",
+    statusInProgressHeader: "### In progress",
+    statusAgentBusy: "🟡 BUSY",
+    statusAgentIdle: "⚪ IDLE",
+    statusNoTask: "No task",
+    // INBOX.md
+    inboxDone: (ts, id, agent) => `## [${ts}] ${id} completed — ${agent}`,
+    inboxTaskLabel: "- **Task:**",
+    inboxDurationLabel: "- **Duration:**",
+    inboxReportLabel: "- **Report:**",
+    inboxActionLabel: (file) => `- **Action:** Read \`${file}\` and create next TASKs if applicable.`,
+    inboxFailed: (ts, id, from, to) => `## [${ts}] ${id} failed — ${from} → reassigned to ${to}`,
+    inboxReasonLabel: "- **Reason:**",
+    inboxNewAgentLabel: "- **New agent:**",
+    inboxFailAction: "- **Action:** TUI reassigned automatically. Check QUEUE.md or wait for the next completion notification.",
+    // NOTIFY.md — concise notification to the interactive Claude session
+    notifyComplete: (ts, id, agent, dur) => `🔔 [${ts}] ${id} completed by ${agent} (${dur}).\nCheck INBOX.md and create the next implementation task in QUEUE.md if it does not exist yet.`,
+    notifyFailed: (ts, id, from, to, reason) => `⚠️ [${ts}] ${id} failed on ${from} → reassigned to ${to}.\nReason: ${reason}\nCheck INBOX.md for context.`,
+    notifyPermanentFail: (ts, id, agent) => `🚨 [${ts}] ${id} permanently failed on ${agent} (no more retries).\nDecide whether to remove, reassign, or escalate the task in QUEUE.md.`,
+    notifyRateLimit: (ts, id, agent, resetStr, retries, max) => `⏳ [${ts}] ${id} — ${agent} hit token/rate limit (retry ${retries}/${max}, ${resetStr}).\nTo reassign now: assign to Claude-Worker (Frontend). Otherwise it will retry automatically.`,
   },
 };
 const L = TEXT[WORKSPACE_LANGUAGE];
+
+let lastRenderTime = 0;
+const RENDER_DEBOUNCE_MS = 500;
+
+function safeRenderDashboard() {
+  const now = Date.now();
+  if (now - lastRenderTime < RENDER_DEBOUNCE_MS) return;
+  lastRenderTime = now;
+  renderDashboard();
+}
 
 // CLI args
 const argv = process.argv.slice(2);
@@ -258,8 +432,7 @@ ${L.keyboard}:
 const MAX_CONCURRENT = config.maxConcurrent || Object.keys(AGENTS).length;
 const POLL_INTERVAL_MS = (config.pollIntervalSeconds || 30) * 1000;
 const TASK_TIMEOUT_MS = (config.taskTimeoutMinutes || 30) * 60 * 1000;
-const SKIP_PERMISSIONS =
-  process.env.SKIP_PERMISSIONS === "true" || CLI.yolo;
+const SKIP_PERMISSIONS = process.env.SKIP_PERMISSIONS === "true" || CLI.yolo;
 const PERMISSION_FLAGS = SKIP_PERMISSIONS
   ? ["--dangerously-skip-permissions"]
   : ["--permission-mode", "default"];
@@ -271,6 +444,38 @@ if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 const LOCK_FILE = path.join(LOG_DIR, "orchestrator.lock");
 const STATE_FILE = path.join(LOG_DIR, "orchestrator-state.json");
 const CONTROL_FILE = path.join(LOG_DIR, "orchestrator-control.json");
+const STATUS_FILE = path.join(WORKSPACE, "STATUS.md");
+
+function updateStatusFile() {
+  const statusLines = [
+    L.statusTitle(timestamp()),
+    ``,
+    `${L.statusProject} ${PROJECT_NAME}`,
+    `${L.statusState} ${state.paused ? L.statusPausedLabel : L.statusRunning}`,
+    `${L.statusActiveTime} ${formatDuration(Math.round((Date.now() - state.startTime) / 1000))}`,
+    ``,
+    L.statusSectionAgents,
+    ``,
+  ];
+  for (const [name, ag] of Object.entries(state.agents)) {
+    const status = ag.status === "busy" ? L.statusAgentBusy : L.statusAgentIdle;
+    const task = ag.task ? `${ag.task.id}: ${ag.task.title}` : L.statusNoTask;
+    statusLines.push(`- **${name}**: ${status} - ${task}`);
+  }
+  statusLines.push("", L.statusSectionQueue);
+  statusLines.push("", `${L.statusPendingLabel} ${state.queue.length}`);
+  statusLines.push("", `${L.statusCompletedLabel} ${state.completed.length}`);
+  statusLines.push("", `${L.statusInProgressLabel} ${state.inProgress.length}`);
+  if (state.inProgress.length > 0) {
+    statusLines.push("", L.statusInProgressHeader);
+    for (const t of state.inProgress) {
+      statusLines.push(`- ${t.id}: ${t.title} (${t.agent})`);
+    }
+  }
+  try {
+    fs.writeFileSync(STATUS_FILE, statusLines.join("\n"), "utf-8");
+  } catch {}
+}
 
 // Limpiar control.json orphan al iniciar (si el proceso anterior fechou mal)
 if (fs.existsSync(CONTROL_FILE)) {
@@ -365,6 +570,7 @@ for (const name of Object.keys(AGENTS)) {
     lastLine: "",
     exitCode: null,
     cost: null,
+    totalCost: 0,
     turns: 0,
   };
 }
@@ -401,7 +607,10 @@ const dashboard =
 
 const agentNames = Object.keys(AGENTS);
 const agentBoxes = {};
-const panelWidth = Math.max(1, Math.floor(100 / Math.max(1, agentNames.length)));
+const panelWidth = Math.max(
+  1,
+  Math.floor(100 / Math.max(1, agentNames.length)),
+);
 
 if (!CLI.headless && screen) {
   agentNames.forEach((name, i) => {
@@ -475,12 +684,17 @@ function persistState() {
           lastLine: ag.lastLine,
           exitCode: ag.exitCode,
           cost: ag.cost,
+          totalCost: ag.totalCost || 0,
           turns: ag.turns,
         },
       ]),
     ),
   };
-  fs.writeFileSync(STATE_FILE, JSON.stringify(snapshot, null, 2) + "\n", "utf-8");
+  fs.writeFileSync(
+    STATE_FILE,
+    JSON.stringify(snapshot, null, 2) + "\n",
+    "utf-8",
+  );
 }
 
 function consumeControlCommand() {
@@ -590,22 +804,34 @@ function renderDashboard() {
     ? `{yellow-fg}${L.paused}{/yellow-fg}`
     : `{green-fg}${L.running}{/green-fg}`;
 
-  lines.push(`  ${datestamp()} ${timestamp()}  ${WORKSPACE_LANGUAGE === "es" ? "activo" : "active"} ${up}  ${cost}  ${mode}`);
+  lines.push(
+    `  ${datestamp()} ${timestamp()}  ${WORKSPACE_LANGUAGE === "es" ? "activo" : "active"} ${up}  ${cost}  ${mode}`,
+  );
   lines.push("");
 
   for (const [name, ag] of Object.entries(state.agents)) {
-    const cfg = AGENTS[name];
-    let status, detail;
+    const lastLine = ag.lastLine || "";
+    const isFailed = lastLine.startsWith("FALLÓ:") || lastLine.startsWith("FAILED:");
+    const isRetrying = lastLine.startsWith("REINTENTO:") || lastLine.startsWith("LÍMITE:") || lastLine.startsWith("RETRY:") || lastLine.startsWith("LIMIT:");
+    let status, detail, dot;
     if (ag.status === "busy") {
       status = `{yellow-fg}${L.busy}{/yellow-fg}`;
       detail = `${ag.task?.id || "?"} ${(ag.task?.title || "").slice(0, 35)} (${elapsedSince(ag.startTime)})`;
+      dot = "{green-fg}●{/green-fg}";
+    } else if (isFailed) {
+      status = `{red-fg}${L.failed}{/red-fg}`;
+      detail = lastLine;
+      dot = "{red-fg}✕{/red-fg}";
+    } else if (isRetrying) {
+      status = `{yellow-fg}${L.retrying}{/yellow-fg}`;
+      detail = lastLine;
+      dot = "{yellow-fg}⟳{/yellow-fg}";
     } else {
       status = `{gray-fg}${L.idle}{/gray-fg}`;
-      detail = ag.lastLine || "";
+      detail = lastLine;
+      dot = "{gray-fg}○{/gray-fg}";
     }
-    const dot =
-      ag.status === "busy" ? "{green-fg}●{/green-fg}" : "{gray-fg}○{/gray-fg}";
-    lines.push(`  ${dot} {bold}${name}{/bold}  ${status}  ${detail}`);
+    lines.push(`  ${dot} {bold}${name}{/bold}  ${status}  ${escBl(detail)}`);
   }
   lines.push("");
 
@@ -668,23 +894,31 @@ function renderDashboard() {
     lines.push(`    {gray-fg}${escBl(entry)}{/gray-fg}`);
   }
   lines.push("");
-  lines.push(
-    `  {cyan-fg}S{/cyan-fg} ${L.controls}`,
-  );
+  lines.push(`  {cyan-fg}S{/cyan-fg} ${L.controls}`);
 
   dashboard.setContent(lines.join("\n"));
 
   for (const [name, ag] of Object.entries(state.agents)) {
     const box = agentBoxes[name];
+    const lastLine = ag.lastLine || "";
+    const isFailed = lastLine.startsWith("FALLÓ:") || lastLine.startsWith("FAILED:");
+    const isRetrying = lastLine.startsWith("REINTENTO:") || lastLine.startsWith("LÍMITE:") || lastLine.startsWith("RETRY:") || lastLine.startsWith("LIMIT:");
     if (ag.status === "busy") {
       box.style.border.fg = "yellow";
       box.setLabel(
-        ` {bold}${escBl(name)}{/bold} {yellow-fg}OCUPADO{/yellow-fg} ${escBl(ag.task?.id || "")} `,
+        ` {bold}${escBl(name)}{/bold} {yellow-fg}${L.busy}{/yellow-fg} ${escBl(ag.task?.id || "")} `,
       );
+    } else if (isFailed) {
+      box.style.border.fg = "red";
+      box.setLabel(` {bold}${escBl(name)}{/bold} {red-fg}${L.failed}{/red-fg} `);
+    } else if (isRetrying) {
+      box.style.border.fg = "yellow";
+      box.setLabel(` {bold}${escBl(name)}{/bold} {yellow-fg}${L.retrying}{/yellow-fg} `);
     } else {
       box.style.border.fg = "gray";
+      const agCostLabel = ag.totalCost > 0 ? ` {gray-fg}$${ag.totalCost.toFixed(2)}{/gray-fg}` : "";
       box.setLabel(
-        ` {bold}${escBl(name)}{/bold} {gray-fg}EN ESPERA{/gray-fg} `,
+        ` {bold}${escBl(name)}{/bold} {gray-fg}${L.idle}{/gray-fg}${agCostLabel} `,
       );
     }
   }
@@ -705,7 +939,10 @@ function parseQueue() {
       section = "pending";
       continue;
     }
-    if (line.startsWith("## In Progress") || line.startsWith("## En progreso")) {
+    if (
+      line.startsWith("## In Progress") ||
+      line.startsWith("## En progreso")
+    ) {
       section = "inprogress";
       continue;
     }
@@ -747,7 +984,10 @@ function parseCompletedFromFile() {
       section = "pending";
       continue;
     }
-    if (line.startsWith("## In Progress") || line.startsWith("## En progreso")) {
+    if (
+      line.startsWith("## In Progress") ||
+      line.startsWith("## En progreso")
+    ) {
       section = "inprogress";
       continue;
     }
@@ -770,6 +1010,36 @@ function parseCompletedFromFile() {
 }
 
 const loggedUnknownAgents = new Set();
+let queueWatcher = null;
+
+function setupQueueWatcher() {
+  if (!fs.existsSync(QUEUE_FILE)) return;
+  
+  if (queueWatcher) {
+    try { queueWatcher.close(); } catch {}
+    queueWatcher = null;
+  }
+  
+  try {
+    queueWatcher = fs.watch(QUEUE_FILE, { persistent: false }, (eventType, filename) => {
+      if (eventType === 'change' && filename === path.basename(QUEUE_FILE)) {
+        log('DEBUG', `QUEUE.md changed, reloading queue immediately`);
+        reloadQueue();
+        scheduleNext();
+        renderDashboard();
+      }
+    });
+    queueWatcher.on('error', (err) => {
+      log('WARN', `fs.watch failed for QUEUE.md: ${err.message}, falling back to polling`);
+      queueWatcher = null;
+    });
+    log('INFO', 'Realtime QUEUE.md watcher enabled');
+  } catch (err) {
+    log('WARN', `Failed to setup QUEUE.md watcher: ${err.message}, using polling`);
+    queueWatcher = null;
+  }
+}
+
 function reloadQueue() {
   state.queue = parseQueue();
   const activeIds = new Set([
@@ -796,6 +1066,81 @@ function reloadQueue() {
     }
     return true;
   });
+}
+
+// ============================================================================
+// INBOX NOTIFICATIONS — written when a task completes so the Orchestrator
+// session can detect it on next interaction without Modo Ausencia active.
+// ============================================================================
+function writeInboxNotification(task, agentName, elapsed) {
+  const progressFile = `progress/PROGRESS-${agentName}.md`;
+  const entry = [
+    ``,
+    L.inboxDone(timestamp(), task.id, agentName),
+    ``,
+    `${L.inboxTaskLabel} ${task.title}`,
+    `${L.inboxDurationLabel} ${formatDuration(elapsed)}`,
+    `${L.inboxReportLabel} ${progressFile}`,
+    L.inboxActionLabel(progressFile),
+    ``,
+  ].join("\n");
+  try {
+    fs.appendFileSync(INBOX_FILE, entry, "utf-8");
+  } catch {}
+}
+
+function writeInboxFailureNotification(task, failedAgent, newAgent, reason) {
+  const entry = [
+    ``,
+    L.inboxFailed(timestamp(), task.id, failedAgent, newAgent),
+    ``,
+    `${L.inboxTaskLabel} ${task.title}`,
+    `${L.inboxReasonLabel} ${reason}`,
+    `${L.inboxNewAgentLabel} ${newAgent}`,
+    L.inboxFailAction,
+    ``,
+  ].join("\n");
+  try {
+    fs.appendFileSync(INBOX_FILE, entry, "utf-8");
+  } catch {}
+}
+
+// Escribe una notificación concisa en NOTIFY.md para la sesión interactiva de Claude.
+// Los hooks de .claude/settings.json leen y limpian este archivo automáticamente.
+function writeNotifyFile(message) {
+  try {
+    const sep = fs.existsSync(NOTIFY_FILE) ? '\n---\n' : '';
+    fs.appendFileSync(NOTIFY_FILE, sep + message + '\n', 'utf-8');
+  } catch {}
+}
+
+// GAP 2 — Move a task line from ## Pending to ## In Progress when it starts
+function moveTaskToInProgress(task) {
+  if (!fs.existsSync(QUEUE_FILE)) return;
+  try {
+    const lines = fs.readFileSync(QUEUE_FILE, "utf-8").split("\n");
+    const idMatcher = new RegExp(
+      `^${task.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$|\\|)`,
+    );
+    // Remove from Pending (wherever it is) — keep line for insertion
+    let taskLine = null;
+    const without = lines.filter((l) => {
+      if (idMatcher.test(l.trim())) {
+        taskLine = l;
+        return false;
+      }
+      return true;
+    });
+    if (!taskLine) return; // already moved or not found
+    // Find In Progress section and insert after its header
+    const idx = without.findIndex(
+      (l) =>
+        l.trim().startsWith("## In Progress") ||
+        l.trim().startsWith("## En progreso"),
+    );
+    if (idx >= 0) without.splice(idx + 1, 0, taskLine);
+    fs.writeFileSync(QUEUE_FILE, without.join("\n"), "utf-8");
+  } catch {}
 }
 
 // ============================================================================
@@ -853,7 +1198,13 @@ function generateBrief(task) {
     }
   }
 
-  const repoDir = REPOS[task.repo] || REPOS[agentCfg.defaultRepo] || ".";
+  const hasBackend = REPOS.backend && fs.existsSync(REPOS.backend);
+  const hasFrontend = REPOS.frontend && fs.existsSync(REPOS.frontend);
+  const isSingleRepo = (hasBackend && hasFrontend && 
+    path.resolve(REPOS.backend) === path.resolve(REPOS.frontend)) || 
+    (!hasBackend && hasFrontend) || (hasBackend && !hasFrontend);
+  const effectiveRepo = isSingleRepo ? "frontend" : (task.repo || agentCfg.defaultRepo);
+  const repoDir = REPOS[effectiveRepo] || REPOS[task.repo] || REPOS[agentCfg.defaultRepo] || ".";
   const progressFile = path.join(
     WORKSPACE,
     "progress",
@@ -863,7 +1214,7 @@ function generateBrief(task) {
   return `
 # Agent: ${task.agent}
 # Task: ${task.id} — ${task.title}
-# Repository: ${task.repo}
+# Repository: ${effectiveRepo}
 # CWD: ${repoDir}
 # Priority: ${task.priority}
 # Workspace: ${WORKSPACE}
@@ -932,25 +1283,17 @@ function buildCliCommand(agentCfg, task, prompt) {
     case "codex":
       return {
         cmd: "codex",
-        args: [
-          "exec",
-          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
-          ...(CLI.yolo ? ["--dangerously-bypass-approvals-and-sandbox"] : []),
-          "--add-dir",
-          WORKSPACE,
-          "-",
-        ],
+        args: ["exec", "--yolo", "--add-dir", WORKSPACE, "-"],
       };
     case "opencode":
       return {
         cmd: "opencode",
         args: [
           "run",
-          ...(agentCfg.model ? ["--model", agentCfg.model] : []),
           "--format",
           "json",
           "--pure",
-          ...(CLI.yolo ? ["--dangerously-skip-permissions"] : []),
+          "--dangerously-skip-permissions",
         ],
       };
     case "gemini":
@@ -984,7 +1327,7 @@ function buildCliCommand(agentCfg, task, prompt) {
           cmd: "cmd",
           args: [
             "/c",
-            `type "${promptFile}" | abacusai -p --output-format stream-json --permission-mode ${CLI.yolo ? "yolo" : "default"} ${CLI.yolo ? "--dangerously-skip-permissions --auto-accept-edits" : ""} --add-dir "${WORKSPACE}"`,
+            `type "${promptFile}" | abacusai -p --output-format stream-json --permission-mode yolo --dangerously-skip-permissions --auto-accept-edits --add-dir "${WORKSPACE}"`,
           ],
         };
       }
@@ -992,7 +1335,7 @@ function buildCliCommand(agentCfg, task, prompt) {
         cmd: "sh",
         args: [
           "-c",
-          `cat "${promptFile}" | abacusai -p --output-format stream-json --permission-mode ${CLI.yolo ? "yolo" : "default"} ${CLI.yolo ? "--dangerously-skip-permissions --auto-accept-edits" : ""} --add-dir "${WORKSPACE}"`,
+          `cat "${promptFile}" | abacusai -p --output-format stream-json --permission-mode yolo --dangerously-skip-permissions --auto-accept-edits --add-dir "${WORKSPACE}"`,
         ],
       };
     }
@@ -1011,10 +1354,7 @@ function launchAgent(task) {
   const agentCfg = AGENTS[agentName];
 
   if (!ag || !agentCfg) {
-    log(
-      "ERROR",
-      `Agente desconocido en QUEUE: "${agentName}" — no está definido en orchestrator.config.json`,
-    );
+    log("ERROR", L.logUnknownAgent(task.id, agentName));
     failedTasks.set(task.id, MAX_RETRIES); // don't retry — config bug, not transient
     return false;
   }
@@ -1036,10 +1376,10 @@ function launchAgent(task) {
   log("START", `${agentName} (${cliCmd}) → ${task.id}: ${task.title}`);
   appendToAgent(
     agentName,
-    `{cyan-fg}=== ${escBl(task.id)}: ${escBl(task.title)} ==={/cyan-fg}`,
+    `{cyan-fg}${escBl(L.agentTaskHeader(task.id, task.title))}{/cyan-fg}`,
     true,
   );
-  appendToAgent(agentName, `{gray-fg}CWD: ${escBl(repoDir)}{/gray-fg}`, true);
+  appendToAgent(agentName, `{gray-fg}${escBl(L.agentCwd(repoDir))}{/gray-fg}`, true);
   appendToAgent(agentName, "", true);
 
   try {
@@ -1054,8 +1394,8 @@ function launchAgent(task) {
     proc.stdin.end();
 
     const timeout = setTimeout(() => {
-      log("WARN", `${agentName} timed out on ${task.id}`);
-      appendToAgent(agentName, "{red-fg}=== TIMEOUT ==={/red-fg}", true);
+      log("WARN", L.logTimeout(agentName, task.id));
+      appendToAgent(agentName, `{red-fg}${escBl(L.agentTimeout)}{/red-fg}`, true);
       try {
         proc.kill("SIGTERM");
       } catch {}
@@ -1101,8 +1441,22 @@ function launchAgent(task) {
               }
             }
           }
+          // Claude: result event with total_cost_usd
           if (event.type === "result" && event.total_cost_usd)
             ag.cost = event.total_cost_usd;
+          // Codex: direct cost_usd field (any event)
+          if (event.cost_usd != null && ag.cost == null)
+            ag.cost = event.cost_usd;
+          if (event.usage?.cost_usd != null && ag.cost == null)
+            ag.cost = event.usage.cost_usd;
+          // Codex: token-based cost calculation from usage event
+          if (ag.cost == null && event.usage &&
+              (event.type === "usage" || event.type === "result" || event.type === "response.completed")) {
+            const usageObj = event.usage.usage || event.usage;
+            const model = agentCfg.model || "";
+            const calc = calcOpenAICost(model, usageObj);
+            if (calc != null) ag.cost = calc;
+          }
           // OpenCode events
           if (event.type === "text" && event.part?.text)
             appendToAgent(agentName, event.part.text.slice(0, 120));
@@ -1172,6 +1526,7 @@ function launchAgent(task) {
     ag.turns = 0;
     task.status = "running";
     state.inProgress.push(task);
+    moveTaskToInProgress(task); // GAP 2: reflect in QUEUE.md
     renderDashboard();
     return true;
   } catch (err) {
@@ -1193,7 +1548,10 @@ function completeTask(task, agentName) {
   const elapsed = ag.startTime
     ? Math.round((Date.now() - ag.startTime) / 1000)
     : 0;
-  if (ag.cost) state.totalCost += ag.cost;
+  if (ag.cost) {
+    state.totalCost += ag.cost;
+    ag.totalCost = (ag.totalCost || 0) + ag.cost;
+  }
   task.status = "completed";
   task.completedAt = timestamp();
   task.elapsed = elapsed;
@@ -1201,22 +1559,21 @@ function completeTask(task, agentName) {
   state.inProgress = state.inProgress.filter((t) => t.id !== task.id);
   state.completed.push(task);
   const costStr = ag.cost ? ` ($${ag.cost.toFixed(2)})` : "";
-  log(
-    "DONE",
-    `${agentName} completó ${task.id} en ${formatDuration(elapsed)}${costStr}`,
-  );
+  log("DONE", L.logDone(agentName, task.id, formatDuration(elapsed), costStr));
   appendToAgent(agentName, "", true);
   appendToAgent(
     agentName,
-    `{green-fg}=== COMPLETADA en ${formatDuration(elapsed)}${escBl(costStr)} ==={/green-fg}`,
+    `{green-fg}${escBl(L.agentCompleted(formatDuration(elapsed), costStr))}{/green-fg}`,
     true,
   );
   ag.status = "idle";
   ag.task = null;
   ag.process = null;
   ag.startTime = null;
-  ag.lastLine = `Última: ${task.id} completada`;
+  ag.lastLine = L.lastCompleted(task.id);
   updateQueueFile(task);
+  writeInboxNotification(task, agentName, elapsed);
+  writeNotifyFile(L.notifyComplete(timestamp(), task.id, agentName, formatDuration(elapsed)));
   scheduleNext();
   renderDashboard();
 }
@@ -1278,21 +1635,19 @@ function failTask(task, agentName, code) {
   if (rl.isRateLimit) {
     const resetStr = rl.resetsAt
       ? `resets ${rl.resetsAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}`
-      : "reintento en 10 min";
-    log("RATE", `${agentName} alcanzó el límite en ${task.id} (${resetStr})`);
+      : "retry in 10 min";
+    log("RATE", L.logRateLimit(agentName, task.id, resetStr));
     appendToAgent(
       agentName,
-      `{yellow-fg}=== LÍMITE DE CUOTA (${escBl(resetStr)}) ==={/yellow-fg}`,
+      `{yellow-fg}${escBl(L.agentRateLimit(resetStr))}{/yellow-fg}`,
       true,
     );
+    writeNotifyFile(L.notifyRateLimit(timestamp(), task.id, agentName, resetStr, retries, maxRetries));
   } else {
-    log(
-      "FAIL",
-      `${agentName} falló ${task.id} (salida ${code}, ${retries}/${maxRetries})`,
-    );
+    log("FAIL", L.logFail(agentName, task.id, code, retries, maxRetries));
     appendToAgent(
       agentName,
-      `{red-fg}=== FALLÓ (salida ${code}, intento ${retries}) ==={/red-fg}`,
+      `{red-fg}${escBl(L.agentFailed(code, retries))}{/red-fg}`,
       true,
     );
   }
@@ -1302,32 +1657,37 @@ function failTask(task, agentName, code) {
   ag.process = null;
   ag.startTime = null;
 
-  const shouldFallbackToClaude =
+  const shouldFallback =
     ["Codex", "OpenCode"].includes(agentName) &&
     (failureFlags.exhaustedQuota ||
       failureFlags.providerUnavailable ||
+      failureFlags.noRealWork ||
       retries >= maxRetries);
 
-  if (shouldFallbackToClaude) {
+  if (shouldFallback) {
     const reason = failureFlags.exhaustedQuota
-      ? "cuota o límite agotado"
+      ? L.reasonQuota
       : failureFlags.providerUnavailable
-        ? "proveedor o sesión no disponibles"
-        : "fallo persistente";
-    if (tryFallbackToClaude(task, agentName, reason)) {
+        ? L.reasonProvider
+        : failureFlags.noRealWork
+          ? L.reasonNoWork
+          : L.reasonPersistent;
+    if (tryFallbackToAlternative(task, agentName, reason)) {
+      writeInboxFailureNotification(task, agentName, task.agent, reason);
+      writeNotifyFile(L.notifyFailed(timestamp(), task.id, agentName, task.agent, reason));
       setTimeout(() => {
         scheduleNext();
-        renderDashboard();
+        safeRenderDashboard();
       }, 3000);
-      renderDashboard();
       return;
     }
   }
 
   if (retries >= maxRetries) {
     task.status = "failed";
-    ag.lastLine = `FALLÓ: ${task.id}`;
-    log("ERROR", `${task.id} falló definitivamente tras ${retries} intentos`);
+    ag.lastLine = L.lastFailed(task.id);
+    log("ERROR", L.logPermanentFail(task.id, retries));
+    writeNotifyFile(L.notifyPermanentFail(timestamp(), task.id, agentName));
   } else {
     task.status = "pending";
     let retryDelay = rl.isRateLimit
@@ -1343,15 +1703,15 @@ function failTask(task, agentName, code) {
       hour12: true,
     });
     ag.lastLine = rl.isRateLimit
-      ? `LÍMITE: ${task.id} (reintento a las ${retryTime})`
-      : `REINTENTO: ${task.id}`;
+      ? L.lastLimit(task.id, retryTime)
+      : L.lastRetry(task.id);
     if (rl.isRateLimit) rateLimitedAgents.set(agentName, task._retryAfter);
   }
   if (rl.isRateLimit && task._retryAfter) {
     setTimeout(
       () => {
         scheduleNext();
-        renderDashboard();
+        safeRenderDashboard();
       },
       Math.max(
         Math.min(task._retryAfter - Date.now() + 5000, 3600_000),
@@ -1361,10 +1721,9 @@ function failTask(task, agentName, code) {
   } else {
     setTimeout(() => {
       scheduleNext();
-      renderDashboard();
+      safeRenderDashboard();
     }, 3000);
   }
-  renderDashboard();
 }
 
 // ============================================================================
@@ -1401,12 +1760,18 @@ function scheduleNext() {
 function updateQueueFile(completedTask) {
   if (!fs.existsSync(QUEUE_FILE)) return;
   const lines = fs.readFileSync(QUEUE_FILE, "utf-8").split("\n");
-  // Use a word-boundary match so TASK-1 does NOT also remove TASK-10, TASK-11, etc.
+  // Word-boundary match so TASK-1 does NOT also remove TASK-10, TASK-11, etc.
   const idMatcher = new RegExp(
     `^${completedTask.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$|\\|)`,
   );
+  // Remove task from both Pending and In Progress sections
   const filtered = lines.filter((l) => !idMatcher.test(l.trim()));
-  const idx = filtered.findIndex((l) => l.trim().startsWith("## Completed") || l.trim().startsWith("## Completadas"));
+  // Find Completed section and insert entry
+  const idx = filtered.findIndex(
+    (l) =>
+      l.trim().startsWith("## Completed") ||
+      l.trim().startsWith("## Completadas"),
+  );
   if (idx >= 0)
     filtered.splice(
       idx + 1,
@@ -1450,6 +1815,14 @@ function detectSupportAgentFailure(agentName) {
   }
 
   const lower = content.toLowerCase();
+
+  const hasToolUses = content.includes("Write") || content.includes("Read") || 
+    content.includes("Bash") || content.includes("Edit") || content.includes("ToolUse");
+  const hasFilesModified = content.includes("files_modified") && 
+    !content.includes("files_modified: list") && !content.includes("files_modified: none");
+  const outputTooShort = ag.output && ag.output.length < 200;
+  const noRealWork = outputTooShort && !hasToolUses && !hasFilesModified;
+
   return {
     exhaustedQuota:
       lower.includes("out of extra usage") ||
@@ -1457,7 +1830,9 @@ function detectSupportAgentFailure(agentName) {
       lower.includes("quota") ||
       lower.includes("rate_limit") ||
       lower.includes("ratelimitexceeded") ||
-      lower.includes("429"),
+      lower.includes("429") ||
+      lower.includes("insufficient credits") ||
+      lower.includes("no credits"),
     providerUnavailable:
       lower.includes("session expired") ||
       lower.includes("authentication") ||
@@ -1470,10 +1845,24 @@ function detectSupportAgentFailure(agentName) {
       lower.includes("timed out") ||
       lower.includes("timeout") ||
       lower.includes("network error"),
+    noRealWork: noRealWork || lower.includes("no files") || lower.includes("nothing to"),
   };
 }
 
 function getClaudeFallbackAgent(task) {
+  const hasBackend = REPOS.backend && fs.existsSync(REPOS.backend);
+  const hasFrontend = REPOS.frontend && fs.existsSync(REPOS.frontend);
+  const isSameRepo = hasBackend && hasFrontend && 
+    path.resolve(REPOS.backend) === path.resolve(REPOS.frontend);
+
+  if (isSameRepo || !hasFrontend) {
+    if (AGENTS["Frontend"]?.cli === "claude") return "Frontend";
+    if (AGENTS["Backend"]?.cli === "claude") return "Backend";
+  }
+  if (!hasBackend && hasFrontend) {
+    if (AGENTS["Frontend"]?.cli === "claude") return "Frontend";
+  }
+  
   const preferred = task.repo === "frontend" ? "Frontend" : "Backend";
   if (AGENTS[preferred]?.cli === "claude") return preferred;
   return (
@@ -1481,34 +1870,82 @@ function getClaudeFallbackAgent(task) {
   );
 }
 
-function tryFallbackToClaude(task, failedAgentName, reason) {
-  if (!["Codex", "OpenCode"].includes(failedAgentName)) return false;
-  const fallbackAgent = getClaudeFallbackAgent(task);
-  if (!fallbackAgent || fallbackAgent === failedAgentName) return false;
+function getAlternativeSupportAgent(failedAgentName) {
+  if (failedAgentName === "OpenCode") return "Codex";
+  return null;
+}
 
-  const queueUpdated = updateQueueTaskAgent(task.id, fallbackAgent);
-  task.agent = fallbackAgent;
+function tryFallbackToAlternative(task, failedAgentName, reason) {
+  if (!["Codex", "OpenCode"].includes(failedAgentName)) return false;
+
+  // Step 1: try sibling support agent (OpenCode → Codex only; Codex falls through directly)
+  const siblingAgent = getAlternativeSupportAgent(failedAgentName);
+  const siblingAvailable =
+    siblingAgent &&
+    AGENTS[siblingAgent] &&
+    state.agents[siblingAgent]?.status === "idle" &&
+    !rateLimitedAgents.has(siblingAgent);
+
+  // Step 2: if sibling is also unavailable, fall back to Claude worker (prefer Frontend)
+  const targetAgent = siblingAvailable
+    ? siblingAgent
+    : getClaudeFallbackAgent(task);
+  if (!targetAgent || targetAgent === failedAgentName) return false;
+
+  const queueUpdated = updateQueueTaskAgent(task.id, targetAgent);
+  task.agent = targetAgent;
   task.status = "pending";
   task._retryAfter = Date.now() + 3000;
   failedTasks.set(task.id, 0);
   state.queue.push(task);
 
-  log(
-    "FALLBACK",
-    `${task.id} fue reasignada de ${failedAgentName} a ${fallbackAgent} (${reason})`,
-  );
+  log("FALLBACK", L.logFallback(task.id, failedAgentName, targetAgent, reason));
   appendToAgent(
     failedAgentName,
-    `{yellow-fg}=== REASIGNADA A ${escBl(fallbackAgent)} (${escBl(reason)}) ==={/yellow-fg}`,
+    `{yellow-fg}${escBl(L.agentReassigned(targetAgent, reason))}{/yellow-fg}`,
     true,
   );
   if (!queueUpdated) {
-    log(
-      "WARN",
-      `${task.id} fue reasignada a ${fallbackAgent}, pero QUEUE.md no pudo actualizarse automáticamente`,
-    );
+    log("WARN", L.logReassignWarn(task.id, targetAgent));
   }
+
+  // Notificar a Claude (sesión principal) cuando hay fallback
+  notifyClaudeOfFallback(task, failedAgentName, targetAgent, reason);
   return true;
+}
+
+// ============================================================================
+// CLAUDE FALLBACK NOTIFIER — avisa a Claude principal cuando hay reasignación
+// ============================================================================
+function notifyClaudeOfFallback(task, fromAgent, toAgent, reason) {
+  const lang = WORKSPACE_LANGUAGE;
+  const prompt = lang === 'es'
+    ? `⚠️ FALLBACK: La tarea "${task.id}: ${task.title}" falló en ${fromAgent} (${reason}) y fue reasignada a ${toAgent}.
+
+Estado actual:
+- QUEUE.md tiene ahora la tarea asignada a ${toAgent}
+- El agente ${toAgent} está procediendo automáticamente
+
+ Acción: No necesitas hacer nada — solo toma nota del cambio. El orquestador将继续 automáticamente.
+Si quieres revisar el progreso, lee INBOX.md o STATUS.md.`
+    : `⚠️ FALLBACK: Task "${task.id}: ${task.title}" failed on ${fromAgent} (${reason}) and was reassigned to ${toAgent}.
+
+Current state:
+- QUEUE.md now has the task assigned to ${toAgent}
+- Agent ${toAgent} is proceeding automatically
+
+Action: You don't need to do anything — just take note of the change. The orchestrator will continue automatically.
+If you want to check progress, read INBOX.md or STATUS.md.`;
+
+  const logPath = path.join(LOG_DIR, `fallback-notify-${Date.now()}.log`);
+  try {
+    const logFd = fs.openSync(logPath, 'a');
+    const child = spawn('claude', ['-p', prompt, '--add-dir', WORKSPACE, '--dangerously-skip-permissions'], {
+      cwd: WORKSPACE, stdio: ['ignore', logFd, logFd], shell: true, windowsHide: true, detached: true
+    });
+    fs.closeSync(logFd);
+    child.unref();
+  } catch {}
 }
 
 // ============================================================================
@@ -1519,23 +1956,11 @@ if (!CLI.headless && screen) {
     exitWithSummary();
   });
 
-  screen.key("s", () => {
-    if (state.paused) {
-      state.paused = false;
-      log("INFO", "Reanudado");
-    }
-    scheduleNext();
-    renderDashboard();
-  });
   screen.key("p", () => {
     state.paused = !state.paused;
     log("INFO", state.paused ? L.paused : L.resumed);
-    renderDashboard();
-  });
-  screen.key("r", () => {
-    reloadQueue();
-    log("INFO", L.queueReloaded(state.queue.length));
-    renderDashboard();
+    safeRenderDashboard();
+    updateStatusFile();
   });
 }
 
@@ -1544,13 +1969,11 @@ if (!CLI.headless && screen) {
 // ============================================================================
 log("INFO", L.starting(PROJECT_NAME));
 state.completed = parseCompletedFromFile();
-log(
-  "INFO",
-  L.loadedCompleted(state.completed.length),
-);
+log("INFO", L.loadedCompleted(state.completed.length));
 reloadQueue();
 log("INFO", `${L.queue}: ${state.queue.length} ${L.tasks}`);
 renderDashboard();
+updateStatusFile();
 if (!state.paused) {
   scheduleNext();
   renderDashboard();
@@ -1561,19 +1984,295 @@ setInterval(() => {
   if (command) applyControlCommand(command);
 }, 1000);
 
+// Real-time queue detection — watches QUEUE.md directly with fallback to WORKSPACE directory
+// fs.watch on the file itself works reliably on Linux/macOS; fallback to WORKSPACE for Windows
+let _queueWatchDebounce = null;
+let _queueWatcher = null;
+
+function startQueueWatcher() {
+  if (_queueWatcher) {
+    try { _queueWatcher.close(); } catch {}
+    _queueWatcher = null;
+  }
+  
+  try {
+    // Try to watch the file directly first (best for Linux/macOS)
+    _queueWatcher = fs.watch(QUEUE_FILE, { persistent: false }, (eventType, filename) => {
+      if (_queueWatchDebounce) clearTimeout(_queueWatchDebounce);
+      _queueWatchDebounce = setTimeout(() => {
+        if (!fs.existsSync(QUEUE_FILE)) return;
+        const prevCount = state.queue.length;
+        reloadQueue();
+        if (!state.paused) scheduleNext();
+        renderDashboard();
+        if (state.queue.length > prevCount)
+          log("INFO", WORKSPACE_LANGUAGE === "es"
+            ? `Nueva tarea detectada en QUEUE.md (realtime)`
+            : `New task detected in QUEUE.md (realtime)`);
+      }, 10); // Faster debounce for direct file watch
+    });
+    _queueWatcher.on('error', () => {
+      // Fallback to WORKSPACE directory watch if direct file watch fails (Windows)
+      log('WARN', WORKSPACE_LANGUAGE === "es"
+        ? `No se pudo verificar QUEUE.md directamente, usando watcher de directorio`
+        : `Could not watch QUEUE.md directly, falling back to directory watcher`);
+      setupFallbackQueueWatcher();
+    });
+  } catch (err) {
+    log('WARN', `Queue watcher error: ${err.message}, using fallback`);
+    setupFallbackQueueWatcher();
+  }
+}
+
+function setupFallbackQueueWatcher() {
+  if (_queueWatcher) {
+    try { _queueWatcher.close(); } catch {}
+    _queueWatcher = null;
+  }
+  
+  try {
+    const watchName = path.basename(QUEUE_FILE);
+    _queueWatcher = fs.watch(WORKSPACE, { persistent: false }, (eventType, filename) => {
+      if (filename !== watchName) return;
+      if (_queueWatchDebounce) clearTimeout(_queueWatchDebounce);
+      _queueWatchDebounce = setTimeout(() => {
+        if (!fs.existsSync(QUEUE_FILE)) return;
+        const prevCount = state.queue.length;
+        reloadQueue();
+        if (!state.paused) scheduleNext();
+        renderDashboard();
+        if (state.queue.length > prevCount)
+          log("INFO", WORKSPACE_LANGUAGE === "es"
+            ? `Nueva tarea detectada en QUEUE.md`
+            : `New task detected in QUEUE.md`);
+      }, 50);
+    });
+    _queueWatcher.on('error', () => {});
+  } catch {}
+}
+
+startQueueWatcher();
+setupQueueWatcher();
+
+// Slow fallback (5 min) — only runs if there is actually pending work or busy agents
+// fs.watch handles real-time; this is just a safety net
 setInterval(() => {
+  const busy = Object.values(state.agents).some(a => a.status === 'busy');
+  if (state.paused || (state.queue.length === 0 && !busy)) return;
   reloadQueue();
-  if (!state.paused) scheduleNext();
+  scheduleNext();
   renderDashboard();
-}, POLL_INTERVAL_MS);
+}, 5 * 60 * 1000);
+
+// ============================================================================
+// INBOX WATCHER — reacts immediately when a task completion is written to INBOX.md
+// Spawns headless Claude to check if a new implementation task needs to be created
+// ============================================================================
+let _inboxDebounce = null;
+let _lastInboxContent = '';
+let _inboxDispatching = false;
+
+function dispatchInboxClaude() {
+  if (_inboxDispatching) return;
+  let content = '';
+  try { content = fs.existsSync(INBOX_FILE) ? fs.readFileSync(INBOX_FILE, 'utf-8') : ''; } catch {}
+  if (!content.trim() || content === _lastInboxContent) return;
+
+  _lastInboxContent = content;
+  _inboxDispatching = true;
+
+  const lang = WORKSPACE_LANGUAGE;
+  const prompt = lang === 'es'
+    ? `Eres el orquestador de este workspace. Tu única misión ahora es procesar el INBOX.
+
+Pasos:
+1. Lee INBOX.md en ${WORKSPACE}
+2. Lee QUEUE.md en ${WORKSPACE} para ver las tareas existentes (secciones Pendientes, En progreso, Completadas)
+
+Si en INBOX.md hay análisis completados de un agente (especialmente OpenCode) que aún NO tienen su tarea de implementación en la sección ## Pendientes de QUEUE.md:
+- Determina el siguiente TASK ID disponible leyendo QUEUE.md
+- Crea la nueva TASK en QUEUE.md con el formato exacto:
+  TASK-NNN | título corto | Codex | P1 | repo | descripción basada en el análisis
+
+Si ya existe la tarea correspondiente, o el análisis no está completo, responde solo: "Sin acción necesaria."
+
+Reglas: No hagas commit ni push. No analices código del proyecto. Solo lee INBOX.md y QUEUE.md, y edita QUEUE.md si hace falta.`
+    : `You are the orchestrator for this workspace. Your only mission now is to process the INBOX.
+
+Steps:
+1. Read INBOX.md in ${WORKSPACE}
+2. Read QUEUE.md in ${WORKSPACE} to see existing tasks (sections Pending, In Progress, Completed)
+
+If INBOX.md contains completed analyses from an agent (especially OpenCode) that do NOT yet have a corresponding implementation task in the ## Pending section of QUEUE.md:
+- Determine the next available TASK ID by reading QUEUE.md
+- Create the new TASK in QUEUE.md with the exact format:
+  TASK-NNN | short title | Codex | P1 | repo | description based on the analysis
+
+If the corresponding task already exists, or the analysis is not complete, reply only: "No action needed."
+
+Rules: Do not commit or push. Do not analyze project code. Only read INBOX.md and QUEUE.md, and edit QUEUE.md if necessary.`;
+
+  const logPath = path.join(LOG_DIR, `inbox-trigger-${Date.now()}.log`);
+  try {
+    const logFd = fs.openSync(logPath, 'a');
+    const child = spawn('claude', [
+      '-p', prompt,
+      '--add-dir', WORKSPACE,
+      '--dangerously-skip-permissions'
+    ], {
+      cwd: WORKSPACE,
+      stdio: ['ignore', logFd, logFd],
+      shell: true,
+      windowsHide: true,
+      detached: true
+    });
+    fs.closeSync(logFd);
+    child.unref();
+    log('INFO', lang === 'es'
+      ? 'INBOX: Claude despachado para procesar notificación'
+      : 'INBOX: Claude dispatched to process notification');
+  } catch {}
+  setTimeout(() => { _inboxDispatching = false; }, 3 * 60 * 1000);
+}
+
+function startInboxWatcher() {
+  if (!fs.existsSync(INBOX_FILE)) {
+    try { fs.writeFileSync(INBOX_FILE, '', 'utf-8'); } catch {}
+  }
+  try {
+    const watchName = path.basename(INBOX_FILE);
+    const watcher = fs.watch(WORKSPACE, {persistent: false}, (eventType, filename) => {
+      if (filename !== watchName) return;
+      if (_inboxDebounce) clearTimeout(_inboxDebounce);
+      _inboxDebounce = setTimeout(dispatchInboxClaude, 100);
+    });
+    watcher.on('error', () => {});
+  } catch {}
+}
+startInboxWatcher();
+
+// ============================================================================
+// AWAY MODE WATCHER — monitors .away-mode file; when active runs periodic
+// health checks via headless Claude; auto-deactivates when all tasks are done
+// ============================================================================
+let _awayModeTimer = null;
+let _awayModeActive = false;
+
+function runAwayModeCheck() {
+  if (!fs.existsSync(AWAY_MODE_FILE)) {
+    deactivateAwayMode();
+    return;
+  }
+
+  const lang = WORKSPACE_LANGUAGE;
+  const pendingTasks = state.queue.filter(t => !t.status || t.status === 'pending');
+  const inProgressTasks = state.inProgress || [];
+  const busy = Object.values(state.agents).some(a => a.status === 'busy');
+  const completedCount = (state.completed || []).length;
+  const hasWork = pendingTasks.length > 0 || inProgressTasks.length > 0 || busy;
+
+  if (!hasWork && completedCount > 0) {
+    try { fs.unlinkSync(AWAY_MODE_FILE); } catch {}
+    deactivateAwayMode();
+
+    const donePrompt = lang === 'es'
+      ? `Modo Ausencia terminado. Todas las tareas se completaron mientras estabas ausente.\n\nLee QUEUE.md en ${WORKSPACE} y dame un resumen de todo lo que se logró durante la sesión.\nLuego dime si hay algo que podamos continuar o integrar a partir de lo que ya se hizo, o pregúntame qué quiero priorizar a continuación.`
+      : `Away Mode ended. All tasks were completed while you were away.\n\nRead QUEUE.md in ${WORKSPACE} and give me a summary of everything accomplished during the session.\nThen tell me if there is anything we can continue or integrate from what was done, or ask me what I want to prioritize next.`;
+
+    const logPath = path.join(LOG_DIR, `away-done-${Date.now()}.log`);
+    try {
+      const logFd = fs.openSync(logPath, 'a');
+      const child = spawn('claude', ['-p', donePrompt, '--add-dir', WORKSPACE, '--dangerously-skip-permissions'], {
+        cwd: WORKSPACE, stdio: ['ignore', logFd, logFd], shell: true, windowsHide: true, detached: true
+      });
+      fs.closeSync(logFd);
+      child.unref();
+      log('INFO', lang === 'es' ? 'Modo Ausencia: todo completado — resumen final enviado.' : 'Away Mode: all done — final summary dispatched.');
+    } catch {}
+    return;
+  }
+
+  if (!hasWork) return;
+
+  const lines = [];
+  if (pendingTasks.length > 0) {
+    lines.push(lang === 'es' ? `Tareas pendientes: ${pendingTasks.length}` : `Pending tasks: ${pendingTasks.length}`);
+    pendingTasks.slice(0, 5).forEach(t => lines.push(`  - ${t.id}: ${t.title}`));
+  }
+  if (inProgressTasks.length > 0) {
+    lines.push(lang === 'es'
+      ? `En progreso: ${inProgressTasks.map(t => `${t.id} (${t.agent})`).join(', ')}`
+      : `In progress: ${inProgressTasks.map(t => `${t.id} (${t.agent})`).join(', ')}`);
+  }
+  const failedAgents = Object.entries(state.agents)
+    .filter(([, a]) => /^(FALLÓ|FAILED):/.test(a.lastLine || ''))
+    .map(([n, a]) => `${n}: ${a.lastLine}`);
+  if (failedAgents.length > 0) {
+    lines.push(lang === 'es' ? `Agentes con fallo: ${failedAgents.join(' | ')}` : `Failed agents: ${failedAgents.join(' | ')}`);
+  }
+  if (completedCount > 0) {
+    lines.push(lang === 'es' ? `Completadas: ${completedCount}` : `Completed: ${completedCount}`);
+  }
+
+  const stateCtx = lines.join('\n');
+const monitorPrompt = lang === 'es'
+    ? `Modo Ausencia activo — revisión automática cada 5 minutos.\n\nEstado del orquestador:\n${stateCtx}\n\nInstrucciones:\n1. Lee INBOX.md — si hay análisis completados sin tarea de implementación en QUEUE.md, créala\n2. Lee QUEUE.md — si hay tareas fallidas no reasignadas, reasígnalas al siguiente agente\n3. Si hay tareas pendientes sin asignar a ningún agente (agent = >0 o vacío), asígnalas a un agente idle (Codex u OpenCode)\n4. Si hay agentes idle y tareas pendientes sin procesar, revisa bloqueos y resuélvelos\n5. Si todo avanza, no hagas nada y responde brevemente "TodoOK"\n\nNo hagas commit ni push. No inventes tareas nuevas.`
+    : `Away Mode active — automatic check every 5 minutes.\n\nOrchestrator state:\n${stateCtx}\n\nInstructions:\n1. Read INBOX.md — if there are completed analyses without implementation tasks in QUEUE.md, create them\n2. Read QUEUE.md — if there are failed tasks not reassigned, reassign to next available agent\n3. If there are pending tasks with no agent assigned (agent = >0 or empty), assign them to an idle agent (Codex or OpenCode)\n4. If there are idle agents and pending tasks not being processed, check for blocking issues\n5. If everything is progressing, do nothing and respond briefly "AllGood"\n\nDo not commit or push. Do not invent new tasks.`;
+
+  const logPath = path.join(LOG_DIR, `away-check-${Date.now()}.log`);
+  try {
+    const logFd = fs.openSync(logPath, 'a');
+    const child = spawn('claude', ['-p', monitorPrompt, '--add-dir', WORKSPACE, '--dangerously-skip-permissions'], {
+      cwd: WORKSPACE, stdio: ['ignore', logFd, logFd], shell: true, windowsHide: true, detached: true
+    });
+    fs.closeSync(logFd);
+    child.unref();
+    log('INFO', lang === 'es' ? 'Modo Ausencia: revisión automática disparada.' : 'Away Mode: automatic check dispatched.');
+  } catch {}
+}
+
+function activateAwayMode() {
+  if (_awayModeActive) return;
+  _awayModeActive = true;
+  log('INFO', WORKSPACE_LANGUAGE === 'es' ? 'Modo Ausencia activado.' : 'Away Mode activated.');
+  runAwayModeCheck();
+  _awayModeTimer = setInterval(runAwayModeCheck, 5 * 60 * 1000); // 5 minutos
+}
+
+function deactivateAwayMode() {
+  if (!_awayModeActive) return;
+  _awayModeActive = false;
+  if (_awayModeTimer) { clearInterval(_awayModeTimer); _awayModeTimer = null; }
+  log('INFO', WORKSPACE_LANGUAGE === 'es' ? 'Modo Ausencia desactivado.' : 'Away Mode deactivated.');
+}
+
+function startAwayModeWatcher() {
+  if (fs.existsSync(AWAY_MODE_FILE)) activateAwayMode();
+  try {
+    const watcher = fs.watch(WORKSPACE, {persistent: false}, (eventType, filename) => {
+      if (filename !== '.away-mode') return;
+      if (fs.existsSync(AWAY_MODE_FILE)) {
+        activateAwayMode();
+      } else {
+        deactivateAwayMode();
+      }
+    });
+    watcher.on('error', () => {});
+  } catch {}
+}
+startAwayModeWatcher();
+
+setInterval(() => {
+  updateStatusFile();
+}, 60000); // Update STATUS.md cada 60 segundos
 setInterval(() => {
   for (const [name, ag] of Object.entries(state.agents)) {
     if (ag.status !== "busy" || !ag.process) continue;
     try {
       process.kill(ag.process.pid, 0);
     } catch {
-      log("WARN", `${name} died silently on ${ag.task?.id}`);
-      appendToAgent(name, "{red-fg}=== PROCESS DIED ==={/red-fg}", true);
+      log("WARN", L.logDied(name, ag.task?.id));
+      appendToAgent(name, `{red-fg}${escBl(L.agentDied)}{/red-fg}`, true);
       ag.process = null;
       failTask(ag.task, name, -1);
     }

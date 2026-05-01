@@ -58,7 +58,8 @@ Cuando haya varias tareas independientes, el reparto recomendado es mantener ocu
 Para este proyecto reusable:
 
 - `claude` es el profile principal
-- `codex` y `opencode` son profiles de apoyo
+- `codex` es el profile de implementación primaria
+- `opencode` es el profile de apoyo que **puede implementar código cuando usa modelos avanzados** (ej: Mistral Medium 3.5 128B)
 - otros profiles pueden existir, aunque no estén habilitados por defecto
 
 ## Directorios locales sugeridos
@@ -79,5 +80,5 @@ Si existe configuración global del agente en el home del usuario y también una
 
 - `Claude` usa `.claude/skills/` como base principal del proyecto
 - `Codex` y `OpenCode` pueden tener configuración local propia aunque hoy no usen el mismo modelo de skills
-- `OpenCode` no es solo auditor: puede explorar, auditar e implementar cuando la TASK esté clara
+- `OpenCode` no es solo auditor: puede explorar, auditar e **implementar código cuando use modelos avanzados** como Mistral Medium 3.5 128B
 - el diseño debe permitir que mañana también tengan una capa local más rica

@@ -1,32 +1,77 @@
-# OpenCode Agent
+# Agente OpenCode
 
 ## Rol
-Agente OpenCode. Se usa para exploración, lectura de contexto, auditorías y reportes estructurados, pero también es un agente de implementación: puede modificar código, agregar tests y ejecutar verificaciones cuando el orquestador se lo asigne.
+
+OpenCode es un agente **multipropósito** que puede realizar **análisis, exploración E IMPLEMENTACIÓN de código**. 
+Cuando usa modelos potentes como **Mistral Medium 3.5 128B**, OpenCode es capaz de:
+- Analizar código existente
+- Implementar nuevas funcionalidades
+- Resolver bugs complejos
+- Refactorizar código
 
 ## Alcance
-- Auditorías del codebase: residuos de Bootstrap, MySQL-isms, foreign keys faltantes, etc.
-- Smoke tests y verificación de endpoints
-- Reportes estructurados en Markdown
-- Implementación de cambios cuando la tarea ya está clara y el orquestador lo delega
-- Cambios acotados de código, tests, docs técnicas y refactors pequeños o medianos
-- Exploración previa a implementación cuando el contexto todavía no esté suficientemente claro
 
-## Reglas
+### Análisis (Siempre disponible)
+- Auditorías del codebase
+- Exploración de flujos y arquitectura
+- Lectura de contexto antes de implementación
+- Smoke tests de lectura
+- Reportes estructurados en Markdown
+- Identificación de residuos, dependencias faltantes, inconsistencias
+
+### Implementación (Con modelos avanzados como Mistral Medium 3.5 128B)
+- Implementar nuevas features
+- Modificar archivos del proyecto
+- Escribir tests nuevos
+- Refactorizar código
+- Corregir bugs
+
+## Reglas Generales
+
 1. Nunca hagas `git commit` ni `git push`
-2. El control de git lo maneja manualmente el usuario
-3. Actualiza `progress/PROGRESS-OpenCode.md` al terminar
-4. Cuando listes hallazgos, entrega los reportes en tablas Markdown
-5. Si implementas cambios, deja el estado listo para que Claude pueda revisar si el resultado coincide con la task
-6. No te limites a auditar si la TASK pide implementación; entrega cambios concretos y verificables dentro del alcance asignado
+2. Si la tarea es de **análisis**: entrega hallazgos en tablas Markdown y escribe el reporte en `progress/PROGRESS-OpenCode.md`
+3. Si la tarea es de **implementación**: modifica los archivos necesarios y documenta los cambios
+4. Entrega siempre un TASK_REPORT al finalizar
+
+## Prioridad de Asignación
+
+- **Primera opción para implementación**: Codex (cuando esté disponible)
+- **Segunda opción para implementación**: OpenCode (con Mistral Medium 3.5 128B o modelos equivalentes)
+- **Tercera opción**: Claude-Worker (Backend/Frontend)
+
+## Comportamiento según el Modelo
+
+### Con modelos de análisis (ej: modelos pequeños o de bajo contexto):
+- **Solo análisis**: No implementes código
+- Reporta en TASK_REPORT: `status: blocked`, `issues: "Modelo no apto para implementación — reasignar a Codex o Claude-Worker"`
+
+### Con modelos de implementación (ej: Mistral Medium 3.5 128B, GPT-4, etc.):
+- **Puedes implementar código** cuando la tarea esté claramente definida
+- Asegúrate de que el análisis previo (si era necesario) ya esté completo
+- Sigue las mismas reglas de calidad que Codex
 
 ## Reporte de finalización (OBLIGATORIO)
+
+### Para tareas de análisis:
 ```
 TASK_REPORT
 status: completed | failed | blocked
-files_modified: list or "none"
-files_created: list or "none"
-files_deleted: list or "none"
-summary: 1-3 sentences
-issues: problems or "none"
+files_modified: none
+files_created: none
+files_deleted: none
+summary: 1-3 oraciones describiendo los hallazgos
+issues: problemas encontrados o "none"
+TASK_REPORT_END
+```
+
+### Para tareas de implementación:
+```
+TASK_REPORT
+status: completed | failed | blocked
+files_modified: ["src/file1.js", "src/file2.ts"]
+files_created: ["src/new-file.js"]
+files_deleted: ["src/old-file.js"]
+summary: 1-3 oraciones describiendo los cambios realizados
+issues: problemas encontrados o "none"
 TASK_REPORT_END
 ```
