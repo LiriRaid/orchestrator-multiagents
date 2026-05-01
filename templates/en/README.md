@@ -1,83 +1,89 @@
-# agentflow
+# agentflow-ai
 
-A reusable multi-agent workspace for coordinating coding agents around a real project without placing orchestrator files inside the product repository.
+**Multi-Agent Orchestration System for AI-Powered Development**
 
-The orchestrator lives next to the real project:
+A reusable workspace orchestrator that coordinates multiple AI coding agents to work **in parallel** on real projects, while keeping the project repository **completely clean** of orchestrator files.
 
 ```text
 project-workspace/
-  RealProject/
-  orchestrator-realproject/
+  my-project/          # Real project (stays clean)
+  orchestrator-my-project/  # Orchestrator workspace (generated)
 ```
 
-The real project stays clean. The orchestrator workspace keeps queue, docs, skills, OpenSpec artifacts, memory conventions, logs, and handoffs.
+## 🎯 What It Does
 
-## What It Does
+- **Coordinates multiple AI agents** (Claude, Codex, OpenCode, etc.) to work simultaneously on your project.
+- **Real-time monitoring** with a modern TUI (Terminal User Interface) that shows live agent status, queue, and progress.
+- **Automatic task delegation** based on agent specialization (analysis, implementation, code review).
+- **Persistent memory** using Engram to maintain context across sessions.
+- **Spec-Driven Development (SDD)** support with OpenSpec for large, multi-phase changes.
+- **Fallback system** that automatically reassigns tasks when an agent fails or reaches rate limits.
+- **Multi-language support** (English and Spanish) for all templates and documentation.
 
-- Starts a TUI dashboard for live agent execution.
-- Uses `QUEUE.md` as the executable task queue.
-- Lets Claude act as orchestrator and final reviewer.
-- Runs Codex, OpenCode, and Claude-Workers as implementation agents.
-- Keeps project memory and handoffs outside the deliverable repo.
-- Supports OpenSpec-style proposal, spec, design, tasks, verify, and archive artifacts.
-- Allows one orchestrator workspace per client or product.
+## ✨ Key Features
 
-## Core Rule
+### 1. **Sibling Workspace Model**
+- The orchestrator creates a **separate workspace** next to your real project.
+- Your project repository **stays completely clean** (no `QUEUE.md`, `logs/`, or orchestrator files).
+- Agents work on the real project files via absolute paths configured in `orchestrator.config.json`.
 
-Claude-Orchestrator must not implement project work directly.
+### 2. **Multi-Agent Coordination**
+| Agent | CLI | Default Model | Implementation? | Notes |
+|-------|-----|----------------|----------------|-------|
+| **Claude-Orchestrator** | - | - | ❌ No | Session coordinator only |
+| **Codex** | `codex` | gpt-5.5 | ✅ Yes | Primary implementation |
+| **OpenCode** | `opencode` | auto | ✅ **Yes** (with Mistral Medium 3.5 128B) | Secondary implementation |
+| **Claude-Worker** (Backend/Frontend) | `claude` | sonnet | ✅ Yes | Fallback implementation |
+| **Gemini** | `gemini` | auto | ❌ No | Audits/reviews only |
+| **Cursor** | `cursor` | auto | ❌ No | Bulk edits only |
+| **Abacus** | `abacusai` | auto | ❌ No | Small focused tasks |
 
-When the user asks for work, Claude should:
+### 3. **Real-Time Operation**
+- **fs.watch on QUEUE.md**: Detects changes in **~1-2 seconds** (Linux/macOS: direct file watch; Windows: directory watch fallback).
+- **Live TUI updates**: The dashboard refreshes automatically when tasks are added, started, or completed.
+- **Instant notifications**: Claude-Orchestrator receives alerts in `INBOX.md` and `NOTIFY.md` when tasks finish.
 
-1. Read context.
-2. Split the request into TASKs.
-3. Write those TASKs to `QUEUE.md`.
-4. Let the TUI launch the workers.
-5. Review the results.
+### 4. **Smart Task Delegation**
+- **Analysis tasks** → Always assigned to **OpenCode**.
+- **Implementation tasks** → Assigned to **Codex** (1st) → **OpenCode** (2nd, if using Mistral Medium 3.5 128B) → **Claude-Worker** (3rd).
+- **Fallback chain**: `Codex → OpenCode → Claude-Worker` (automatic).
 
-Implementation should go through worker agents unless the user explicitly overrides this rule.
+### 5. **Persistent Memory & SDD**
+- **Engram**: Stores decisions, bugs, and findings across sessions.
+- **OpenSpec**: Supports `proposal.md`, `spec.md`, `design.md`, `tasks.md`, and `verify-report.md` for large changes.
+- **Handoffs**: Session summaries for continuity.
 
-## Default Agents
+## 🚀 Installation
 
-| Agent | CLI | Default Role |
-| --- | --- | --- |
-| Codex | `codex` | Structured implementation, tests, docs, narrow frontend support |
-| OpenCode | `opencode` | Exploration, audits, reports, scoped implementation |
-| Backend | `claude` | Claude-Worker for backend work, fallback, and extra capacity |
-| Frontend | `claude` | Claude-Worker for broad frontend work, fallback, and extra capacity |
-
-Gemini, Cursor, and Abacus can remain configured but are disabled operationally unless the user enables them for a session.
-
-## Install
-
+### Global CLI (Recommended)
 ```bash
 npm i -g @liriraid/agentflow-ai
 ```
 
-## Create A Workspace
-
+### Local Development
 ```bash
-agentflow init-workspace C:/code/my-project
+git clone https://github.com/LiriRaid/agentflow-ai.git
+cd agentflow-ai
+npm install
 ```
 
-If no language is passed, the CLI asks whether to generate the workspace in **EN** or **ES**. You can also pass it directly:
+## 🛠️ Quick Start
 
+### 1. Create an Orchestrator Workspace
 ```bash
+# Interactive (asks for language)
+agentflow init-workspace C:/code/my-project
+
+# Direct (English)
 agentflow init-workspace C:/code/my-project --lang en
+
+# Direct (Spanish)
 agentflow init-workspace C:/code/my-project --lang es
 ```
+This creates a sibling workspace (e.g., `orchestrator-my-project/`) with all configuration files.
 
-This creates a sibling workspace:
-
-```text
-C:/code/
-  my-project/
-  orchestrator-my-project/
-```
-
-## Configure Repos
-
-Edit `orchestrator.config.json`:
-
+### 2. Configure Repositories
+Edit `orchestrator.config.json` in the generated workspace:
 ```json
 {
   "repos": {
@@ -87,102 +93,141 @@ Edit `orchestrator.config.json`:
 }
 ```
 
-If the project only has frontend for now, both keys can temporarily point to the same repo. Update `backend` later when the backend exists.
-
-## Start The System
-
-Open one terminal in the orchestrator workspace:
-
+### 3. Start the TUI
 ```bash
-cd C:/code/orchestrator-my-project
-agentflow ink
+cd orchestrator-my-project
+agentflow ink --paused
 ```
+**Controls:**
+- `S`: Start/Resume
+- `P`: Pause
+- `R`: Reload queue
+- `Q`: Quit (stops all agents)
 
-Open another terminal in the same orchestrator workspace:
-
+### 4. Launch Claude Code
+Open a second terminal in the **orchestrator workspace** (not the real project):
 ```bash
-cd C:/code/orchestrator-my-project
+cd orchestrator-my-project
 claude
 ```
-
-Tell Claude:
-
-```text
+Then run:
+```
 Read ORCHESTRATOR.md and start.
 ```
 
-Claude should read the workspace context and become the orchestrator. It should not implement the first user request directly.
+### 5. Request Work
+Examples:
+- `"Explore this project"` → OpenCode analyzes and reports.
+- `"Add JWT authentication"` → OpenCode analyzes, then Codex/OpenCode implement.
+- `"Refactor the API layer"` → OpenCode explores, then workers implement in parallel.
 
-## Normal Workflow
+## 📁 Workspace Structure
 
-1. User asks Claude-Orchestrator for a change.
-2. Claude reads the relevant project context.
-3. Claude creates TASKs in `QUEUE.md`.
-4. User presses `R` in the TUI to reload the queue.
-5. User presses `S` if the TUI is paused.
-6. The TUI launches workers.
-7. Workers report `TASK_REPORT`.
-8. Claude-Orchestrator reviews the output and plans the next batch.
-
-## Queue Format
+The generated workspace includes:
 
 ```text
-TASK-NNN | short title | Agent | P1 | repo | detailed description
+orchestrator-my-project/
+├── ORCHESTRATOR.md      # Core rules for the orchestrator session
+├── CLAUDE.md            # Routing rules for Claude
+├── QUEUE.md             # Active task queue (TASK-NNN | title | agent | ...)
+├── ENGRAM.md            # Persistent memory conventions
+├── orchestrator.config.json  # Repos, agents, models, and profiles
+├── agents/              # Agent-specific instructions
+│   ├── BACKEND.md
+│   ├── FRONTEND.md
+│   ├── CODEX.md
+│   └── OPENCODE.md
+├── .claude/             # Local Claude skills and config
+│   └── skills/          # Orchestrator skills (init, explore, etc.)
+├── .codex/              # Codex config
+├── .opencode/           # OpenCode config
+├── openspec/            # SDD artifacts
+│   ├── changes/
+│   └── templates/
+├── docs/                # Documentation
+├── logs/                # Execution logs
+├── handoffs/            # Session handoffs
+└── progress/            # Agent progress reports
 ```
 
-Example:
+## 🎛️ Configuration
 
-```text
-TASK-004 | Audit current frontend routing | OpenCode | P1 | frontend | Inspect route structure and report risks
-TASK-005 | Add inbox empty-state test | Codex | P1 | frontend | Add a narrow test for the empty inbox state
-TASK-006 | Implement inbox layout polish | Frontend | P1 | frontend | Update the main inbox layout after TASK-004 findings > after:TASK-004
-```
-
-## Routing Policy
-
-- Start executable work with Codex or OpenCode when suitable.
-- Use Claude-Worker for fallback, extra capacity, broad implementation, or sensitive tasks.
-- For frontend, Codex should handle narrow and verifiable tasks; Frontend/Claude-Worker should own broad UI work.
-- OpenCode can audit, explore, and implement scoped tasks.
-- Do not send all work to Claude just because Claude is the orchestrator.
-
-## Models
-
-The default config can specify models per agent:
-
+### Agent Configuration (`orchestrator.config.json`)
 ```json
 {
+  "projectName": "My Project",
+  "workspaceLanguage": "en",
+  "maxConcurrent": 5,
+  "pollIntervalSeconds": 5,  // Fallback polling (realtime uses fs.watch)
+  "taskTimeoutMinutes": 30,
+  "repos": {
+    "backend": "C:/code/my-backend",
+    "frontend": "C:/code/my-frontend"
+  },
+  "agentProfiles": {
+    "claude": { "enabled": true, "localConfigDir": ".claude" },
+    "codex": { "enabled": true, "localConfigDir": ".codex" },
+    "opencode": { "enabled": true, "localConfigDir": ".opencode" }
+  },
   "agents": {
-    "Backend": { "cli": "claude", "model": "sonnet" },
-    "Frontend": { "cli": "claude", "model": "sonnet" },
-    "Codex": { "cli": "codex", "model": "gpt-5.5" },
-    "OpenCode": { "cli": "opencode", "model": "opencode/glm-5-free" }
+    "Backend": { "cli": "claude", "defaultRepo": "backend", "model": "sonnet" },
+    "Frontend": { "cli": "claude", "defaultRepo": "frontend", "model": "sonnet" },
+    "Codex": { "cli": "codex", "defaultRepo": "backend", "model": "gpt-5.5" },
+    "OpenCode": { "cli": "opencode", "defaultRepo": "frontend", "model": "auto" }
   }
 }
 ```
 
-## TUI Controls
+### Model Selection
+- Use `"model": "auto"` to let the agent use your default configured model (e.g., Mistral Medium 3.5 128B for OpenCode).
+- Specify a model explicitly (e.g., `"model": "gpt-5.5"`) to override.
 
-- `R`: reload `QUEUE.md`
-- `S`: start or resume
-- `P`: pause
-- `Q`: quit and stop agents
+## 🔄 Workflow Example
 
-## Local Files
+1. **User Request**: `"Add JWT authentication to the backend."`
+2. **Claude-Orchestrator**:
+   - Creates `TASK-001` (OpenCode): `"Analyze current auth system"`
+   - Waits for OpenCode's report in `progress/PROGRESS-OpenCode.md`
+3. **OpenCode**:
+   - Analyzes the codebase.
+   - Writes findings to `progress/PROGRESS-OpenCode.md` and `INBOX.md`.
+4. **Claude-Orchestrator**:
+   - Reads OpenCode's report.
+   - Creates `TASK-002` (Codex): `"Implement JWT auth"` (depends on TASK-001).
+5. **Codex/OpenCode**:
+   - Implements the feature (Codex first, OpenCode second if using Mistral Medium 3.5 128B).
+   - Reports completion in `progress/PROGRESS-*.md`.
+6. **TUI**:
+   - Shows real-time updates (task status, agent activity, costs).
 
-- `ORCHESTRATOR.md`: core session rules
-- `CLAUDE.md`: Claude routing
-- `QUEUE.md`: active queue
-- `orchestrator.config.json`: repos, agents, models
-- `agents/*.md`: worker instructions
-- `.claude/skills/`: local skills
-- `openspec/`: durable change artifacts
-- `ENGRAM.md`: memory conventions
-- `docs/`: reusable documentation
+## 📊 Supported Agents & Models
 
-## Safety
+| Agent | CLI | Default Model | Implementation? | Notes |
+|-------|-----|----------------|----------------|-------|
+| Backend | `claude` | sonnet | ✅ Yes | Claude-Worker for backend tasks |
+| Frontend | `claude` | sonnet | ✅ Yes | Claude-Worker for frontend tasks |
+| Codex | `codex` | gpt-5.5 | ✅ Yes | Primary implementation |
+| OpenCode | `opencode` | auto | ✅ **Yes** (with Mistral Medium 3.5 128B) | Secondary implementation |
+| Gemini | `gemini` | auto | ❌ No | Audits/reviews only |
+| Cursor | `cursor` | auto | ❌ No | Bulk edits only |
+| Abacus | `abacusai` | auto | ❌ No | Small focused tasks |
 
-- No worker commits or pushes by default.
-- No bypass or YOLO mode unless the user starts the TUI with that intent.
-- Claude remains the final reviewer before work is accepted.
-- Customer/product repos stay clean because the orchestrator workspace is separate.
+## 🛡️ Safety & Best Practices
+
+- **No auto-commits**: Agents never run `git commit` or `git push`.
+- **No YOLO by default**: Safe permissions mode is enabled unless `--yolo` is used.
+- **Claude as reviewer**: Claude-Orchestrator validates all work before user approval.
+- **Clean repos**: Project files stay untouched; orchestrator files live in the sibling workspace.
+- **Fallback safety**: Tasks are automatically reassigned if an agent fails.
+
+## 📚 Documentation
+
+- **Core Rules**: See `ORCHESTRATOR.md` in the generated workspace.
+- **Agent Routing**: See `CLAUDE.md`.
+- **Architecture**: See `docs/architecture.md`.
+- **OpenSpec**: See `openspec/FLOW.md`.
+
+## 🤝 Acknowledgements
+
+Inspired by [Orquestador-AI](https://github.com/ariellontero/Orquestador-AI) by Ariel Lontero (MIT). 
+Built from scratch with a modern architecture: **Ink TUI + React, npm package, real-time fs.watch, multi-language templates, and multi-agent coordination**.

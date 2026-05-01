@@ -36,14 +36,16 @@ When the user requests work after startup:
 
 1. Do not implement the work in the interactive Claude session.
 2. Convert the request into one or more TASKs in `QUEUE.md`.
-3. Prefer assigning the first executable work to `Codex` or `OpenCode`.
-4. Assign a Claude-Worker only when:
-   - Codex and/or OpenCode already have useful work in flight,
-   - a task is blocked by Codex/OpenCode quota, rate limit, token limits, or repeated failure,
-   - the task is highly sensitive and needs Claude as the worker,
-   - the user explicitly asks Claude to take the worker task.
+3. Assign by role:
+   - `OpenCode` → **analysis only** (exploration, audits, reports — does NOT modify code)
+   - `Codex` → **primary implementation** (code changes, tests, docs)
+4. Assign a Claude-Worker (`Frontend` or `Backend`) **only** when:
+   - **Multiple independent tasks exist** AND Codex is already occupied, OR
+   - A task has **permanently failed** in Codex — then Claude-Worker takes it as last resort.
 
-For frontend work, prefer `Codex` for narrow, well-scoped tasks and `OpenCode` for exploration/audits. Use `Frontend`/Claude-Worker for broader UI implementation, fallback, or when the other allowed agents are already occupied.
+The TUI handles automatic fallback: Codex fails → Claude-Worker directly. You only need to manually assign Claude-Workers for load balancing (case a) or when the TUI marks a task as permanently `failed` (case b).
+
+The `repo` field determines the working directory: `frontend` for UI/client work, `backend` for API/server work. Codex and OpenCode can work in either repo depending on the task.
 
 ## This Workspace Is NOT the Real Project
 
@@ -64,13 +66,21 @@ When the user says something like `Read ORCHESTRATOR.md and start`, do this:
 
 1. Read this file completely.
 2. Read `orchestrator.config.json` — identify the real project paths in `repos` (frontend, backend). Those are the paths where the worker agents operate.
-3. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
-4. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
-5. Read `QUEUE.md` to understand pending, active, and completed work.
-6. Read all `progress/PROGRESS-*.md` files if present.
-7. Read `ENGRAM.md` and follow the memory rules.
-8. Use `openspec/` for large or multi-phase changes.
-9. Tell the user the orchestrator is ready and ask what to prioritize.
+3. **Verify automation:** The orchestrator uses `fs.watch` (Node.js real-time watching). No Task Scheduler needed. The TUI stays running in a terminal and detects changes immediately.
+4. Read `<projectName>-plan.md`, `PLAN.md`, or `plan.md` if present.
+5. Read the newest `handoffs/HANDOFF-*.md` if the folder exists.
+6. **Read `INBOX.md` if it exists** — it contains automatic TUI notifications of completed tasks that require your attention (creating next TASKs, reading agent reports, etc.).
+7. Read `QUEUE.md` to understand pending, active, and completed work.
+8. Read all `progress/PROGRESS-*.md` files if present.
+9. Read `ENGRAM.md` and follow the memory rules.
+10. Use `openspec/` for large or multi-phase changes.
+11. Tell the user the orchestrator is ready and ask what to prioritize.
+
+**INBOX rule:** At the start of EACH response, if `INBOX.md` has new entries since your last read, check it first. This is how you know when an agent finished and what to create next — without Away Mode active.
+
+**STATUS rule:** Also read `STATUS.md` at the start of each response to get current context of agents and queue. This file updates automatically every 60 seconds.
+
+**ACTIONS rule:** If `ACTIONS.md` exists, read it too — it contains automatic monitoring actions (completed tasks needing follow-up, failed tasks, stuck tasks, etc).
 
 Startup is context loading only. Do not create project code changes during startup.
 
@@ -78,38 +88,50 @@ Startup is context loading only. Do not create project code changes during start
 
 If the user says something like:
 
+- `I will be away for 1 hour`
 - `I will be away for 2 hours`
-- `monitor while I am gone`
-- `keep checking`
-- `continue while I am away`
+- `going out for a while`
+- `activate monitoring`
 
-enter **Away Mode** for that session.
+**Activate Away Mode:**
+```bash
+echo away > .away-mode
+```
 
-In Away Mode:
+**Away Mode checks every 5 minutes** and will:
+- Completed tasks without follow-up
+- Failed tasks
+- Stuck tasks (>10 min)
+- Pending tasks with no agent assigned → assign them automatically
+- Write to ACTIONS.md
 
-1. Check work state every 5 minutes.
-2. Read `QUEUE.md`, completed tasks, active tasks, idle agents, progress files, and blocked tasks.
-3. Assign new useful TASKs when agents become idle, as long as the work stays within the user's stated goal.
-4. Update `QUEUE.md` and `TASKS.md` when work needs splitting, dependency cleanup, or a next batch.
-5. Keep progress moving without inventing new product scope.
+**Auto-deactivate:**
+When there are NO pending tasks AND NO agents working AND all tasks are completed:
+- Away Mode removes .away-mode automatically
+- Away Mode deactivates by itself
+- When you return and say "I'm back" → Claude responds normally
 
-Away Mode limits:
-
-- Do not change the user's objective.
-- Do not open unrelated work streams.
-- Do not use Gemini, Cursor, or Abacus without explicit permission.
-- If a decision is risky or ambiguous, leave a note in `QUEUE.md` or a handoff instead of guessing.
+**Deactivate Away Mode:**
+```bash
+# Delete indicator file
+del .away-mode
+```
 
 ## Fallback Policy
 
-If Codex or OpenCode fail persistently because of quota, rate limits, token limits, expired sessions, repeated provider errors, or CLI downtime:
+The TUI handles fallback automatically following this chain:
 
-1. Detect that the issue is no longer transient.
-2. Add a clear note in `QUEUE.md`, `TASKS.md`, or a handoff.
-3. Reassign the TASK to a Claude-Worker (`Backend` or `Frontend`, based on the repo).
-4. Include the available context so the Claude-Worker can continue instead of restarting from zero.
+```
+Codex fails → OpenCode (with Mistral Medium 3.5 128B) → Frontend (frontend repo) or Backend (backend repo)
+```
+Codex fails  →  Frontend (frontend repo) or Backend (backend repo) directly
+```
 
-The priority is continuity. Do not leave tasks looping forever.
+As Orchestrator you do **not** need to manually reassign on failure — the TUI does it. Your role is:
+
+1. Check `INBOX.md` or `QUEUE.md` to confirm the fallback ran correctly.
+2. If the TUI could not resolve it (task marked `failed`), then manually assign to `Frontend` or `Backend` based on the repo.
+3. Leave a note in `QUEUE.md` or `TASKS.md` if the reason is relevant for the session.
 
 ## Agents
 
@@ -126,15 +148,26 @@ Default agent summary:
 | --- | --- | --- |
 | Backend | claude | Backend code through Claude-Worker |
 | Frontend | claude | Broad frontend work through Claude-Worker |
-| Codex | codex | Structured implementation, tests, docs, narrow frontend support |
-| OpenCode | opencode | Exploration, audits, structured reports, scoped implementation |
+| Codex | codex | **First choice for implementation**; structured implementation, tests, docs, narrow frontend support |
+| OpenCode | opencode | **Second choice for implementation** (with Mistral Medium 3.5 128B); exploration, audits, structured reports |
 | Gemini | gemini | Optional audits and reviews only when explicitly enabled |
 | Cursor | cursor | Optional mechanical bulk edits only when explicitly enabled |
 | Abacus | abacusai | Optional small focused tasks only when explicitly enabled |
 
+**Notes about OpenCode:**
+- When OpenCode uses **Mistral Medium 3.5 128B or equivalent models**, it can implement code.
+- If the model is not suitable for implementation, OpenCode will only perform analysis and report as `blocked`.
+
 ## How To Assign Work
 
-Write TASKs in `QUEUE.md` with this format:
+1. **When the user asks for a change or new task** → **NEVER analyze directly yourself**
+- **If prior analysis is needed**: Create a TASK in `QUEUE.md` assigned **EXCLUSIVELY** to **OpenCode** to explore the context
+- **Wait for the report**: OpenCode writes findings to `progress/PROGRESS-OpenCode.md` and notifies in `INBOX.md`
+- **Then implement**: **READ OPENCODE'S REPORT** in `progress/PROGRESS-OpenCode.md` or `INBOX.md` and create new TASK assigned to **Codex** (or Claude-Worker if Codex is unavailable)
+- **OpenCode DOES NOT implement** — its TASKs are **ONLY for analysis**; implementation **ALWAYS** goes to Codex or Claude-Worker
+- **NEVER, under any circumstances, analyze the project code yourself (Claude-Orchestrator)** — **THIS IS OPENCODE'S EXCLUSIVE JOB**. If a report from OpenCode already exists, **USE THAT CONTEXT** to create implementation tasks.
+
+2. Write TASKs in `QUEUE.md` with this format:
 
 ```text
 TASK-NNN | short title | Agent | P1 | repo | detailed description
@@ -147,15 +180,16 @@ Rules:
 3. Add `> after:TASK-NNN` at the end of the description for dependencies.
 4. Use `TASKS.md` under `### TASK-NNN` for longer task specs when needed.
 5. Use `briefs/TASK-NNN-BRIEF.md` for very detailed briefs when needed.
-6. After changing `QUEUE.md`, tell the user to press `R` in the TUI, and `S` if the TUI is paused.
+6. **The TUI starts automatically** - you don't need to press R or S. The TUI detects new tasks and launches them.
 
 Routing preferences:
 
-1. Start with Codex/OpenCode when a task is clear enough for them.
-2. Keep Claude-Worker available as fallback or extra capacity.
-3. For frontend, use Codex for narrow tasks and Frontend/Claude-Worker for broad UI or complex interaction work.
-4. Use OpenCode for exploration, audits, and scoped implementation.
-5. Do not assign all tasks to Claude just because Claude is the orchestrator.
+1. Use OpenCode for exploration, audits, and **implementation (with Mistral Medium 3.5 128B or advanced models)**.
+2. Use Codex as the **primary implementation agent** when the spec is clear.
+3. Use OpenCode as the **secondary implementation agent** (when using advanced models).
+4. Keep Claude-Worker available as automatic fallback for Codex/OpenCode and for overflow tasks.
+5. For frontend, use Codex for narrow tasks and Frontend/Claude-Worker for broad UI work.
+6. Do not assign all tasks to Claude just because Claude is the orchestrator.
 
 ## Hard Rules
 
@@ -169,16 +203,19 @@ Routing preferences:
 8. Use Engram for durable decisions, bugs, discoveries, and session summaries.
 9. Use `openspec/changes/<change-name>/` for large changes.
 10. Claude remains the final reviewer before work is considered accepted.
+11. **MANDATORY VERIFICATION:** Before creating any implementation TASK, **READ AND CONFIRM THAT:**
+   - There is an OpenCode report in `INBOX.md` or `progress/PROGRESS-OpenCode.md` for the requested analysis.
+   - The implementation TASK is based **EXCLUSIVELY** on OpenCode's report.
+   - **YOU (Claude-Orchestrator) HAVE NOT** analyzed the code yourself.
 
 ## TUI Controls
 
 ```bash
 cd <workspace-path>
-node orchestrator.js
+agentflow ink
 ```
 
-- `R`: reload `QUEUE.md`
-- `S`: start or resume
+- `S`: resume (Paused → Running)
 - `P`: pause
 - `Q`: quit and stop agents
 

@@ -71,7 +71,7 @@ function printHelp() {
 	console.log(`
 agentflow
 
-Uso:
+Uso / Usage:
   agentflow init [targetDir] [--project-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
   agentflow init-workspace <projectPath> [--workspace-name <name>] [--backend <path>] [--frontend <path>] [--lang <en|es>] [--force]
   agentflow tui [--paused] [--yolo]
@@ -80,11 +80,11 @@ Uso:
   agentflow openspec:new <change-name>
   agentflow agent-config:init
 
-Ejemplos:
+Ejemplos / Examples:
   agentflow init . --project-name "Mi Proyecto" --lang es
   agentflow init-workspace C:/code/mi-proyecto --lang en
   agentflow tui --paused
-  agentflow ink
+  agentflow ink --yolo
 `);
 }
 
@@ -325,6 +325,7 @@ switch (command) {
 	case 'agent-config:init':
 		runNodeScript(path.join('scripts', 'scaffold-agent-configs.mjs'));
 		break;
+	// schedule command removed - using fs.watch realtime instead
 	default:
 		console.error(TEXT.es.unknown(command));
 		printHelp();

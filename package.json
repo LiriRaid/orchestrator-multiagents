@@ -1,6 +1,6 @@
 {
   "name": "@liriraid/agentflow-ai",
-  "version": "1.0.12",
+  "version": "1.0.21",
   "description": "Multi-agent workspace orchestrator with TUI. Coordinates AI coding agents over your real frontend and backend projects.",
   "author": "LiriRaid",
   "homepage": "https://github.com/LiriRaid/agentflow-ai#readme",
@@ -22,7 +22,6 @@
     "bin",
     "src",
     "templates",
-    "scripts",
     "orchestrator.js",
     "LICENSE"
   ],
@@ -31,9 +30,6 @@
     "start:paused": "node orchestrator.js --paused",
     "start:ink": "node src/ink/index.mjs",
     "start:ink:paused": "node src/ink/index.mjs --paused",
-    "skills:registry": "node scripts/update-skill-registry.mjs",
-    "openspec:new": "node scripts/scaffold-openspec-change.mjs",
-    "agent-config:init": "node scripts/scaffold-agent-configs.mjs",
     "cli:help": "node bin/agentflow.mjs --help"
   },
   "keywords": [
