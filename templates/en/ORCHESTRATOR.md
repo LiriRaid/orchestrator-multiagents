@@ -122,6 +122,8 @@ del .away-mode
 The TUI handles fallback automatically following this chain:
 
 ```
+Codex fails → OpenCode (with Mistral Medium 3.5 128B) → Frontend (frontend repo) or Backend (backend repo)
+```
 Codex fails  →  Frontend (frontend repo) or Backend (backend repo) directly
 ```
 
@@ -146,20 +148,24 @@ Default agent summary:
 | --- | --- | --- |
 | Backend | claude | Backend code through Claude-Worker |
 | Frontend | claude | Broad frontend work through Claude-Worker |
-| Codex | codex | Structured implementation, tests, docs, narrow frontend support |
-| OpenCode | opencode | Exploration, audits, structured reports — analysis only, does not implement code |
+| Codex | codex | **First choice for implementation**; structured implementation, tests, docs, narrow frontend support |
+| OpenCode | opencode | **Second choice for implementation** (with Mistral Medium 3.5 128B); exploration, audits, structured reports |
 | Gemini | gemini | Optional audits and reviews only when explicitly enabled |
 | Cursor | cursor | Optional mechanical bulk edits only when explicitly enabled |
 | Abacus | abacusai | Optional small focused tasks only when explicitly enabled |
 
+**Notes about OpenCode:**
+- When OpenCode uses **Mistral Medium 3.5 128B or equivalent models**, it can implement code.
+- If the model is not suitable for implementation, OpenCode will only perform analysis and report as `blocked`.
+
 ## How To Assign Work
 
 1. **When the user asks for a change or new task** → **NEVER analyze directly yourself**
-   - **If prior analysis is needed**: Create a TASK in `QUEUE.md` assigned to **OpenCode** to explore the context
-   - **Wait for the report**: OpenCode writes findings in INBOX.md or progress/
-   - **Then implement**: Create a new TASK assigned to **Codex** (or Claude-Worker if Codex is unavailable)
-   - **OpenCode does not implement** — its TASKs are always analysis; implementation goes to Codex or Claude-Worker
-   - **Never analyze the project code yourself** — that is OpenCode's job
+- **If prior analysis is needed**: Create a TASK in `QUEUE.md` assigned **EXCLUSIVELY** to **OpenCode** to explore the context
+- **Wait for the report**: OpenCode writes findings to `progress/PROGRESS-OpenCode.md` and notifies in `INBOX.md`
+- **Then implement**: **READ OPENCODE'S REPORT** in `progress/PROGRESS-OpenCode.md` or `INBOX.md` and create new TASK assigned to **Codex** (or Claude-Worker if Codex is unavailable)
+- **OpenCode DOES NOT implement** — its TASKs are **ONLY for analysis**; implementation **ALWAYS** goes to Codex or Claude-Worker
+- **NEVER, under any circumstances, analyze the project code yourself (Claude-Orchestrator)** — **THIS IS OPENCODE'S EXCLUSIVE JOB**. If a report from OpenCode already exists, **USE THAT CONTEXT** to create implementation tasks.
 
 2. Write TASKs in `QUEUE.md` with this format:
 
@@ -178,11 +184,12 @@ Rules:
 
 Routing preferences:
 
-1. Use OpenCode for exploration, audits, and analysis. Never for implementation.
-2. Use Codex as the primary implementation agent when the spec is clear.
-3. Keep Claude-Worker available as automatic fallback for Codex and for overflow tasks.
-4. For frontend, use Codex for narrow tasks and Frontend/Claude-Worker for broad UI work.
-5. Do not assign all tasks to Claude just because Claude is the orchestrator.
+1. Use OpenCode for exploration, audits, and **implementation (with Mistral Medium 3.5 128B or advanced models)**.
+2. Use Codex as the **primary implementation agent** when the spec is clear.
+3. Use OpenCode as the **secondary implementation agent** (when using advanced models).
+4. Keep Claude-Worker available as automatic fallback for Codex/OpenCode and for overflow tasks.
+5. For frontend, use Codex for narrow tasks and Frontend/Claude-Worker for broad UI work.
+6. Do not assign all tasks to Claude just because Claude is the orchestrator.
 
 ## Hard Rules
 
@@ -196,6 +203,10 @@ Routing preferences:
 8. Use Engram for durable decisions, bugs, discoveries, and session summaries.
 9. Use `openspec/changes/<change-name>/` for large changes.
 10. Claude remains the final reviewer before work is considered accepted.
+11. **MANDATORY VERIFICATION:** Before creating any implementation TASK, **READ AND CONFIRM THAT:**
+   - There is an OpenCode report in `INBOX.md` or `progress/PROGRESS-OpenCode.md` for the requested analysis.
+   - The implementation TASK is based **EXCLUSIVELY** on OpenCode's report.
+   - **YOU (Claude-Orchestrator) HAVE NOT** analyzed the code yourself.
 
 ## TUI Controls
 

@@ -1010,6 +1010,36 @@ function parseCompletedFromFile() {
 }
 
 const loggedUnknownAgents = new Set();
+let queueWatcher = null;
+
+function setupQueueWatcher() {
+  if (!fs.existsSync(QUEUE_FILE)) return;
+  
+  if (queueWatcher) {
+    try { queueWatcher.close(); } catch {}
+    queueWatcher = null;
+  }
+  
+  try {
+    queueWatcher = fs.watch(QUEUE_FILE, { persistent: false }, (eventType, filename) => {
+      if (eventType === 'change' && filename === path.basename(QUEUE_FILE)) {
+        log('DEBUG', `QUEUE.md changed, reloading queue immediately`);
+        reloadQueue();
+        scheduleNext();
+        renderDashboard();
+      }
+    });
+    queueWatcher.on('error', (err) => {
+      log('WARN', `fs.watch failed for QUEUE.md: ${err.message}, falling back to polling`);
+      queueWatcher = null;
+    });
+    log('INFO', 'Realtime QUEUE.md watcher enabled');
+  } catch (err) {
+    log('WARN', `Failed to setup QUEUE.md watcher: ${err.message}, using polling`);
+    queueWatcher = null;
+  }
+}
+
 function reloadQueue() {
   state.queue = parseQueue();
   const activeIds = new Set([
@@ -1954,14 +1984,55 @@ setInterval(() => {
   if (command) applyControlCommand(command);
 }, 1000);
 
-// Real-time queue detection — watches WORKSPACE directory (not the file directly)
-// because on Windows fs.watch on a file is unreliable; watching the parent dir
-// and filtering by filename is the stable pattern (same as AWAY MODE watcher).
+// Real-time queue detection — watches QUEUE.md directly with fallback to WORKSPACE directory
+// fs.watch on the file itself works reliably on Linux/macOS; fallback to WORKSPACE for Windows
 let _queueWatchDebounce = null;
+let _queueWatcher = null;
+
 function startQueueWatcher() {
+  if (_queueWatcher) {
+    try { _queueWatcher.close(); } catch {}
+    _queueWatcher = null;
+  }
+  
+  try {
+    // Try to watch the file directly first (best for Linux/macOS)
+    _queueWatcher = fs.watch(QUEUE_FILE, { persistent: false }, (eventType, filename) => {
+      if (_queueWatchDebounce) clearTimeout(_queueWatchDebounce);
+      _queueWatchDebounce = setTimeout(() => {
+        if (!fs.existsSync(QUEUE_FILE)) return;
+        const prevCount = state.queue.length;
+        reloadQueue();
+        if (!state.paused) scheduleNext();
+        renderDashboard();
+        if (state.queue.length > prevCount)
+          log("INFO", WORKSPACE_LANGUAGE === "es"
+            ? `Nueva tarea detectada en QUEUE.md (realtime)`
+            : `New task detected in QUEUE.md (realtime)`);
+      }, 10); // Faster debounce for direct file watch
+    });
+    _queueWatcher.on('error', () => {
+      // Fallback to WORKSPACE directory watch if direct file watch fails (Windows)
+      log('WARN', WORKSPACE_LANGUAGE === "es"
+        ? `No se pudo verificar QUEUE.md directamente, usando watcher de directorio`
+        : `Could not watch QUEUE.md directly, falling back to directory watcher`);
+      setupFallbackQueueWatcher();
+    });
+  } catch (err) {
+    log('WARN', `Queue watcher error: ${err.message}, using fallback`);
+    setupFallbackQueueWatcher();
+  }
+}
+
+function setupFallbackQueueWatcher() {
+  if (_queueWatcher) {
+    try { _queueWatcher.close(); } catch {}
+    _queueWatcher = null;
+  }
+  
   try {
     const watchName = path.basename(QUEUE_FILE);
-    const watcher = fs.watch(WORKSPACE, {persistent: false}, (eventType, filename) => {
+    _queueWatcher = fs.watch(WORKSPACE, { persistent: false }, (eventType, filename) => {
       if (filename !== watchName) return;
       if (_queueWatchDebounce) clearTimeout(_queueWatchDebounce);
       _queueWatchDebounce = setTimeout(() => {
@@ -1976,10 +2047,12 @@ function startQueueWatcher() {
             : `New task detected in QUEUE.md`);
       }, 50);
     });
-    watcher.on('error', () => {});
+    _queueWatcher.on('error', () => {});
   } catch {}
 }
+
 startQueueWatcher();
+setupQueueWatcher();
 
 // Slow fallback (5 min) — only runs if there is actually pending work or busy agents
 // fs.watch handles real-time; this is just a safety net

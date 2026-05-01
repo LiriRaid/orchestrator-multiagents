@@ -1,44 +1,237 @@
-# Orquestador Multiagente
+# Orquestador Multiagente (agentflow-ai)
 
 > by **LiriRaid**
 
-Orquestador reusable para trabajar con múltiples agentes de código desde terminal, con un TUI propio, cola operativa, skills locales, memoria persistente con Engram y artefactos OpenSpec para cambios grandes.
+**Sistema de Orquestación Multiagente para Desarrollo con IA**
 
-La idea central no es dejar que una sola IA haga todo, sino:
+Un workspace reutilizable que coordina **múltiples agentes de IA** (Claude, Codex, OpenCode, etc.) para trabajar **en paralelo** en proyectos reales, manteniendo el repositorio del proyecto **completamente limpio** de archivos del orquestador.
 
-- usar a **Claude** como orquestador principal
-  - usar **OpenCode** principalmente para exploración, lectura y contexto, pero también para implementar cuando convenga
-  - usar **Codex** para ejecución estructurada e implementación de apoyo
-- reflejar todo en una **TUI** que muestra estado, cola, agentes, logs y actividad real
+```text
+workspace-proyecto/
+  mi-proyecto/          # Proyecto real (permanece limpio)
+  orchestrator-mi-proyecto/  # Workspace del orquestador (generado)
+```
 
-## Qué es hoy
+## 🎯 ¿Qué hace?
 
-Este repo ya no es solo un runner con `QUEUE.md`.
+- **Coordina múltiples agentes de IA** (Claude, Codex, OpenCode, Gemini, Cursor, Abacus) para trabajar simultáneamente en tu proyecto.
+- **Monitoreo en tiempo real** con una TUI moderna que muestra el estado en vivo de agentes, cola y progreso.
+- **Delegación automática de tareas** según la especialización del agente (análisis, implementación, revisión de código).
+- **Memoria persistente** con Engram para mantener el contexto entre sesiones.
+- **Soporte para SDD (Spec-Driven Development)** con OpenSpec para cambios grandes y multifase.
+- **Sistema de fallback automático** que reasigna tareas cuando un agente falla o alcanza límites de cuota.
+- **Soporte multi-idioma** (español e inglés) para todas las plantillas y documentación.
 
-Hoy incluye:
+## ✨ Características Clave
 
-- **motor de orquestación** en `orchestrator.js`
-- **TUI Ink** conectada al motor real
-- **skills locales** en `.claude/skills/`
-- **routing local** con `CLAUDE.md`
-- **memoria persistente** con `ENGRAM.md`
-- **OpenSpec** para cambios grandes
-- **configuración por agente** con `agentProfiles`
-- **base de installer / ecosystem configurator**
-- **documentación local de componentes y arquitectura**
+### 1. **Modelo de Workspace Sibling**
+- El orquestador crea un **workspace separado** al lado de tu proyecto real.
+- Tu repositorio del proyecto **permanece completamente limpio** (sin `QUEUE.md`, `logs/`, etc.).
+- Los agentes trabajan en los archivos reales del proyecto mediante rutas absolutas configuradas en `orchestrator.config.json`.
 
-## Valor del sistema
+### 2. **Coordinación Multiagente**
+| Agente | Rol | Prioridad | Notas |
+|--------|-----|----------|-------|
+| **Claude-Orquestador** | Coordinador de sesión | - | Nunca implementa código directamente; delega a workers |
+| **Codex** | Implementación primaria | 1ra opción | Tareas estructuradas, tests, docs |
+| **OpenCode** | Análisis + Implementación | 2da opción | Usa Mistral Medium 3.5 128B para código |
+| **Claude-Worker** (Backend/Frontend) | Fallback | 3ra opción | Toma el relevo si Codex/OpenCode fallan |
+| **Gemini** | Revisión/auditoría | Opcional | Deshabilitado por defecto |
+| **Cursor/Abacus** | Tareas mecánicas | Opcional | Deshabilitado por defecto |
 
-Lo que agrega valor en este flujo:
+### 3. **Operación en Tiempo Real**
+- **fs.watch en QUEUE.md**: Detecta cambios en **~1-2 segundos** (Linux/macOS: monitoreo directo de archivo; Windows: fallback a monitoreo de directorio).
+- **Actualizaciones en vivo de la TUI**: El dashboard se refresca automáticamente cuando se agragan, inician o completan tareas.
+- **Notificaciones instantáneas**: Claude-Orquestador recibe alertas en `INBOX.md` y `NOTIFY.md` cuando las tareas finalizan.
 
-- TUI multiagente visible en tiempo real
-- cola operativa (`QUEUE.md`) integrada al runtime
-- delegación real para ahorro de tokens
-- separación clara entre:
-  - exploración
-  - planificación
-  - ejecución
-  - verificación
+### 4. **Delegación Inteligente de Tareas**
+- **Tareas de análisis** → Siempre asignadas a **OpenCode**.
+- **Tareas de implementación** → Asignadas a **Codex** (1ra) → **OpenCode** (2da, si usa Mistral Medium 3.5 128B) → **Claude-Worker** (3ra).
+- **Cadena de fallback**: `Codex → OpenCode → Claude-Worker` (automático).
+
+### 5. **Memoria Persistente y SDD**
+- **Engram**: Almacena decisiones, bugs y hallazgos entre sesiones.
+- **OpenSpec**: Soporta `proposal.md`, `spec.md`, `design.md`, `tasks.md`, y `verify-report.md` para cambios grandes.
+- **Handoffs**: Resúmenes de sesión para continuidad.
+
+## 🚀 Instalación
+
+### CLI Global (Recomendado)
+```bash
+npm i -g @liriraid/agentflow-ai
+```
+
+### Desarrollo Local
+```bash
+git clone https://github.com/LiriRaid/agentflow-ai.git
+cd agentflow-ai
+npm install
+```
+
+## 🛠️ Inicio Rápido
+
+### 1. Crear un Workspace del Orquestador
+```bash
+# Interactivo (pregunta el idioma)
+agentflow init-workspace C:/code/mi-proyecto
+
+# Directo (Inglés)
+agentflow init-workspace C:/code/mi-proyecto --lang en
+
+# Directo (Español)
+agentflow init-workspace C:/code/mi-proyecto --lang es
+```
+Esto crea un workspace hermano (ej: `orchestrator-mi-proyecto/`) con todos los archivos de configuración.
+
+### 2. Configurar Repositorios
+Edita `orchestrator.config.json` en el workspace generado:
+```json
+{
+  "repos": {
+    "backend": "C:/code/mi-backend",
+    "frontend": "C:/code/mi-frontend"
+  }
+}
+```
+
+### 3. Iniciar la TUI
+```bash
+cd orchestrator-mi-proyecto
+agentflow ink --paused
+```
+**Controles:**
+- `S`: Iniciar/Reanudar
+- `P`: Pausar
+- `R`: Recargar cola
+- `Q`: Salir (detiene todos los agentes)
+
+### 4. Abrir Claude Code
+Abre una segunda terminal en el **workspace del orquestador** (no en el proyecto real):
+```bash
+cd orchestrator-mi-proyecto
+claude
+```
+Luego ejecuta:
+```
+Lee ORCHESTRATOR.md y arranca.
+```
+
+### 5. Solicitar Trabajo
+Ejemplos:
+- `"Explora este proyecto"` → OpenCode analiza y reporta.
+- `"Agrega autenticación JWT"` → OpenCode analiza, luego Codex/OpenCode implementan.
+- `"Refactoriza la capa de API"` → OpenCode explora, luego los workers implementan en paralelo.
+
+## 📁 Estructura del Workspace
+
+El workspace generado incluye:
+
+```text
+orchestrator-mi-proyecto/
+├── ORCHESTRATOR.md      # Reglas principales para la sesión del orquestador
+├── CLAUDE.md            # Reglas de enrutamiento para Claude
+├── QUEUE.md             # Cola de tareas activa (TASK-NNN | título | agente | ...)
+├── ENGRAM.md            # Convenciones de memoria persistente
+├── orchestrator.config.json  # Repos, agentes, modelos y perfiles
+├── agents/              # Instrucciones específicas por agente
+│   ├── BACKEND.md
+│   ├── FRONTEND.md
+│   ├── CODEX.md
+│   └── OPENCODE.md
+├── .claude/             # Skills y configuración local de Claude
+│   └── skills/          # Skills del orquestador (init, explore, etc.)
+├── .codex/              # Configuración de Codex
+├── .opencode/           # Configuración de OpenCode
+├── openspec/            # Artefactos SDD
+│   ├── changes/
+│   └── templates/
+├── docs/                # Documentación
+├── logs/                # Logs de ejecución
+├── handoffs/            # Handoffs de sesión
+└── progress/            # Reportes de progreso de agentes
+```
+
+## 🎛️ Configuración
+
+### Configuración de Agentes (`orchestrator.config.json`)
+```json
+{
+  "projectName": "Mi Proyecto",
+  "workspaceLanguage": "es",
+  "maxConcurrent": 5,
+  "pollIntervalSeconds": 5,  // Polling de fallback (realtime usa fs.watch)
+  "taskTimeoutMinutes": 30,
+  "repos": {
+    "backend": "C:/code/mi-backend",
+    "frontend": "C:/code/mi-frontend"
+  },
+  "agentProfiles": {
+    "claude": { "enabled": true, "localConfigDir": ".claude" },
+    "codex": { "enabled": true, "localConfigDir": ".codex" },
+    "opencode": { "enabled": true, "localConfigDir": ".opencode" }
+  },
+  "agents": {
+    "Backend": { "cli": "claude", "defaultRepo": "backend", "model": "sonnet" },
+    "Frontend": { "cli": "claude", "defaultRepo": "frontend", "model": "sonnet" },
+    "Codex": { "cli": "codex", "defaultRepo": "backend", "model": "gpt-5.5" },
+    "OpenCode": { "cli": "opencode", "defaultRepo": "frontend", "model": "auto" }
+  }
+}
+```
+
+### Selección de Modelo
+- Usa `"model": "auto"` para que el agente use el modelo configurado por defecto en tu sistema (ej: Mistral Medium 3.5 128B para OpenCode).
+- Especifica un modelo explícitamente (ej: `"model": "gpt-5.5"`) para sobrescribir.
+
+## 🔄 Ejemplo de Flujo de Trabajo
+
+1. **Solicitud del Usuario**: `"Agrega autenticación JWT al backend."`
+2. **Claude-Orquestador**:
+   - Crea `TASK-001` (OpenCode): `"Analizar sistema de autenticación actual"`
+   - Espera el reporte de OpenCode en `progress/PROGRESS-OpenCode.md`
+3. **OpenCode**:
+   - Analiza el codebase.
+   - Escribe los hallazgos en `progress/PROGRESS-OpenCode.md` y `INBOX.md`.
+4. **Claude-Orquestador**:
+   - Lee el reporte de OpenCode.
+   - Crea `TASK-002` (Codex): `"Implementar autenticación JWT"` (depende de TASK-001).
+5. **Codex**:
+   - Implementa la funcionalidad.
+   - Reporta la finalización en `progress/PROGRESS-Codex.md`.
+6. **TUI**:
+   - Muestra actualizaciones en tiempo real (estado de tareas, actividad de agentes, costos).
+
+## 📊 Agentes Soportados y Modelos
+
+| Agente | CLI | Modelo por Defecto | ¿Implementa? | Notas |
+|--------|-----|---------------------|--------------|-------|
+| Backend | `claude` | sonnet | ✅ Sí | Claude-Worker para tareas de backend |
+| Frontend | `claude` | sonnet | ✅ Sí | Claude-Worker para tareas de frontend |
+| Codex | `codex` | gpt-5.5 | ✅ Sí | Implementación primaria |
+| OpenCode | `opencode` | auto | ✅ **Sí** (con Mistral Medium 3.5 128B) | Implementación secundaria |
+| Gemini | `gemini` | auto | ❌ No | Solo auditorías/revisiones |
+| Cursor | `cursor` | auto | ❌ No | Solo ediciones masivas |
+| Abacus | `abacusai` | auto | ❌ No | Solo tareas pequeñas y enfocadas |
+
+## 🛡️ Seguridad y Mejores Prácticas
+
+- **Sin commits automáticos**: Los agentes nunca ejecutan `git commit` o `git push`.
+- **Sin modo YOLO por defecto**: El modo seguro está activado a menos que se use `--yolo`.
+- **Claude como revisor**: Claude-Orquestador valida todo el trabajo antes de la aprobación del usuario.
+- **Repositorios limpios**: Los archivos del proyecto permanecen intactos; los archivos del orquestador viven en el workspace hermano.
+- **Fallback seguro**: Las tareas se reasignan automáticamente si un agente falla.
+
+## 📚 Documentación
+
+- **Reglas Principales**: Ver `ORCHESTRATOR.md` en el workspace generado.
+- **Enrutamiento de Agentes**: Ver `CLAUDE.md`.
+- **Arquitectura**: Ver `docs/architecture.md`.
+- **OpenSpec**: Ver `openspec/FLOW.md`.
+
+## 🤝 Reconocimientos
+
+Inspirado en [Orquestador-AI](https://github.com/ariellontero/Orquestador-AI) de Ariel Lontero (MIT). 
+Construido desde cero con una arquitectura moderna: **TUI Ink + React, paquete npm, fs.watch en tiempo real, plantillas multi-idioma y coordinación multiagente**.
 
 ## Documentación local
 
